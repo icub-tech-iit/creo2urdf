@@ -1,0 +1,12 @@
+USER Collect Curves for trajectory
+Collect Curves for Sweep Trajectory
+#
+#
+USER Select pivot direction
+Select pivot direction for Sweep
+#
+#
+USER abort selection/collection
+Curve Collection or Pivot direction selection is aborted
+#
+#

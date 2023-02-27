@@ -1,0 +1,8 @@
+
+	#Copyright (c) 2022 PTC Inc. and/or Its Subsidiary Companies. All Rights Reserved.
+
+NAME       otk_examples
+EXEC_FILE  ../$PRO_MACHINE_TYPE/obj/otk_examples_dll.dll
+TEXT_DIR   ./text
+STARTUP    dll
+END

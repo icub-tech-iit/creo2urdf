@@ -1,0 +1,36 @@
+USER Not in session
+Model is currently not in session
+#
+#
+USER Invalid model type
+Model must be a part or assembly
+#
+#
+USER Plane Selection
+Select a datum plane or surface
+#
+#
+USER Quilt Selection
+Select a quilt
+#
+#
+USER Section Name
+Enter the section name
+#
+#
+USER Part Selection
+Select a part
+#
+#
+USER Quilt Selection aborted
+Quilt selection aborted including all quilts in model
+#
+#
+USER Section not found
+No sections found
+#
+#
+USER Part Exclusion
+Select parts to exclude
+#
+#
