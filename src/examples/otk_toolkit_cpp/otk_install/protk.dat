@@ -1,6 +1,0 @@
-NAME       otk_install
-EXEC_FILE  .\x64\Debug\otk_install.dll
-TEXT_DIR   .\text
-STARTUP    dll
-END
-

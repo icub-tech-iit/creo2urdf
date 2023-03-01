@@ -1,0 +1,84 @@
+#UGC:2 NEUTRAL 1545 440 800 0 0 15 3200 2011250 00000000 \
+#- VERS 0 0                                                          \
+#- HOST                                                              \
+#- LINK                                                              \
+#- DBID                                                              \
+#- REVS 0,                                                           \
+#- RELL 0,                                                           \
+#- UOBJ_ID 0 0 0                                                     \
+#- MACH                                                              \
+#-END_OF_UGC_HEADER
+#Creo  TM  Version L-05-48  (c) 2011 by Parametric Technology Corporation  All Rights Reserved. M010
+0 RbnDBData ->
+1 groupList [1]
+2 groupList 
+3 ChildUnion(RbnDBGroup) ->
+4 RbnDBInheritContainer 
+5 mName user_custom_group_1
+5 mType 12
+5 mLabel OTK
+5 mAncestor 
+5 mKeyTip 
+5 mCustom 1
+5 Attributes 
+5 containerChildrenArray [1]
+6 containerChildrenArray 
+7 ChildUnion(RbnDBCommand) ->
+8 mName OTKInstallTest
+8 mType 1
+8 Attributes 
+8 mComponentClass OTKInstallTest
+8 mColumns 0
+4 mToolLauncher 
+4 mBitmap 
+1 pageList [1]
+2 pageList 
+3 ChildUnion(RbnDBPage) ->
+4 RbnDBInheritContainer 
+5 mName home_File@main_adb_cat
+5 mType 11
+5 mLabel __RBN_DB_NO_CHANGE__
+5 mAncestor 
+5 mKeyTip __RBN_DB_NO_CHANGE__
+5 mCustom 0
+5 Attributes 
+5 containerChildrenArray [2]
+6 containerChildrenArray 
+7 ChildUnion(RbnDBPosition) ->
+8 mName EOF
+8 mType 7
+8 Attributes 
+8 mIndex -1
+6 containerChildrenArray 
+7 ChildUnion(RbnDBGroupRef) ->
+8 mName user_custom_group_1
+8 mType 15
+8 Attributes 
+4 mCloseButton 
+0 Toolbar_io ->
+1 msg_win_on_top -1
+1 sec_win_size -1
+1 tree_placement -1
+1 same_height_check -1
+1 tree_width -1.
+1 tree_height -1.
+1 webUI_data ->
+2 show_navigation_tb 1
+2 show_address_tb 1
+2 animate_open_close 0
+2 show_history 0
+2 show_search 0
+2 auto_loading 0
+2 steps 5
+2 width_browser -1.
+2 width_tabs -1.
+2 tabs_placement 0
+1 igt_alignment 0
+1 acc_win_igt_alignment 0
+1 igt_icon_size 16
+0 InitialRibbonCustData_io ->
+1 qat_position 1
+1 minimize_ribbon 0
+1 igt_alignment 0
+1 igt_icon_size -1
+#END_OF_UGC

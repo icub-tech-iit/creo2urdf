@@ -18,44 +18,6 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="OTKMultiBody.cxx" />
-    <ClCompile Include="OTKXAssemblyItemOperations.cxx" />
-    <ClCompile Include="OTKXAssemblyItemUtils.cxx" />
-    <ClCompile Include="OTKXCombinedState.cxx" />
-    <ClCompile Include="OTKXCombStateUtils.cxx" />
-    <ClCompile Include="OTKXCreateIntfData.cxx" />
-    <ClCompile Include="OTKXCreateSection2D.cxx" />
-    <ClCompile Include="OTKXCreateSection3D.cxx" />
-    <ClCompile Include="OTKXCreateSweep.cxx" />
-    <ClCompile Include="OTKXCrossSection.cxx" />
-    <ClCompile Include="OTKXDrawing.cxx" />
-    <ClCompile Include="OTKXEnum.cxx" />
-    <ClCompile Include="OTKXFamilyMember.cxx" />
-    <ClCompile Include="OTKXFamilyTable.cxx" />
-    <ClCompile Include="OTKXFamilyTableUtils.cxx" />
-    <ClCompile Include="OTKXFeatureOperations.cxx" />
-    <ClCompile Include="OTKXGeometryUtils.cxx" />
-    <ClCompile Include="OTKXIntfDataUtils.cxx" />
-    <ClCompile Include="OTKXLayerState.cxx" />
-    <ClCompile Include="OTKXLayerStateUtils.cxx" />
-    <ClCompile Include="OTKXLights.cxx" />
-    <ClCompile Include="OTKXListFeatures.cxx" />
-    <ClCompile Include="OTKXMain.cxx" />
-    <ClCompile Include="OTKXModelItemsVisiting.cxx" />
-    <ClCompile Include="OTKXModelUtils.cxx" />
-    <ClCompile Include="OTKXQuickPrint.cxx" />
-    <ClCompile Include="OTKXRasterExport.cxx" />
-    <ClCompile Include="OTKXSaveFeatUtils.cxx" />
-    <ClCompile Include="OTKXServerOperations.cxx" />
-    <ClCompile Include="OTKXSessionUtils.cxx" />
-    <ClCompile Include="OTKXSolidActionListener.cxx" />
-    <ClCompile Include="OTKXString.cxx" />
-    <ClCompile Include="OTKXUDF.cxx" />
-    <ClCompile Include="OTKXUIFCDialog.cxx" />
-    <ClCompile Include="OTKXUIFCNakedWin.cxx" />
-    <ClCompile Include="OTKXWriteFeatAsCxx.cxx" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C40B9240-8148-43E2-A727-99064CA9ACF5}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -74,7 +36,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfMfc>false</UseOfMfc>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -101,7 +63,7 @@
     <LinkIncremental>
     </LinkIncremental>
     <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH)</ExecutablePath>
-    <IncludePath>C:\Users\mfussi\iit\urdftest\otk_install\otk_install\includes;$(CREO_INSTALL)\otk\otk_cpp\include;$(CREO_INSTALL)\protoolkit\includes;$(IncludePath)</IncludePath>
+    <IncludePath>$(CREO_INSTALL)\otk\otk_cpp\include;$(CREO_INSTALL)\protoolkit\includes;$(IncludePath)</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <ExcludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x64);</ExcludePath>
     <ExtensionsToDeleteOnClean>*.obj</ExtensionsToDeleteOnClean>
@@ -148,12 +110,13 @@ wsock32.lib
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level1</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>USE_ANSI_IOSTREAMS;PRO_USE_VAR_ARGS;PRO_MACHINE=36;PRO_OS=4;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>
+      </RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -165,7 +128,7 @@ wsock32.lib
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(CREO_INSTALL)/otk/otk_cpp/x86e_win64/obj;$(CREO_INSTALL)/protoolkit/x86e_win64/obj;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>otk_cpp.lib;otk_222.lib;protoolkit_NU.lib;ucore.lib;udata.lib;netapi32.lib;wsock32.lib;psapi.lib;mpr.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>otk_cpp.lib;otk_no222.lib;protk_dll_NU.lib;ucore.lib;udata.lib;netapi32.lib;wsock32.lib;psapi.lib;mpr.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner />
       <OptimizeReferences>false</OptimizeReferences>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
@@ -234,6 +197,9 @@ ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration />
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="OTKTestInstall.cxx" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

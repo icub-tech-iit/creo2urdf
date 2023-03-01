@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\Users\mfussi\iit\urdftest\otk_install\x64\Debug\otk_install.exe</FullPath>
+      <FullPath>C:\Program Files\PTC\Creo 9.0.2.0\Common Files\otk\otk_cpp\x86e_win64\obj\otk_install\otk_install\x64\Debug\otk_install.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />
