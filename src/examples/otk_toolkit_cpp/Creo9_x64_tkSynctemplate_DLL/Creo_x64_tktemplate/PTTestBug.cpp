@@ -9,6 +9,8 @@
 #include <ProDrawingView.h>
 # include <pfcGlobal.h>
 #include <pfcModel.h>
+#include <pfcSolid.h>
+#include <string>
 
 FILE* errlog_fp;
 
@@ -84,6 +86,14 @@ extern "C" void user_terminate()
 
 }
 
+void printToMessageWindow(pfcSession_ptr session, std::stringstream & message)
+{
+	xstringsequence_ptr msg_sequence = xstringsequence::create();
+	msg_sequence->append(xstring(message));
+
+	session->UIDisplayMessage("pt_bug.txt", "DEBUG %0s", msg_sequence);
+}
+
 
 /*====================================================================*\
 FUNCTION : PTTestRunBug
@@ -92,14 +102,14 @@ PURPOSE  : Execute the bug code.
 ProError PTTestRunBug ()
 {	
 	ProError status = PRO_TK_GENERAL_ERROR;
-	ProMdl currMdl;
-	ProFeature feat1;
-	ProIntfDataSource intfdata;
-	ProSelection *sels;
-	int nSels = -1;
-	ProCsys csys;
-	ProModelitem mdlItem;
-	ProMdlName model_name;
+	//ProMdl currMdl;
+	//ProFeature feat1;
+	//ProIntfDataSource intfdata;
+	//ProSelection *sels;
+	//int nSels = -1;
+	//ProCsys csys;
+	//ProModelitem mdlItem;
+	//ProMdlName model_name;
 
 	//errlog_fp = fopen ("PTTestBug.log", "w");
 
@@ -111,15 +121,17 @@ ProError PTTestRunBug ()
 
 	pfcModel_ptr current = session->GetCurrentModel();
 
-	xstring name = current->GetFileName();
+	xstring name = current->GetFullName();
 
-	xstring message = "Ciao sono icub-tech";
-	xstringsequence_ptr msg_sequence = xstringsequence::create();
-	msg_sequence->append(message);
+	pfcSolid_ptr solid = pfcSolid::cast(session->GetCurrentModel());
+	pfcMassProperty_ptr massprop = solid->GetMassProperty();
+	xreal mass = massprop->GetMass();
 
-	session->UIDisplayMessage("pt_bug.txt", "DEBUG %0s", msg_sequence);
+	std::stringstream message;
+	message << "model name is " << name << " and weighs " << mass;
+	printToMessageWindow(session, message);
 
-	PT_TEST_LOG_SUCC("ProMdlCurrentGet", name);
+	//PT_TEST_LOG_SUCC("ProMdlCurrentGet", name);
 
 	if(status != PRO_TK_NO_ERROR)
 		return status;	
