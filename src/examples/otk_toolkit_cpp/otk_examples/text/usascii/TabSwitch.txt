@@ -1,7 +1,0 @@
-Cache Tab
-You are now switching to Cache Tab
-
-
-Server Tab
-You are now switching to Server Tab
-

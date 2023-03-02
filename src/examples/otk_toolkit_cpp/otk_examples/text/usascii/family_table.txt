@@ -1,4 +1,0 @@
-USER Enter index for row selection 1:Single Row, 2:Multiple Row
-Enter index for row selection 1:Single Row, 2:Multiple Row
-#
-#

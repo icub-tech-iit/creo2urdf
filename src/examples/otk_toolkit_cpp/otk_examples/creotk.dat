@@ -1,8 +1,0 @@
-NAME       otk_install
-STARTUP    dll
-EXEC_FILE  C:\Users\mfussi\iit\urdftest\creo2urdf\src\examples\otk_toolkit_cpp\otk_install\x64\Debug\otk_install.dll
-TEXT_DIR   C:\Users\mfussi\iit\urdftest\creo2urdf\src\examples\otk_toolkit_cpp\otk_install\text
-UNICODE_ENCODING false
-END
-
-

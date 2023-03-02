@@ -1,4 +1,0 @@
-OTK_DWG1
-Enter the name of the model to display in the new sheet:
-#
-#

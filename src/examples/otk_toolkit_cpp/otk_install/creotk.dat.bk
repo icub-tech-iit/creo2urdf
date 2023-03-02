@@ -1,5 +1,0 @@
-name       protoolkit
-exec_file  .\x64\Debug\otk_install.exe
-text_dir   .\text
-end
-
