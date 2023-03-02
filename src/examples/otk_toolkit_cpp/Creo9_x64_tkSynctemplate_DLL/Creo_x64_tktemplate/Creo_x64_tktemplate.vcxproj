@@ -129,7 +129,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>protk_dllmd_NU.lib;otk_cpp_md.lib;ucore.lib;udata.lib;kernel32.lib;user32.lib;wsock32.lib;advapi32.lib;mpr.lib;winspool.lib;netapi32.lib;psapi.lib;gdi32.lib;shell32.lib;comdlg32.lib;ole32.lib;ws2_32.lib</AdditionalDependencies>
+      <AdditionalDependencies>protk_dllmd_NU.lib;otk_cpp_md.lib;otk_no222_md.lib;ucore.lib;udata.lib;kernel32.lib;user32.lib;wsock32.lib;advapi32.lib;mpr.lib;winspool.lib;netapi32.lib;psapi.lib;gdi32.lib;shell32.lib;comdlg32.lib;ole32.lib;ws2_32.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>MSVCRTD.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalOptions>/IGNORE:4049 /IGNORE:4217 %(AdditionalOptions)</AdditionalOptions>
       <OutputFile>$(OutDir)\pt_bug.dll</OutputFile>

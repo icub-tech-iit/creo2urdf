@@ -7,8 +7,8 @@
 #include <ProNotify.h>
 #include <ProDrawing.h>
 #include <ProDrawingView.h>
-#include <wfcSession.h>
-#include <wfcGlobal.h>
+# include <pfcGlobal.h>
+#include <pfcModel.h>
 
 FILE* errlog_fp;
 
@@ -101,19 +101,31 @@ ProError PTTestRunBug ()
 	ProModelitem mdlItem;
 	ProMdlName model_name;
 
-	errlog_fp = fopen ("PTTestBug.log", "w");
+	//errlog_fp = fopen ("PTTestBug.log", "w");
 
-	status = ProMdlCurrentGet(&currMdl);
+	//status = ProMdlCurrentGet(&currMdl);
 
-	status = ProMdlMdlnameGet(currMdl, model_name);
+	//status = ProMdlMdlnameGet(currMdl, model_name);
 
-	PT_TEST_LOG_SUCC("ProMdlCurrentGet", model_name);
+	pfcSession_ptr session = pfcGetProESession();
+
+	pfcModel_ptr current = session->GetCurrentModel();
+
+	xstring name = current->GetFileName();
+
+	xstring message = "Ciao sono icub-tech";
+	xstringsequence_ptr msg_sequence = xstringsequence::create();
+	msg_sequence->append(message);
+
+	session->UIDisplayMessage("pt_bug.txt", "DEBUG %0s", msg_sequence);
+
+	PT_TEST_LOG_SUCC("ProMdlCurrentGet", name);
 
 	if(status != PRO_TK_NO_ERROR)
 		return status;	
 
-	fflush(errlog_fp);
-	fclose (errlog_fp);
+	//fflush(errlog_fp);
+	//fclose (errlog_fp);
 	return status;	
 }
 
