@@ -1,0 +1,7 @@
+name pt_bug
+Startup dll
+Allow_stop True
+Delay_start False
+exec_file	./x64/Debug/pt_bug.dll
+text_dir	./text
+END
