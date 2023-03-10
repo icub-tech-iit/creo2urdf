@@ -1,4 +1,7 @@
 .vs/
+.vscode/
+build/
 Debug/
 Release/
 *vcxproj.user
+CMakeSettings.json

@@ -4,13 +4,12 @@
 # This software may be modified and distributed under the terms of the
 # BSD-3-Clause license. See the accompanying LICENSE file for details.
 
-add_library(creo2urdf)
+add_library(creo2urdf SHARED)
 add_library(creo2urdf::creo2urdf ALIAS creo2urdf)
 
-set(CREO2URDF_HDRS include/creo2urdf/Creo2Urdf.h
+set(CREO2URDF_HDRS # include/creo2urdf/Creo2Urdf.h
 )
 set(CREO2URDF_SRCS src/Creo2Urdf.cpp
-                   src/main.cpp
 )
 set(CREO2URDF_IMPL_HDRS )
 set(CREO2URDF_IMPL_SRCS )
@@ -39,23 +38,36 @@ target_sources(creo2urdf
 )
 
 
-target_include_directories(creo2urdf
-  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-target_compile_features(creo2urdf PUBLIC cxx_std_17)
+target_include_directories(creo2urdf PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+                                            ${CREO9_INSTALL_PATH}/protoolkit/includes
+                                            ${CREO9_INSTALL_PATH}/otk/otk_cpp/include/
+                                            ${CREO9_INSTALL_PATH}/protoolkit/protk_appls/includes)
 
+target_link_directories(creo2urdf PUBLIC    ${CREO9_INSTALL_PATH}/otk/otk_cpp/x86e_win64/obj/
+                                            ${CREO9_INSTALL_PATH}/protoolkit/x86e_win64/obj/)
+
+## FIXME C++ 17 triggers "byte ambigous symbol" probably std::byte clashes with PTC defines
+target_compile_features(creo2urdf PUBLIC cxx_std_14)
+
+
+# FIXME investigate what they are
+add_compile_definitions(creo2urdf PUBLIC PRO_MACHINE=36
+                                         PRO_OS=4)
 
 # Link dependencies
-# target_link_libraries(creo2urdf PUBLIC  Boost::boost
-#                                         matioCpp::matioCpp
-#                                         Threads::Threads
-#                                 PRIVATE nlohmann_json::nlohmann_json)
-# Support using filesystem on GCC < 9.1,
-# see https://en.cppreference.com/w/cpp/filesystem#Notes
-if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1))
-  target_link_libraries(creo2urdf PUBLIC stdc++fs)
-endif()
+target_link_libraries(creo2urdf PUBLIC  protk_dllmd_NU
+                                        otk_cpp_md
+                                        otk_no222_md
+                                        ucore
+                                        udata
+                                        wsock32
+                                        ws2_32
+                                        advapi32
+                                        mpr
+                                        netapi32)
+
+# FIXME all these win32 libraries that are used by protk dll have to be set as dependencies of the target
 ## FIXME
 list(APPEND CREO2URDF_PUBLIC_DEPS)
 list(APPEND CREO2URDF_PRIVATE_DEPS)
@@ -92,11 +104,13 @@ install(
 set(CREO2URDF_PUBLIC_DEPS ${CREO2URDF_PUBLIC_DEPS} PARENT_SCOPE)
 set(CREO2URDF_PRIVATE_DEPS ${CREO2URDF_PRIVATE_DEPS} PARENT_SCOPE)
 
-include(InstallBasicPackageFiles)
+# Not needed right now
 
-install_basic_package_files(creo2urdf
-                                COMPATIBILITY AnyNewerVersion
-                                VERSION ${creo2urdf_VERSION}
-                                DEPENDENCIES ${CREO2URDF_PUBLIC_DEPS}
-                                PRIVATE_DEPENDENCIES ${CREO2URDF_PRIVATE_DEPS}
-                                EXPORT_DESTINATION ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
+#include(InstallBasicPackageFiles)
+
+#install_basic_package_files(creo2urdf
+#                                COMPATIBILITY AnyNewerVersion
+#                                VERSION ${creo2urdf_VERSION}
+#                                DEPENDENCIES ${CREO2URDF_PUBLIC_DEPS}
+#                                PRIVATE_DEPENDENCIES ${CREO2URDF_PRIVATE_DEPS}
+#                                EXPORT_DESTINATION ${CMAKE_BINARY_DIR}/${PROJECT_NAME})

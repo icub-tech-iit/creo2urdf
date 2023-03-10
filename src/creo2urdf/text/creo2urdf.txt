@@ -1,0 +1,13 @@
+-Run Creo2Urdf
+-Run Creo2Urdf
+#
+#
+Run Creo2Urdf code
+Run Creo2Urdf code
+#
+#
+%CW"DEBUG %0s"
+"%0s"
+#
+#
+
