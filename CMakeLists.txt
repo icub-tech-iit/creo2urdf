@@ -1,4 +1,4 @@
-# Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
+# Copyright (C) 2023 Istituto Italiano di Tecnologia (IIT)
 # All rights reserved.
 #
 # This software may be modified and distributed under the terms of the
@@ -20,13 +20,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}"
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
 
-# FIXME THIS COULD GIVE PROBLEMS
-# Under MSVC, we set CMAKE_DEBUG_POSTFIX to "d" to add a trailing "d" to library
-# built in debug mode.
-#if(MSVC)
-#  set(CMAKE_DEBUG_POSTFIX "d")
-#endif()
-
 # To build shared libraries in Windows, we set CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS to TRUE.
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
@@ -38,21 +31,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MD") # FIXME /MDd does not work, probably because ptc libraries are compiled in release
-
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.19)
   cmake_policy(SET CMP0111 NEW)
 endif()
-
-
-# Enable RPATH support for installed binaries and libraries
-include(AddInstallRPATHSupport)
-add_install_rpath_support(LIB_DIRS "${CMAKE_INSTALL_FULL_LIBDIR}"       # Libraries
-                          BIN_DIRS "${CMAKE_INSTALL_FULL_BINDIR}"       # Binaries
-                                   "${CMAKE_INSTALL_FULL_LIBDIR}/creo2urdf"  # Plugins
-                          INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}"
-                          USE_LINK_PATH)
 
 # Encourage user to specify a build type (e.g. Release, Debug, etc.), otherwise set it to Release.
 if(NOT CMAKE_CONFIGURATION_TYPES)
@@ -61,6 +42,12 @@ if(NOT CMAKE_CONFIGURATION_TYPES)
         set_property(CACHE CMAKE_BUILD_TYPE PROPERTY VALUE "Release")
     endif()
 endif()
+
+# We cannot compile in debug CREO Object Toolkit does not supports flags '/MDd' and '/MTd'
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message( FATAL_ERROR "creo2urdf can't be compiled in Debug" )
+endif()
+
 
 #### Dependencies
 
