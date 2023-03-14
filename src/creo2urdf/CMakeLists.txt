@@ -1,4 +1,4 @@
-# Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
+# Copyright (C) 2023 Istituto Italiano di Tecnologia (IIT)
 # All rights reserved.
 #
 # This software may be modified and distributed under the terms of the
@@ -104,13 +104,3 @@ install(
 set(CREO2URDF_PUBLIC_DEPS ${CREO2URDF_PUBLIC_DEPS} PARENT_SCOPE)
 set(CREO2URDF_PRIVATE_DEPS ${CREO2URDF_PRIVATE_DEPS} PARENT_SCOPE)
 
-# Not needed right now
-
-#include(InstallBasicPackageFiles)
-
-#install_basic_package_files(creo2urdf
-#                                COMPATIBILITY AnyNewerVersion
-#                                VERSION ${creo2urdf_VERSION}
-#                                DEPENDENCIES ${CREO2URDF_PUBLIC_DEPS}
-#                                PRIVATE_DEPENDENCIES ${CREO2URDF_PRIVATE_DEPS}
-#                                EXPORT_DESTINATION ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
