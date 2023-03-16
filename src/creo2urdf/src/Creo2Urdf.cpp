@@ -7,10 +7,11 @@
 #include <ProNotify.h>
 #include <ProDrawing.h>
 #include <ProDrawingView.h>
-# include <pfcGlobal.h>
+#include <pfcGlobal.h>
 #include <pfcModel.h>
 #include <pfcSolid.h>
 #include <string>
+#include <pfcShrinkwrap.h>
 
 FILE* errlog_fp;
 
@@ -130,6 +131,16 @@ ProError Creo2Urdf()
 	std::stringstream message;
 	message << "model name is " << name << " and weighs " << mass;
 	printToMessageWindow(session, message);
+
+	// Export stl of the model
+	//pfcShrinkwrapSTLInstructions stlExportInstructions("2Bars.stl");
+	//auto stlExportInstructions_ptr = stlExportInstructions.Create("optional xrstring CsysName");
+
+	auto stlExportInstructions_ptr = pfcSTLBinaryExportInstructions().Create("ASM_CSYS");
+
+
+	current->Export("2bars.stl", pfcExportInstructions::cast(stlExportInstructions_ptr));
+
 
 	//PT_TEST_LOG_SUCC("ProMdlCurrentGet", name);
 
