@@ -92,7 +92,7 @@ void printToMessageWindow(pfcSession_ptr session, std::stringstream & message)
 	xstringsequence_ptr msg_sequence = xstringsequence::create();
 	msg_sequence->append(xstring(message));
 
-	session->UIDisplayMessage("pt_bug.txt", "DEBUG %0s", msg_sequence);
+	session->UIDisplayMessage("creo2urdf.txt", "DEBUG %0s", msg_sequence);
 }
 
 
@@ -103,52 +103,48 @@ PURPOSE  : Execute the creo2urdf code.
 ProError Creo2Urdf()
 {
 	ProError status = PRO_TK_GENERAL_ERROR;
-	//ProMdl currMdl;
-	//ProFeature feat1;
-	//ProIntfDataSource intfdata;
-	//ProSelection *sels;
-	//int nSels = -1;
-	//ProCsys csys;
-	//ProModelitem mdlItem;
-	//ProMdlName model_name;
 
-	//errlog_fp = fopen ("PTTestBug.log", "w");
+	pfcSession_ptr session_ptr = pfcGetProESession();
 
-	//status = ProMdlCurrentGet(&currMdl);
+	pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
 
-	//status = ProMdlMdlnameGet(currMdl, model_name);
+	xstring name = model_ptr->GetFullName();
 
-	pfcSession_ptr session = pfcGetProESession();
-
-	pfcModel_ptr current = session->GetCurrentModel();
-
-	xstring name = current->GetFullName();
-
-	pfcSolid_ptr solid = pfcSolid::cast(session->GetCurrentModel());
-	pfcMassProperty_ptr massprop = solid->GetMassProperty();
-	xreal mass = massprop->GetMass();
+	pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
+	pfcMassProperty_ptr massprop_ptr = solid_ptr->GetMassProperty();
+	xreal mass = massprop_ptr->GetMass();
 
 	std::stringstream message;
-	message << "model name is " << name << " and weighs " << mass;
-	printToMessageWindow(session, message);
+	message << "model name is " << name << " and weighs " << mass<<"\n";
 
 	// Export stl of the model
 	//pfcShrinkwrapSTLInstructions stlExportInstructions("2Bars.stl");
 	//auto stlExportInstructions_ptr = stlExportInstructions.Create("optional xrstring CsysName");
 
-	auto stlExportInstructions_ptr = pfcSTLBinaryExportInstructions().Create("ASM_CSYS");
+	// The model is an assembly, let's navigate its parts.
+	if (model_ptr->GetType() == pfcMDL_ASSEMBLY) {
+		auto assembly_ptr = pfcAssembly::cast(model_ptr);
+		auto items_ptr = assembly_ptr->ListFeaturesByType(pfcFEATTYPE_COMPONENT);//pfcITEM_SIMPREP);
+
+		if (items_ptr) {
+			message.clear();
+			message << "Number of Items found is " << items_ptr->getarraysize() << "\n";
+			for (int i = 0; i < items_ptr->getarraysize(); ++i) {
+				auto item_ptr = items_ptr->get(i);
+				message<<" "<<item_ptr->GetName()<<" ";
+
+			}
+			printToMessageWindow(session_ptr, message);
+		}
+	}
+
+	model_ptr->Export("2bars.stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create("ASM_CSYS")));
 
 
-	current->Export("2bars.stl", pfcExportInstructions::cast(stlExportInstructions_ptr));
-
-
-	//PT_TEST_LOG_SUCC("ProMdlCurrentGet", name);
 
 	if(status != PRO_TK_NO_ERROR)
 		return status;
 
-	//fflush(errlog_fp);
-	//fclose (errlog_fp);
 	return status;
 }
 
