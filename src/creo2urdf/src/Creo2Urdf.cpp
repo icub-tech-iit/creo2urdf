@@ -51,9 +51,17 @@ typedef struct {
 ProError ProUtilCsysFind(ProMdl		p_model,
 						 ProName		csys_name, ProCsys		*p_csys);
 
-static uiCmdAccessState TestAccessDefault(uiCmdAccessMode access_mode)
+static uiCmdAccessState Creo2UrdfAccess(uiCmdAccessMode access_mode)
 {
-	return (ACCESS_AVAILABLE);
+	auto model = pfcGetProESession()->GetCurrentModel();
+	if (!model) {
+		return uiCmdAccessState::ACCESS_UNAVAILABLE;
+	}
+	auto type = model->GetType();
+	if (type != pfcMDL_PART && type != pfcMDL_ASSEMBLY) {
+		return uiCmdAccessState::ACCESS_UNAVAILABLE;
+	}
+	return uiCmdAccessState::ACCESS_AVAILABLE;
 }
 
 static ProError status;
@@ -72,7 +80,7 @@ extern "C" int user_initialize(
 	wchar_t errbuf[80])
 {
 	uiCmdCmdId	cmd_id;
-	status = ProCmdActionAdd("RunBug", (uiCmdCmdActFn)Creo2Urdf, uiProe2ndImmediate, TestAccessDefault, PRO_B_TRUE, PRO_B_TRUE, &cmd_id);
+	status = ProCmdActionAdd("RunBug", (uiCmdCmdActFn)Creo2Urdf, uiProe2ndImmediate, Creo2UrdfAccess, PRO_B_TRUE, PRO_B_TRUE, &cmd_id);
 	status = ProMenubarmenuPushbuttonAdd("File", "Creo2Urdf", "-Run Creo2Urdf", "Run Creo2Urdf code", "File.psh_rename", PRO_B_TRUE, cmd_id, L"creo2urdf.txt");
 
 	return (0);
@@ -115,32 +123,27 @@ ProError Creo2Urdf()
 	xreal mass = massprop_ptr->GetMass();
 
 	std::stringstream message;
-	message << "model name is " << name << " and weighs " << mass<<"\n";
+	message << "model name is " << name << " and weighs " << mass<<std::endl;
 
 	// Export stl of the model
-	//pfcShrinkwrapSTLInstructions stlExportInstructions("2Bars.stl");
-	//auto stlExportInstructions_ptr = stlExportInstructions.Create("optional xrstring CsysName");
 
-	// The model is an assembly, let's navigate its parts.
-	if (model_ptr->GetType() == pfcMDL_ASSEMBLY) {
-		auto assembly_ptr = pfcAssembly::cast(model_ptr);
-		auto items_ptr = assembly_ptr->ListFeaturesByType(pfcFEATTYPE_COMPONENT);//pfcITEM_SIMPREP);
-
-		if (items_ptr) {
-			message.clear();
-			message << "Number of Items found is " << items_ptr->getarraysize() << "\n";
-			for (int i = 0; i < items_ptr->getarraysize(); ++i) {
-				auto item_ptr = items_ptr->get(i);
-				message<<" "<<item_ptr->GetName()<<" ";
-
-			}
-			printToMessageWindow(session_ptr, message);
-		}
+	auto partModels = session_ptr->ListModelsByType(pfcMDL_PART);
+	if (!partModels || partModels->getarraysize() == 0) {
+		message.clear();
+		message << "There are no parts in the session"<<std::endl;
+		printToMessageWindow(session_ptr, message);
+		return PRO_TK_NOT_VALID;
 	}
-
-	model_ptr->Export("2bars.stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create("ASM_CSYS")));
-
-
+	message.clear();
+	message << "We have " << partModels->getarraysize() <<" parts" << std::endl;
+	printToMessageWindow(session_ptr, message);
+	// Get all parts in the model
+	for (int i = 0; i < partModels->getarraysize(); i++) {
+		ProMdlName mdlname;
+		auto modelhdl = partModels->get(i);// = partModels->getl; How to transform it to ProModel?
+		auto name = modelhdl->GetFullName();
+		modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create("CSYS")));
+	}
 
 	if(status != PRO_TK_NO_ERROR)
 		return status;
