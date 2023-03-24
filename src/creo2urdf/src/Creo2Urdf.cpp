@@ -7,10 +7,11 @@
 #include <ProNotify.h>
 #include <ProDrawing.h>
 #include <ProDrawingView.h>
-# include <pfcGlobal.h>
+#include <pfcGlobal.h>
 #include <pfcModel.h>
 #include <pfcSolid.h>
 #include <string>
+#include <pfcShrinkwrap.h>
 
 FILE* errlog_fp;
 
@@ -50,9 +51,17 @@ typedef struct {
 ProError ProUtilCsysFind(ProMdl		p_model,
 						 ProName		csys_name, ProCsys		*p_csys);
 
-static uiCmdAccessState TestAccessDefault(uiCmdAccessMode access_mode)
+static uiCmdAccessState Creo2UrdfAccess(uiCmdAccessMode access_mode)
 {
-	return (ACCESS_AVAILABLE);
+	auto model = pfcGetProESession()->GetCurrentModel();
+	if (!model) {
+		return uiCmdAccessState::ACCESS_UNAVAILABLE;
+	}
+	auto type = model->GetType();
+	if (type != pfcMDL_PART && type != pfcMDL_ASSEMBLY) {
+		return uiCmdAccessState::ACCESS_UNAVAILABLE;
+	}
+	return uiCmdAccessState::ACCESS_AVAILABLE;
 }
 
 static ProError status;
@@ -71,7 +80,7 @@ extern "C" int user_initialize(
 	wchar_t errbuf[80])
 {
 	uiCmdCmdId	cmd_id;
-	status = ProCmdActionAdd("RunBug", (uiCmdCmdActFn)Creo2Urdf, uiProe2ndImmediate, TestAccessDefault, PRO_B_TRUE, PRO_B_TRUE, &cmd_id);
+	status = ProCmdActionAdd("RunBug", (uiCmdCmdActFn)Creo2Urdf, uiProe2ndImmediate, Creo2UrdfAccess, PRO_B_TRUE, PRO_B_TRUE, &cmd_id);
 	status = ProMenubarmenuPushbuttonAdd("File", "Creo2Urdf", "-Run Creo2Urdf", "Run Creo2Urdf code", "File.psh_rename", PRO_B_TRUE, cmd_id, L"creo2urdf.txt");
 
 	return (0);
@@ -91,7 +100,7 @@ void printToMessageWindow(pfcSession_ptr session, std::stringstream & message)
 	xstringsequence_ptr msg_sequence = xstringsequence::create();
 	msg_sequence->append(xstring(message));
 
-	session->UIDisplayMessage("pt_bug.txt", "DEBUG %0s", msg_sequence);
+	session->UIDisplayMessage("creo2urdf.txt", "DEBUG %0s", msg_sequence);
 }
 
 
@@ -102,42 +111,43 @@ PURPOSE  : Execute the creo2urdf code.
 ProError Creo2Urdf()
 {
 	ProError status = PRO_TK_GENERAL_ERROR;
-	//ProMdl currMdl;
-	//ProFeature feat1;
-	//ProIntfDataSource intfdata;
-	//ProSelection *sels;
-	//int nSels = -1;
-	//ProCsys csys;
-	//ProModelitem mdlItem;
-	//ProMdlName model_name;
 
-	//errlog_fp = fopen ("PTTestBug.log", "w");
+	pfcSession_ptr session_ptr = pfcGetProESession();
 
-	//status = ProMdlCurrentGet(&currMdl);
+	pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
 
-	//status = ProMdlMdlnameGet(currMdl, model_name);
+	xstring name = model_ptr->GetFullName();
 
-	pfcSession_ptr session = pfcGetProESession();
-
-	pfcModel_ptr current = session->GetCurrentModel();
-
-	xstring name = current->GetFullName();
-
-	pfcSolid_ptr solid = pfcSolid::cast(session->GetCurrentModel());
-	pfcMassProperty_ptr massprop = solid->GetMassProperty();
-	xreal mass = massprop->GetMass();
+	pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
+	pfcMassProperty_ptr massprop_ptr = solid_ptr->GetMassProperty();
+	xreal mass = massprop_ptr->GetMass();
 
 	std::stringstream message;
-	message << "model name is " << name << " and weighs " << mass;
-	printToMessageWindow(session, message);
+	message << "model name is " << name << " and weighs " << mass<<std::endl;
 
-	//PT_TEST_LOG_SUCC("ProMdlCurrentGet", name);
+	// Export stl of the model
+
+	auto partModels = session_ptr->ListModelsByType(pfcMDL_PART);
+	if (!partModels || partModels->getarraysize() == 0) {
+		message.clear();
+		message << "There are no parts in the session"<<std::endl;
+		printToMessageWindow(session_ptr, message);
+		return PRO_TK_NOT_VALID;
+	}
+	message.clear();
+	message << "We have " << partModels->getarraysize() <<" parts" << std::endl;
+	printToMessageWindow(session_ptr, message);
+	// Get all parts in the model
+	for (int i = 0; i < partModels->getarraysize(); i++) {
+		ProMdlName mdlname;
+		auto modelhdl = partModels->get(i);// = partModels->getl; How to transform it to ProModel?
+		auto name = modelhdl->GetFullName();
+		modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create("CSYS")));
+	}
 
 	if(status != PRO_TK_NO_ERROR)
 		return status;
 
-	//fflush(errlog_fp);
-	//fclose (errlog_fp);
 	return status;
 }
 
