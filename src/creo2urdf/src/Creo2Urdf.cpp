@@ -13,30 +13,6 @@
 #include <string>
 #include <pfcShrinkwrap.h>
 
-FILE* errlog_fp;
-
-#define PT_TEST_LOG(func,status, model_name,err) \
-	if (err) \
-{ \
-	printf (" LOG Error: %s\t%d\n", func, status); \
-	fprintf (errlog_fp, " ciao icub-tech ho trovato un errore in aprire il modello corrente: %s\t%d\n", func, status); \
-} \
-else \
-{ \
-	printf (" LOG %s\t%d\n", func, status); \
-	fprintf (errlog_fp, " ciao icub-tech sono riuscito ad aprire il modello %s\t%d : %ls \n", func, status, model_name); \
-}
-
-#define PT_TEST_LOG_SUCC(func, model_name) \
-	PT_TEST_LOG (func, status, model_name, status != PRO_TK_NO_ERROR)
-
-#define PTTestResfileWrite(str) \
-{\
-	printf(str);\
-	printf("\n");\
-}
-
-static char line [500];
 
 void printToMessageWindow(pfcSession_ptr session, std::stringstream& message)
 {
@@ -46,22 +22,8 @@ void printToMessageWindow(pfcSession_ptr session, std::stringstream& message)
 	session->UIDisplayMessage("creo2urdf.txt", "DEBUG %0s", msg_sequence);
 }
 
-/*--------------------------------------------------------------------*\
-ProAppData used while visiting Csys
-\*--------------------------------------------------------------------*/
-typedef struct {
-	ProMdl		model;
-	ProCsys		p_csys;
-	ProName		csys_name;
-	ProModelitem *items;
-}UserCsysAppData ;
 
-ProError ProUtilCsysFind(ProMdl		p_model,
-						 ProName		csys_name, ProCsys		*p_csys);
-
-
-
-class Creo2UrdfListerner : public pfcUICommandActionListener {
+class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
 	void OnCommand() override {
 		pfcSession_ptr session_ptr = pfcGetProESession();
@@ -117,12 +79,6 @@ public:
 	}
 };
 
-
-static uiCmdAccessState Creo2UrdfAccess(uiCmdAccessMode access_mode)
-{
-
-}
-
 static ProError status;
 
 /*====================================================================*\
@@ -138,7 +94,7 @@ extern "C" int user_initialize(
 {
 	auto session = pfcGetProESession();
 
-	auto cmd = session->UICreateCommand("Creo2Urdf", new Creo2UrdfListerner());
+	auto cmd = session->UICreateCommand("Creo2Urdf", new Creo2UrdfActionListerner());
 	cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
 	cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
 	uiCmdCmdId	cmd_id;
