@@ -14,11 +14,11 @@
 #include <pfcShrinkwrap.h>
 
 
-void printToMessageWindow(pfcSession_ptr session, std::stringstream& message)
+void printToMessageWindow(pfcSession_ptr session, std::string message)
 {
 	xstringsequence_ptr msg_sequence = xstringsequence::create();
-	msg_sequence->append(xstring(message));
-
+	msg_sequence->append(xstring(message.c_str()));
+	session->UIClearMessage();
 	session->UIDisplayMessage("creo2urdf.txt", "DEBUG %0s", msg_sequence);
 }
 
@@ -30,30 +30,22 @@ public:
 
 		pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
 
-		xstring name = model_ptr->GetFullName();
 
 		pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
-		pfcMassProperty_ptr massprop_ptr = solid_ptr->GetMassProperty();
-		xreal mass = massprop_ptr->GetMass();
-
-		std::stringstream message;
-		message << "model name is " << name << " and weighs " << mass << std::endl;
-
 		// Export stl of the model
 		auto partModels = session_ptr->ListModelsByType(pfcMDL_PART);
 		if (!partModels || partModels->getarraysize() == 0) {
-			message.clear();
-			message << "There are no parts in the session" << std::endl;
-			printToMessageWindow(session_ptr, message);
+			printToMessageWindow(session_ptr, "There are no parts in the session");
 			return;
 		}
-		message.clear();
-		message << "We have " << partModels->getarraysize() << " parts" << std::endl;
-		printToMessageWindow(session_ptr, message);
+		//message << "We have " << partModels->getarraysize() << " parts" << std::endl;
+		printToMessageWindow(session_ptr, "We have " + to_string(partModels->getarraysize()) + " parts");
 		// Get all parts in the model
 		for (int i = 0; i < partModels->getarraysize(); i++) {
 			ProMdlName mdlname;
 			auto modelhdl = partModels->get(i);// = partModels->getl; How to transform it to ProModel?
+			//message << "model name is " << modelhdl->GetFullName() << " and weighs " << pfcSolid::cast(modelhdl)->GetMassProperty()->GetMass()<< std::endl;
+			printToMessageWindow(session_ptr, "model name is " + std::string(modelhdl->GetFullName()) + " and weighs " + to_string(pfcSolid::cast(modelhdl)->GetMassProperty()->GetMass()));
 			auto name = modelhdl->GetFullName();
 			modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create("CSYS")));
 		}
