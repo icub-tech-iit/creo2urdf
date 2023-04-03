@@ -38,6 +38,14 @@ else \
 
 static char line [500];
 
+void printToMessageWindow(pfcSession_ptr session, std::stringstream& message)
+{
+	xstringsequence_ptr msg_sequence = xstringsequence::create();
+	msg_sequence->append(xstring(message));
+
+	session->UIDisplayMessage("creo2urdf.txt", "DEBUG %0s", msg_sequence);
+}
+
 /*--------------------------------------------------------------------*\
 ProAppData used while visiting Csys
 \*--------------------------------------------------------------------*/
@@ -51,22 +59,71 @@ typedef struct {
 ProError ProUtilCsysFind(ProMdl		p_model,
 						 ProName		csys_name, ProCsys		*p_csys);
 
+
+
+class Creo2UrdfListerner : public pfcUICommandActionListener {
+public:
+	void OnCommand() override {
+		pfcSession_ptr session_ptr = pfcGetProESession();
+
+		pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
+
+		xstring name = model_ptr->GetFullName();
+
+		pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
+		pfcMassProperty_ptr massprop_ptr = solid_ptr->GetMassProperty();
+		xreal mass = massprop_ptr->GetMass();
+
+		std::stringstream message;
+		message << "model name is " << name << " and weighs " << mass << std::endl;
+
+		// Export stl of the model
+		auto partModels = session_ptr->ListModelsByType(pfcMDL_PART);
+		if (!partModels || partModels->getarraysize() == 0) {
+			message.clear();
+			message << "There are no parts in the session" << std::endl;
+			printToMessageWindow(session_ptr, message);
+			return;
+		}
+		message.clear();
+		message << "We have " << partModels->getarraysize() << " parts" << std::endl;
+		printToMessageWindow(session_ptr, message);
+		// Get all parts in the model
+		for (int i = 0; i < partModels->getarraysize(); i++) {
+			ProMdlName mdlname;
+			auto modelhdl = partModels->get(i);// = partModels->getl; How to transform it to ProModel?
+			auto name = modelhdl->GetFullName();
+			modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create("CSYS")));
+		}
+
+		return;
+	}
+};
+
+
+class Creo2UrdfAccessListener : public pfcUICommandAccessListener {
+public:
+	pfcCommandAccess OnCommandAccess(xbool AllowErrorMessages) override {
+		auto model = pfcGetProESession()->GetCurrentModel();
+		if (!model) {
+			return pfcCommandAccess::pfcACCESS_AVAILABLE;
+		}
+		auto type = model->GetType();
+		if (type != pfcMDL_PART && type != pfcMDL_ASSEMBLY) {
+			return pfcCommandAccess::pfcACCESS_UNAVAILABLE;
+		}
+		return pfcCommandAccess::pfcACCESS_AVAILABLE;
+
+	}
+};
+
+
 static uiCmdAccessState Creo2UrdfAccess(uiCmdAccessMode access_mode)
 {
-	auto model = pfcGetProESession()->GetCurrentModel();
-	if (!model) {
-		return uiCmdAccessState::ACCESS_UNAVAILABLE;
-	}
-	auto type = model->GetType();
-	if (type != pfcMDL_PART && type != pfcMDL_ASSEMBLY) {
-		return uiCmdAccessState::ACCESS_UNAVAILABLE;
-	}
-	return uiCmdAccessState::ACCESS_AVAILABLE;
+
 }
 
 static ProError status;
-
-ProError Creo2Urdf();
 
 /*====================================================================*\
 FUNCTION : user_initialize()
@@ -79,9 +136,12 @@ extern "C" int user_initialize(
 	char *build,
 	wchar_t errbuf[80])
 {
+	auto session = pfcGetProESession();
+
+	auto cmd = session->UICreateCommand("Creo2Urdf", new Creo2UrdfListerner());
+	cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
+	cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
 	uiCmdCmdId	cmd_id;
-	status = ProCmdActionAdd("RunBug", (uiCmdCmdActFn)Creo2Urdf, uiProe2ndImmediate, Creo2UrdfAccess, PRO_B_TRUE, PRO_B_TRUE, &cmd_id);
-	status = ProMenubarmenuPushbuttonAdd("File", "Creo2Urdf", "-Run Creo2Urdf", "Run Creo2Urdf code", "File.psh_rename", PRO_B_TRUE, cmd_id, L"creo2urdf.txt");
 
 	return (0);
 }
@@ -94,64 +154,3 @@ extern "C" void user_terminate()
 {
 
 }
-
-void printToMessageWindow(pfcSession_ptr session, std::stringstream & message)
-{
-	xstringsequence_ptr msg_sequence = xstringsequence::create();
-	msg_sequence->append(xstring(message));
-
-	session->UIDisplayMessage("creo2urdf.txt", "DEBUG %0s", msg_sequence);
-}
-
-
-/*====================================================================*\
-FUNCTION : Creo2Urdf
-PURPOSE  : Execute the creo2urdf code.
-\*====================================================================*/
-ProError Creo2Urdf()
-{
-	ProError status = PRO_TK_GENERAL_ERROR;
-
-	pfcSession_ptr session_ptr = pfcGetProESession();
-
-	pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
-
-	xstring name = model_ptr->GetFullName();
-
-	pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
-	pfcMassProperty_ptr massprop_ptr = solid_ptr->GetMassProperty();
-	xreal mass = massprop_ptr->GetMass();
-
-	std::stringstream message;
-	message << "model name is " << name << " and weighs " << mass<<std::endl;
-
-	// Export stl of the model
-
-	auto partModels = session_ptr->ListModelsByType(pfcMDL_PART);
-	if (!partModels || partModels->getarraysize() == 0) {
-		message.clear();
-		message << "There are no parts in the session"<<std::endl;
-		printToMessageWindow(session_ptr, message);
-		return PRO_TK_NOT_VALID;
-	}
-	message.clear();
-	message << "We have " << partModels->getarraysize() <<" parts" << std::endl;
-	printToMessageWindow(session_ptr, message);
-	// Get all parts in the model
-	for (int i = 0; i < partModels->getarraysize(); i++) {
-		ProMdlName mdlname;
-		auto modelhdl = partModels->get(i);// = partModels->getl; How to transform it to ProModel?
-		auto name = modelhdl->GetFullName();
-		modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create("CSYS")));
-	}
-
-	if(status != PRO_TK_NO_ERROR)
-		return status;
-
-	return status;
-}
-
-
-
-
-

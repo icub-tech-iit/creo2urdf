@@ -1,0 +1,32 @@
+Welcome
+Hello World!
+#
+#
+%CPMyPrompt
+This is a prompt
+#
+#
+%CIMyInfo
+This is an info
+#
+#
+%CEMyError
+This is an error
+#
+#
+%CWMyWarning
+This is a warning
+#
+#
+%CCMyCritical
+This is a critical
+#
+#
+DefaultMsg
+%0s
+#
+#
+DefaultMsg Wstr
+%0w
+#
+#
