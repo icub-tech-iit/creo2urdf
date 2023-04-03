@@ -23,6 +23,7 @@ void printToMessageWindow(pfcSession_ptr session, std::string message)
 }
 
 
+
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
 	void OnCommand() override {
@@ -30,24 +31,58 @@ public:
 
 		pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
 
-
 		pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
+
+		
+		// TODO Principal units probably to be changed from MM to M before getting the model properties
+		//auto length_unit = solid_ptr->GetPrincipalUnits()->GetUnit(pfcUnitType::pfcUNIT_LENGTH);
+		// length_unit->Modify(pfcUnitConversionFactor::Create(0.001), length_unit->GetReferenceUnit()); // IT DOES NOT WORK
+		
 		// Export stl of the model
-		auto partModels = session_ptr->ListModelsByType(pfcMDL_PART);
+
+		auto asm_csys_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+		if (asm_csys_list->getarraysize() == 0) {
+			printToMessageWindow(session_ptr, "There are no CYS in the asm");
+			return;
+		}
+
+		// TODO We assume to have just one csys in the ASM
+		//asm_csys_list->get(0)->
+
+		auto partModels = session_ptr->ListModelsByType(pfcModelType::pfcMDL_PART);
 		if (!partModels || partModels->getarraysize() == 0) {
 			printToMessageWindow(session_ptr, "There are no parts in the session");
 			return;
 		}
-		//message << "We have " << partModels->getarraysize() << " parts" << std::endl;
 		printToMessageWindow(session_ptr, "We have " + to_string(partModels->getarraysize()) + " parts");
 		// Get all parts in the model
 		for (int i = 0; i < partModels->getarraysize(); i++) {
 			ProMdlName mdlname;
-			auto modelhdl = partModels->get(i);// = partModels->getl; How to transform it to ProModel?
-			//message << "model name is " << modelhdl->GetFullName() << " and weighs " << pfcSolid::cast(modelhdl)->GetMassProperty()->GetMass()<< std::endl;
-			printToMessageWindow(session_ptr, "model name is " + std::string(modelhdl->GetFullName()) + " and weighs " + to_string(pfcSolid::cast(modelhdl)->GetMassProperty()->GetMass()));
+			auto modelhdl = partModels->get(i);
 			auto name = modelhdl->GetFullName();
-			modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create("CSYS")));
+			auto massProp = pfcSolid::cast(modelhdl)->GetMassProperty();
+			auto com = massProp->GetGravityCenter();
+			auto princAxis = massProp->GetPrincipalAxes();
+			auto comInertia = massProp->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
+			
+			printToMessageWindow(session_ptr, "Model name is " + std::string(name) + " and weighs " + to_string(massProp->GetMass()));
+			printToMessageWindow(session_ptr, "Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: "+ to_string(com->get(2)));
+			printToMessageWindow(session_ptr, "Inertia tensor:");
+			printToMessageWindow(session_ptr, to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
+			printToMessageWindow(session_ptr, to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
+			printToMessageWindow(session_ptr, to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
+			auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+			if (csys_list->getarraysize() == 0) {
+				printToMessageWindow(session_ptr, "There are no CYS in the part "+string(name));
+				return;
+			}
+
+			// TODO It doesn't work
+			auto axes_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_AXIS);
+			printToMessageWindow(session_ptr, "There are " + to_string(axes_list->getarraysize()) + " axes");
+
+			// Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
+			modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
 		}
 
 		return;
