@@ -12,6 +12,7 @@
 #include <pfcModel.h>
 #include <pfcSolid.h>
 #include <pfcShrinkwrap.h>
+#include <pfcAssembly.h>
 
 #include <wfcGeometry.h> 
 
@@ -58,6 +59,50 @@ public:
 			return;
 		}
 		printToMessageWindow(session_ptr, "We have " + to_string(partModels->getarraysize()) + " parts");
+		
+		
+		auto csys_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+		if (csys_list->getarraysize() == 0) {
+			return;
+		}
+
+		auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
+		if (asm_component_list->getarraysize() == 0) {
+			printToMessageWindow(session_ptr, "There are no CYS in the asm");
+			return;
+		}
+
+		for (int i = 0; i < asm_component_list->getarraysize(); i++)
+		{
+			auto comp = asm_component_list->get(i);
+
+			auto feat = pfcFeature::cast(comp);
+
+			if (feat->GetFeatType() == pfcFeatureType::pfcFEATTYPE_COMPONENT)
+			{
+				auto feat_id = feat->GetId();
+				xintsequence_ptr seq = xintsequence::create();
+
+				seq->append(feat_id);
+				
+				pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
+
+				auto transform = comp_path->GetTransform(xfalse);
+
+				auto m = transform->GetMatrix();
+				auto o = transform->GetOrigin();
+				printToMessageWindow(session_ptr, "feat name: id: " + to_string(feat_id));
+
+				printToMessageWindow(session_ptr, "origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
+				printToMessageWindow(session_ptr, "transform:");
+				printToMessageWindow(session_ptr, to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
+				printToMessageWindow(session_ptr, to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
+				printToMessageWindow(session_ptr, to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
+			}
+
+		}
+
+		
 		// Get all parts in the model
 		for (int i = 0; i < partModels->getarraysize(); i++) {
 			auto modelhdl   = partModels->get(i);
@@ -74,6 +119,7 @@ public:
 			printToMessageWindow(session_ptr, to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
 			printToMessageWindow(session_ptr, to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
 
+
 			auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
 			if (csys_list->getarraysize() == 0) {
 				printToMessageWindow(session_ptr, "There are no CYS in the part "+string(name));
@@ -83,22 +129,24 @@ public:
 			auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
 			printToMessageWindow(session_ptr, "There are " + to_string(axes_list->getarraysize()) + " axes");
 			if (axes_list->getarraysize() !=0 ) {
-				// FIXME I assume to have just one axis
-				auto axis = pfcAxis::cast(axes_list->get(0));
-				printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
-
-				auto  surf = axis->GetSurf();
-
-				if (surf->GetType() == pfcSURFACE_CYLINDER)
+				for (int i = 0; i < axes_list->getarraysize(); i++)
 				{
-					auto xyz_points = surf->GetXYZExtents();
+					auto axis = pfcAxis::cast(axes_list->get(i));
+					printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
 
-					pfcPoint3D_ptr point = xyz_points->get(0);
-					printToMessageWindow(session_ptr, "Start point coords are (x, y, z) : (" + std::to_string(point->get(0)) + ", " + std::to_string(point->get(1)) + ", " + std::to_string(point->get(2)) + ")");
-					
-					point = xyz_points->get(1);
-					printToMessageWindow(session_ptr, "End point coords are (x, y, z) : (" + std::to_string(point->get(0)) + ", " + std::to_string(point->get(1)) + ", " + std::to_string(point->get(2)) + ")");
+					auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
+
+					auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
+
+					// There are just two points in the array
+					pfcPoint3D_ptr point = axis_line->GetEnd1();
+
+					printToMessageWindow(session_ptr, "Start point coords of " + string(axis->GetName()) + " are (x, y, z) : (" + std::to_string(point->get(0)) + ", " + std::to_string(point->get(1)) + ", " + std::to_string(point->get(2)) + ")");
+
+					point = axis_line->GetEnd2();
+					printToMessageWindow(session_ptr, "End point coords of " + string(axis->GetName()) + " are (x, y, z) : (" + std::to_string(point->get(0)) + ", " + std::to_string(point->get(1)) + ", " + std::to_string(point->get(2)) + ")");
 				}
+
 			}
 
 			// Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
@@ -144,6 +192,9 @@ extern "C" int user_initialize(
 	auto cmd = session->UICreateCommand("Creo2Urdf", new Creo2UrdfActionListerner());
 	cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
 	cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
+
+	session->RibbonDefinitionfileLoad("tool.rbn");
+
 
 	return (0);
 }
