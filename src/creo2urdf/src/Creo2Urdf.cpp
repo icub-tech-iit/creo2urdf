@@ -16,7 +16,9 @@
 
 #include <wfcGeometry.h> 
 
+#include <cmath>
 #include <string>
+#include <array>
 
 void printToMessageWindow(pfcSession_ptr session, std::string message)
 {
@@ -26,6 +28,32 @@ void printToMessageWindow(pfcSession_ptr session, std::string message)
 	session->UIDisplayMessage("creo2urdf.txt", "DEBUG %0s", msg_sequence);
 }
 
+
+std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data)
+{
+	auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
+
+	// There are just two points in the array
+	pfcPoint3D_ptr pstart = axis_line->GetEnd1();
+	pfcPoint3D_ptr pend = axis_line->GetEnd2();
+
+	std::array<double, 3> unit_vector;
+
+	double module = sqrt(pow(pend->get(0) - pstart->get(0), 2) +
+						 pow(pend->get(1) - pstart->get(1), 2) +
+						 pow(pend->get(2) - pstart->get(2), 2));
+
+	if (module < 1e-9)
+	{
+		return unit_vector;
+	}
+
+	unit_vector[0] = (pend->get(0) - pstart->get(0)) / module;
+	unit_vector[1] = (pend->get(1) - pstart->get(1)) / module;
+	unit_vector[2] = (pend->get(2) - pstart->get(2)) / module;
+
+	return unit_vector;
+}
 
 
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
@@ -138,13 +166,10 @@ public:
 
 					auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
 
-					// There are just two points in the array
-					pfcPoint3D_ptr point = axis_line->GetEnd1();
+					auto unit = computeUnitVectorFromAxis(axis_line);
 
-					printToMessageWindow(session_ptr, "Start point coords of " + string(axis->GetName()) + " are (x, y, z) : (" + std::to_string(point->get(0)) + ", " + std::to_string(point->get(1)) + ", " + std::to_string(point->get(2)) + ")");
+					printToMessageWindow(session_ptr, "unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
 
-					point = axis_line->GetEnd2();
-					printToMessageWindow(session_ptr, "End point coords of " + string(axis->GetName()) + " are (x, y, z) : (" + std::to_string(point->get(0)) + ", " + std::to_string(point->get(1)) + ", " + std::to_string(point->get(2)) + ")");
 				}
 
 			}
