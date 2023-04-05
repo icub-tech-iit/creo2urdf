@@ -58,11 +58,11 @@ public:
 		// Get all parts in the model
 		for (int i = 0; i < partModels->getarraysize(); i++) {
 			ProMdlName mdlname;
-			auto modelhdl = partModels->get(i);
-			auto name = modelhdl->GetFullName();
-			auto massProp = pfcSolid::cast(modelhdl)->GetMassProperty();
-			auto com = massProp->GetGravityCenter();
-			auto princAxis = massProp->GetPrincipalAxes();
+			auto modelhdl   = partModels->get(i);
+			auto name       = modelhdl->GetFullName();
+			auto massProp   = pfcSolid::cast(modelhdl)->GetMassProperty();
+			auto com        = massProp->GetGravityCenter();
+			auto princAxis  = massProp->GetPrincipalAxes();
 			auto comInertia = massProp->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 			
 			printToMessageWindow(session_ptr, "Model name is " + std::string(name) + " and weighs " + to_string(massProp->GetMass()));
@@ -71,15 +71,23 @@ public:
 			printToMessageWindow(session_ptr, to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
 			printToMessageWindow(session_ptr, to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
 			printToMessageWindow(session_ptr, to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
+
 			auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
 			if (csys_list->getarraysize() == 0) {
 				printToMessageWindow(session_ptr, "There are no CYS in the part "+string(name));
 				return;
 			}
 
-			// TODO It doesn't work
-			auto axes_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_AXIS);
+			auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
 			printToMessageWindow(session_ptr, "There are " + to_string(axes_list->getarraysize()) + " axes");
+			if (axes_list->getarraysize() !=0 ) {
+				// FIXME I assume to have just one axis
+				auto axis = pfcAxis::cast(axes_list->get(0));
+				printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
+				auto surf = axis->GetSurf();
+				//surf->get
+
+			}
 
 			// Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
 			modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
