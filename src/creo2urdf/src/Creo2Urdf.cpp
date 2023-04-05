@@ -7,12 +7,15 @@
 #include <ProNotify.h>
 #include <ProDrawing.h>
 #include <ProDrawingView.h>
+
 #include <pfcGlobal.h>
 #include <pfcModel.h>
 #include <pfcSolid.h>
-#include <string>
 #include <pfcShrinkwrap.h>
 
+#include <wfcGeometry.h> 
+
+#include <string>
 
 void printToMessageWindow(pfcSession_ptr session, std::string message)
 {
@@ -57,14 +60,13 @@ public:
 		printToMessageWindow(session_ptr, "We have " + to_string(partModels->getarraysize()) + " parts");
 		// Get all parts in the model
 		for (int i = 0; i < partModels->getarraysize(); i++) {
-			ProMdlName mdlname;
 			auto modelhdl   = partModels->get(i);
 			auto name       = modelhdl->GetFullName();
 			auto massProp   = pfcSolid::cast(modelhdl)->GetMassProperty();
 			auto com        = massProp->GetGravityCenter();
 			auto princAxis  = massProp->GetPrincipalAxes();
 			auto comInertia = massProp->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
-			
+		
 			printToMessageWindow(session_ptr, "Model name is " + std::string(name) + " and weighs " + to_string(massProp->GetMass()));
 			printToMessageWindow(session_ptr, "Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: "+ to_string(com->get(2)));
 			printToMessageWindow(session_ptr, "Inertia tensor:");
@@ -84,9 +86,19 @@ public:
 				// FIXME I assume to have just one axis
 				auto axis = pfcAxis::cast(axes_list->get(0));
 				printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
-				auto surf = axis->GetSurf();
-				//surf->get
 
+				auto  surf = axis->GetSurf();
+
+				if (surf->GetType() == pfcSURFACE_CYLINDER)
+				{
+					auto xyz_points = surf->GetXYZExtents();
+
+					pfcPoint3D_ptr point = xyz_points->get(0);
+					printToMessageWindow(session_ptr, "Start point coords are (x, y, z) : (" + std::to_string(point->get(0)) + ", " + std::to_string(point->get(1)) + ", " + std::to_string(point->get(2)) + ")");
+					
+					point = xyz_points->get(1);
+					printToMessageWindow(session_ptr, "End point coords are (x, y, z) : (" + std::to_string(point->get(0)) + ", " + std::to_string(point->get(1)) + ", " + std::to_string(point->get(2)) + ")");
+				}
 			}
 
 			// Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
@@ -132,7 +144,6 @@ extern "C" int user_initialize(
 	auto cmd = session->UICreateCommand("Creo2Urdf", new Creo2UrdfActionListerner());
 	cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
 	cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
-	uiCmdCmdId	cmd_id;
 
 	return (0);
 }
