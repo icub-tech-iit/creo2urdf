@@ -19,6 +19,7 @@
 #include <cmath>
 #include <string>
 #include <array>
+#include <iDynTree/Model/Model.h>
 
 void printToMessageWindow(pfcSession_ptr session, std::string message)
 {
@@ -71,6 +72,8 @@ public:
 		// length_unit->Modify(pfcUnitConversionFactor::Create(0.001), length_unit->GetReferenceUnit()); // IT DOES NOT WORK
 		
 		// Export stl of the model
+
+		iDynTree::Model idyn_model;
 
 		auto asm_csys_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
 		if (asm_csys_list->getarraysize() == 0) {
