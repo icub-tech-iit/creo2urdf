@@ -13,12 +13,15 @@
 #include <pfcSolid.h>
 #include <pfcShrinkwrap.h>
 #include <pfcAssembly.h>
+#include <pfcComponentFeat.h>
 
 #include <wfcGeometry.h> 
+#include <wfcModelItem.h>
 
 #include <cmath>
 #include <string>
 #include <array>
+#include <map>
 #include <iDynTree/Model/Model.h>
 
 void printToMessageWindow(pfcSession_ptr session, std::string message)
@@ -28,6 +31,11 @@ void printToMessageWindow(pfcSession_ptr session, std::string message)
 	session->UIClearMessage();
 	session->UIDisplayMessage("creo2urdf.txt", "DEBUG %0s", msg_sequence);
 }
+
+// The key is id of the feature
+std::map<int, iDynTree::Link>  links_map;
+// The key are id parent id child
+std::map<std::pair<int, int>, iDynTree::IJointPtr> joints_map;
 
 
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data)
@@ -74,29 +82,7 @@ public:
 		// Export stl of the model
 
 		iDynTree::Model idyn_model;
-
-		auto asm_csys_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-		if (asm_csys_list->getarraysize() == 0) {
-			printToMessageWindow(session_ptr, "There are no CYS in the asm");
-			return;
-		}
-
-		// TODO We assume to have just one csys in the ASM
-		//asm_csys_list->get(0)->
-
-		auto partModels = session_ptr->ListModelsByType(pfcModelType::pfcMDL_PART);
-		if (!partModels || partModels->getarraysize() == 0) {
-			printToMessageWindow(session_ptr, "There are no parts in the session");
-			return;
-		}
-		printToMessageWindow(session_ptr, "We have " + to_string(partModels->getarraysize()) + " parts");
-		
-		
-		auto csys_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-		if (csys_list->getarraysize() == 0) {
-			return;
-		}
-
+	
 		auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
 		if (asm_component_list->getarraysize() == 0) {
 			printToMessageWindow(session_ptr, "There are no CYS in the asm");
@@ -105,13 +91,15 @@ public:
 
 		for (int i = 0; i < asm_component_list->getarraysize(); i++)
 		{
+			iDynTree::Link link;
 			auto comp = asm_component_list->get(i);
-
 			auto feat = pfcFeature::cast(comp);
+			auto feat_id = feat->GetId();
 
 			if (feat->GetFeatType() == pfcFeatureType::pfcFEATTYPE_COMPONENT)
 			{
-				auto feat_id = feat->GetId();
+				
+				auto modelhdl = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());			
 				xintsequence_ptr seq = xintsequence::create();
 
 				seq->append(feat_id);
@@ -129,56 +117,49 @@ public:
 				printToMessageWindow(session_ptr, to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
 				printToMessageWindow(session_ptr, to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
 				printToMessageWindow(session_ptr, to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
-			}
 
-		}
+				auto name = modelhdl->GetFullName();
+				auto massProp = pfcSolid::cast(modelhdl)->GetMassProperty();
+				auto com = massProp->GetGravityCenter();
+				auto comInertia = massProp->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 
-		
-		// Get all parts in the model
-		for (int i = 0; i < partModels->getarraysize(); i++) {
-			auto modelhdl   = partModels->get(i);
-			auto name       = modelhdl->GetFullName();
-			auto massProp   = pfcSolid::cast(modelhdl)->GetMassProperty();
-			auto com        = massProp->GetGravityCenter();
-			auto princAxis  = massProp->GetPrincipalAxes();
-			auto comInertia = massProp->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
-		
-			printToMessageWindow(session_ptr, "Model name is " + std::string(name) + " and weighs " + to_string(massProp->GetMass()));
-			printToMessageWindow(session_ptr, "Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: "+ to_string(com->get(2)));
-			printToMessageWindow(session_ptr, "Inertia tensor:");
-			printToMessageWindow(session_ptr, to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
-			printToMessageWindow(session_ptr, to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
-			printToMessageWindow(session_ptr, to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
+				printToMessageWindow(session_ptr, "Model name is " + std::string(name) + " and weighs " + to_string(massProp->GetMass()));
+				printToMessageWindow(session_ptr, "Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
+				printToMessageWindow(session_ptr, "Inertia tensor:");
+				printToMessageWindow(session_ptr, to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
+				printToMessageWindow(session_ptr, to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
+				printToMessageWindow(session_ptr, to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
 
 
-			auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-			if (csys_list->getarraysize() == 0) {
-				printToMessageWindow(session_ptr, "There are no CYS in the part "+string(name));
-				return;
-			}
-
-			auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
-			printToMessageWindow(session_ptr, "There are " + to_string(axes_list->getarraysize()) + " axes");
-			if (axes_list->getarraysize() !=0 ) {
-				for (int i = 0; i < axes_list->getarraysize(); i++)
-				{
-					auto axis = pfcAxis::cast(axes_list->get(i));
-					printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
-
-					auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
-
-					auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
-
-					auto unit = computeUnitVectorFromAxis(axis_line);
-
-					printToMessageWindow(session_ptr, "unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
-
+				auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+				if (csys_list->getarraysize() == 0) {
+					printToMessageWindow(session_ptr, "There are no CYS in the part " + string(name));
+					return;
 				}
 
-			}
+				auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
+				printToMessageWindow(session_ptr, "There are " + to_string(axes_list->getarraysize()) + " axes");
+				if (axes_list->getarraysize() != 0) {
+					for (int i = 0; i < axes_list->getarraysize(); i++)
+					{
+						auto axis = pfcAxis::cast(axes_list->get(i));
+						printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
 
-			// Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
-			modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
+						auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
+
+						auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
+
+						auto unit = computeUnitVectorFromAxis(axis_line);
+
+						printToMessageWindow(session_ptr, "unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
+
+					}
+
+				}
+				// Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
+				modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
+				links_map[feat_id] = link;
+			}
 		}
 
 		return;
@@ -221,7 +202,7 @@ extern "C" int user_initialize(
 	cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
 	cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
 
-	session->RibbonDefinitionfileLoad("tool.rbn");
+	//session->RibbonDefinitionfileLoad("tool.rbn");
 
 
 	return (0);
