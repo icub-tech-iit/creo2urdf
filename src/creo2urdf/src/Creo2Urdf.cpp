@@ -23,6 +23,8 @@
 #include <array>
 #include <map>
 #include <iDynTree/Model/Model.h>
+#include <iDynTree/ModelIO/ModelExporter.h>
+#include <iDynTree/Model/RevoluteJoint.h>
 
 void printToMessageWindow(pfcSession_ptr session, std::string message)
 {
@@ -65,13 +67,44 @@ std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data
 }
 
 
+
+iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop) {
+	
+	
+	auto com = mass_prop->GetGravityCenter();
+	auto inertia_tensor = mass_prop->GetCenterGravityInertiaTensor();
+	iDynTree::RotationalInertiaRaw idyn_inertia_tensor = iDynTree::RotationalInertiaRaw::Zero();
+	for (int i_row = 0; i_row < idyn_inertia_tensor.rows(); i_row++) {
+		for (int j_col = 0; j_col < idyn_inertia_tensor.cols(); j_col++) {
+			idyn_inertia_tensor.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col));
+		}
+	}
+	
+	iDynTree::SpatialInertia sp_inertia(mass_prop->GetMass(),
+		                                { com->get(0), com->get(1), com->get(2) },
+		                                idyn_inertia_tensor);
+	return sp_inertia;
+
+}
+
+iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf) {
+	iDynTree::Transform idyn_trf;
+	auto o = creo_trf->GetOrigin();
+	auto m = creo_trf->GetMatrix();
+	idyn_trf.setPosition({ o->get(0), o->get(1), o->get(2) });
+	idyn_trf.setRotation({ m->get(0,0), m->get(0,1), m->get(0,2),
+						   m->get(1,0), m->get(1,1), m->get(1,2),
+						   m->get(2,0), m->get(2,1), m->get(2,2) });
+	return idyn_trf;
+}
+
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
 	void OnCommand() override {
+
+		//iDynTree::ModelExporter mdl_exporter;
 		pfcSession_ptr session_ptr = pfcGetProESession();
-
 		pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
-
 		pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
 
 		
@@ -82,12 +115,15 @@ public:
 		// Export stl of the model
 
 		iDynTree::Model idyn_model;
+		//mdl_exporter.init(idyn_model);
 	
 		auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
 		if (asm_component_list->getarraysize() == 0) {
 			printToMessageWindow(session_ptr, "There are no CYS in the asm");
 			return;
 		}
+
+		std::string prevLinkName = "";
 
 		for (int i = 0; i < asm_component_list->getarraysize(); i++)
 		{
@@ -119,11 +155,11 @@ public:
 				printToMessageWindow(session_ptr, to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
 
 				auto name = modelhdl->GetFullName();
-				auto massProp = pfcSolid::cast(modelhdl)->GetMassProperty();
-				auto com = massProp->GetGravityCenter();
-				auto comInertia = massProp->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
+				auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
+				auto com = mass_prop->GetGravityCenter();
+				auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 
-				printToMessageWindow(session_ptr, "Model name is " + std::string(name) + " and weighs " + to_string(massProp->GetMass()));
+				printToMessageWindow(session_ptr, "Model name is " + std::string(name) + " and weighs " + to_string(mass_prop->GetMass()));
 				printToMessageWindow(session_ptr, "Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
 				printToMessageWindow(session_ptr, "Inertia tensor:");
 				printToMessageWindow(session_ptr, to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
@@ -139,28 +175,56 @@ public:
 
 				auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
 				printToMessageWindow(session_ptr, "There are " + to_string(axes_list->getarraysize()) + " axes");
-				if (axes_list->getarraysize() != 0) {
-					for (int i = 0; i < axes_list->getarraysize(); i++)
-					{
-						auto axis = pfcAxis::cast(axes_list->get(i));
-						printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
-
-						auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
-
-						auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
-
-						auto unit = computeUnitVectorFromAxis(axis_line);
-
-						printToMessageWindow(session_ptr, "unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
-
-					}
-
+				if (axes_list->getarraysize() == 0) {
+					printToMessageWindow(session_ptr, "There are no AXIS in the part " + string(name));
+					return;
 				}
+
+				// TODO We assume we have 1 axis and it is the one of the joint
+				auto axis = pfcAxis::cast(axes_list->get(0));
+				printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
+
+				auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
+
+				auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
+
+				auto unit = computeUnitVectorFromAxis(axis_line);
+
+				printToMessageWindow(session_ptr, "unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
+
 				// Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
 				modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
+
+
+				link.setInertia(fromCreo(mass_prop));
+				if (i == asm_component_list->getarraysize()-1) { // TODO This is valid only for twobars
+					printToMessageWindow(session_ptr, "I AM ADDING A JOINT!");
+					iDynTree::RevoluteJoint joint(fromCreo(transform), { {unit[0], unit[1], unit[2]},
+											                           { o->get(0), o->get(1), o->get(2)} });
+					
+					if (idyn_model.addJointAndLink(prevLinkName, prevLinkName + "--" + string(name), &joint, string(name), link) == iDynTree::JOINT_INVALID_INDEX) {
+						printToMessageWindow(session_ptr, "FAILED TO ADD JOINT!");
+						return;
+					}
+				}
+				else {
+					prevLinkName = string(name);
+					idyn_model.addLink(string(name), link);
+
+				}
+				//idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); TODO when we have an additional frame to add
+
 				links_map[feat_id] = link;
 			}
 		}
+		printToMessageWindow(session_ptr, "idynModel " + idyn_model.toString());
+
+		
+
+
+		//if (!mdl_exporter.exportModelToFile("model.urdf")) {
+		//	printToMessageWindow(session_ptr, "Error exporting the urdf");
+		//}
 
 		return;
 	}
