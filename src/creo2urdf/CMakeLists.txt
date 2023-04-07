@@ -66,6 +66,7 @@ target_link_libraries(creo2urdf PUBLIC  protk_dllmd_NU
                                         advapi32
                                         mpr
                                         netapi32
+                                        iDynTree::idyntree-modelio
                                         iDynTree::idyntree-high-level)
 
 # FIXME all these win32 libraries that are used by protk dll have to be set as dependencies of the target
