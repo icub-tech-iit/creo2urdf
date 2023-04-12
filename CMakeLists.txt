@@ -12,6 +12,7 @@ include(GNUInstallDirs)
 include(FeatureSummary)
 
 find_package(YCM 0.12 REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(iDynTree REQUIRED)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
