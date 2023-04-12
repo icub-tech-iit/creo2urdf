@@ -20,8 +20,6 @@
 #include <string>
 #include <array>
 #include <map>
-#include <cstdlib>
-#include <fstream>
 
 
 #include <iDynTree/Model/Model.h>
@@ -114,8 +112,6 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf) {
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
     void OnCommand() override {
-        std::ofstream file;
-        file.open("model_manual.urdf");
         iDynTree::ModelExporter mdl_exporter;
         pfcSession_ptr session_ptr = pfcGetProESession();
         pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
@@ -126,10 +122,8 @@ public:
         // length_unit->Modify(pfcUnitConversionFactor::Create(0.001), length_unit->GetReferenceUnit()); // IT DOES NOT WORK
 
         iDynTree::Model idyn_model;
-        mdl_exporter.init(idyn_model);
-        //iDynTree::ModelExporterOptions export_options;
-        //export_options.robotExportedName = "2BARS";
-        //mdl_exporter.setExportingOptions(export_options);
+        iDynTree::ModelExporterOptions export_options;
+        export_options.robotExportedName = "2BARS";
 
         auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
         if (asm_component_list->getarraysize() == 0) {
@@ -233,14 +227,9 @@ public:
 
         printToMessageWindow(session_ptr, "idynModel " + idyn_model.toString());
         std::string model_str = ""; 
-        
-        if (!mdl_exporter.exportModelToString(model_str)) {
-            printToMessageWindow(session_ptr, "Error exporting the urdf");
-        }
-        else {
-            file << model_str;
-            file.close();
-        }
+
+        mdl_exporter.init(idyn_model);
+        mdl_exporter.setExportingOptions(export_options);
 
         if (!mdl_exporter.exportModelToFile("model.urdf")) {
             printToMessageWindow(session_ptr, "Error exporting the urdf");
