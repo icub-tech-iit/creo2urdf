@@ -1,12 +1,10 @@
-#include <ProToolkit.h>
-#include <ProMenuBar.h>
-#include <ProMdl.h>
-#include <ProSelection.h>
-#include <ProIntfData.h>
-#include <ProArray.h>
-#include <ProNotify.h>
-#include <ProDrawing.h>
-#include <ProDrawingView.h>
+/*
+ * Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the
+ * BSD-3-Clause license. See the accompanying LICENSE file for details.
+ */
 
 #include <pfcGlobal.h>
 #include <pfcModel.h>
@@ -22,11 +20,17 @@
 #include <string>
 #include <array>
 #include <map>
+#include <cstdlib>
+#include <fstream>
+
+
 #include <iDynTree/Model/Model.h>
 #include <iDynTree/ModelIO/ModelExporter.h>
 #include <iDynTree/Model/RevoluteJoint.h>
 
+
 constexpr double epsilon = 1e-12;
+
 
 enum class c2uLogLevel
 {
@@ -110,7 +114,9 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf) {
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
     void OnCommand() override {
-        //iDynTree::ModelExporter mdl_exporter;
+        std::ofstream file;
+        file.open("model_manual.urdf");
+        iDynTree::ModelExporter mdl_exporter;
         pfcSession_ptr session_ptr = pfcGetProESession();
         pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
         pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
@@ -119,10 +125,11 @@ public:
         //auto length_unit = solid_ptr->GetPrincipalUnits()->GetUnit(pfcUnitType::pfcUNIT_LENGTH);
         // length_unit->Modify(pfcUnitConversionFactor::Create(0.001), length_unit->GetReferenceUnit()); // IT DOES NOT WORK
 
-        // Export stl of the model
-
         iDynTree::Model idyn_model;
-        //mdl_exporter.init(idyn_model);
+        mdl_exporter.init(idyn_model);
+        //iDynTree::ModelExporterOptions export_options;
+        //export_options.robotExportedName = "2BARS";
+        //mdl_exporter.setExportingOptions(export_options);
 
         auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
         if (asm_component_list->getarraysize() == 0) {
@@ -225,10 +232,19 @@ public:
         }
 
         printToMessageWindow(session_ptr, "idynModel " + idyn_model.toString());
+        std::string model_str = ""; 
+        
+        if (!mdl_exporter.exportModelToString(model_str)) {
+            printToMessageWindow(session_ptr, "Error exporting the urdf");
+        }
+        else {
+            file << model_str;
+            file.close();
+        }
 
-        //if (!mdl_exporter.exportModelToFile("model.urdf")) {
-        //    printToMessageWindow(session_ptr, "Error exporting the urdf");
-        //}
+        if (!mdl_exporter.exportModelToFile("model.urdf")) {
+            printToMessageWindow(session_ptr, "Error exporting the urdf");
+        }
 
         return;
     }
@@ -249,7 +265,6 @@ public:
     }
 };
 
-static ProError status;
 
 /*====================================================================*\
 FUNCTION : user_initialize()
