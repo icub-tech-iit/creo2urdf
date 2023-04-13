@@ -27,8 +27,9 @@
 #include <iDynTree/Model/RevoluteJoint.h>
 
 
-constexpr double epsilon = 1e-12;
-
+constexpr double mm_to_m   = 1e-3;
+constexpr double mm2_to_m2 = 1e-6;
+constexpr double epsilon   = 1e-12;
 
 enum class c2uLogLevel
 {
@@ -50,10 +51,6 @@ void printToMessageWindow(pfcSession_ptr session, std::string message, c2uLogLev
 }
 
 
-// The key is id of the feature
-std::map<int, iDynTree::Link>  links_map;
-// The key are id parent id child
-std::map<std::pair<int, int>, iDynTree::IJointPtr> joints_map;
 
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data)
 {
@@ -87,12 +84,12 @@ iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop) {
     iDynTree::RotationalInertiaRaw idyn_inertia_tensor = iDynTree::RotationalInertiaRaw::Zero();
     for (int i_row = 0; i_row < idyn_inertia_tensor.rows(); i_row++) {
         for (int j_col = 0; j_col < idyn_inertia_tensor.cols(); j_col++) {
-            idyn_inertia_tensor.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col));
+            idyn_inertia_tensor.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col) * mm2_to_m2);
         }
     }
 
     iDynTree::SpatialInertia sp_inertia(mass_prop->GetMass(),
-        { com->get(0), com->get(1), com->get(2) },
+        { com->get(0) * mm_to_m, com->get(1) * mm_to_m, com->get(2) * mm_to_m },
         idyn_inertia_tensor);
     return sp_inertia;
 }
@@ -101,7 +98,7 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf) {
     iDynTree::Transform idyn_trf;
     auto o = creo_trf->GetOrigin();
     auto m = creo_trf->GetMatrix();
-    idyn_trf.setPosition({ o->get(0), o->get(1), o->get(2) });
+    idyn_trf.setPosition({ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m });
     idyn_trf.setRotation({ m->get(0,0), m->get(0,1), m->get(0,2),
                            m->get(1,0), m->get(1,1), m->get(1,2),
                            m->get(2,0), m->get(2,1), m->get(2,2) });
@@ -207,7 +204,7 @@ public:
             link.setInertia(fromCreo(mass_prop));
             if (i == asm_component_list->getarraysize() - 1) { // TODO This is valid only for twobars
                 iDynTree::RevoluteJoint joint(fromCreo(transform), { {unit[0], unit[1], unit[2]},
-                                                                    { o->get(0), o->get(1), o->get(2)} });
+                                                                    { o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
 
                 if (idyn_model.addJointAndLink(prevLinkName, prevLinkName + "--" + string(name), &joint, string(name), link) == iDynTree::JOINT_INVALID_INDEX) {
                     printToMessageWindow(session_ptr, "FAILED TO ADD JOINT!");
@@ -222,7 +219,6 @@ public:
 
             //idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); TODO when we have an additional frame to add
 
-            links_map[feat_id] = link;
         }
 
         printToMessageWindow(session_ptr, "idynModel " + idyn_model.toString());
