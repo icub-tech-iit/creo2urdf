@@ -56,7 +56,9 @@ add_compile_definitions(creo2urdf PUBLIC PRO_MACHINE=36
                                          PRO_OS=4)
 
 # Link dependencies
-target_link_libraries(creo2urdf PUBLIC  protk_dllmd_NU
+target_link_libraries(creo2urdf PRIVATE iDynTree::idyntree-modelio
+                                        iDynTree::idyntree-high-level 
+                                        protk_dllmd_NU
                                         otk_cpp_md
                                         otk_no222_md
                                         ucore
@@ -66,6 +68,8 @@ target_link_libraries(creo2urdf PUBLIC  protk_dllmd_NU
                                         advapi32
                                         mpr
                                         netapi32)
+
+
 
 # FIXME all these win32 libraries that are used by protk dll have to be set as dependencies of the target
 ## FIXME
