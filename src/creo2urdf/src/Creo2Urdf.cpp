@@ -5,6 +5,7 @@
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
+#define _USE_MATH_DEFINES
 
 #include <pfcGlobal.h>
 #include <pfcModel.h>
@@ -37,7 +38,7 @@ enum class c2uLogLevel
     WARN
 };
 
-std::map<c2uLogLevel, std::string> log_level_key = {
+const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::INFO, "c2uINFO"},
     {c2uLogLevel::WARN, "c2uWARN"}
 };
@@ -47,7 +48,7 @@ void printToMessageWindow(pfcSession_ptr session, std::string message, c2uLogLev
     xstringsequence_ptr msg_sequence = xstringsequence::create();
     msg_sequence->append(xstring(message.c_str()));
     session->UIClearMessage();
-    session->UIDisplayMessage("creo2urdf.txt", log_level_key[log_level].c_str(), msg_sequence);
+    session->UIDisplayMessage("creo2urdf.txt", log_level_key.at(log_level).c_str(), msg_sequence);
 }
 
 
@@ -198,13 +199,20 @@ public:
 
             printToMessageWindow(session_ptr, "unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
 
-            // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
-            modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
-
             link.setInertia(fromCreo(mass_prop));
             if (i == asm_component_list->getarraysize() - 1) { // TODO This is valid only for twobars
                 iDynTree::RevoluteJoint joint(fromCreo(transform), { {unit[0], unit[1], unit[2]},
-                                                                    { o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
+                                                                      iDynTree::Position().Zero()});
+                                                                     // Should be 0 the origin of the axis, the displacement is already considered in transform
+                                                                    //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
+
+                // TODO let's put the limits hardcoded, to be retrieved from Creo
+                double min = 0.0;
+                double max = M_PI;
+                joint.enablePosLimits(true);
+                joint.setPosLimits(0, min, max);
+                // TODO we have to retrieve the rest transform from creo
+                //joint.setRestTransform()
 
                 if (idyn_model.addJointAndLink(prevLinkName, prevLinkName + "--" + string(name), &joint, string(name), link) == iDynTree::JOINT_INVALID_INDEX) {
                     printToMessageWindow(session_ptr, "FAILED TO ADD JOINT!");
@@ -216,6 +224,31 @@ public:
                 prevLinkName = string(name);
                 idyn_model.addLink(string(name), link);
             }
+
+
+            // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
+            modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
+            // Lets add the mess to the link
+            iDynTree::ExternalMesh visualMesh;
+            // Meshes are in millimeters, while iDynTree models are in meters
+            iDynTree::Vector3 scale; scale(0) = scale(1) = scale(2) = mm_to_m;
+            visualMesh.setScale(scale);
+            // Let's assign a gray as default color
+            iDynTree::Vector4 color;
+            iDynTree::Material material;
+            color(0) = color(1) = color(2) = 0.5;
+            color(3) = 1.0;
+            material.setColor(color);
+            visualMesh.setMaterial(material);
+            // Assign transform
+            // TODO Right now maybe it is not needed it ie exported respct the link csys
+            // visualMesh.link_H_geometry = link_H_geometry;
+
+            // Assign name
+            visualMesh.setFilename(string(name) + ".stl");
+            // TODO Right now let's consider visual and collision with the same mesh
+            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
 
             //idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); TODO when we have an additional frame to add
 
