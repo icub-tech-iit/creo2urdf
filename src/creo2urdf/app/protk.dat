@@ -1,0 +1,7 @@
+NAME       		  creo2urdf
+STARTUP    		  dll
+EXEC_FILE  		  <repository-parent-path>\creo2urdf\build\x64-Release\bin\creo2urdf.dll
+TEXT_DIR   		  <repository-parent-path>\creo2urdf\src\creo2urdf\text\
+DELAY_START       true
+ALLOW_STOP        true
+END
