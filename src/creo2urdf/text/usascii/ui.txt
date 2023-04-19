@@ -1,4 +1,4 @@
 Run Creo2Urdf
-Run Creo2Urdf
+Creo2Urdf
 #
 #

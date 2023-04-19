@@ -122,6 +122,7 @@ public:
         iDynTree::Model idyn_model;
         iDynTree::ModelExporterOptions export_options;
         export_options.robotExportedName = "2BARS";
+        export_options.baseLink = "BAR";
 
         auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
         if (asm_component_list->getarraysize() == 0) {
