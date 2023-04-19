@@ -27,12 +27,13 @@
 #include <iDynTree/ModelIO/ModelExporter.h>
 #include <iDynTree/ModelIO/ModelLoader.h>
 #include <iDynTree/Model/RevoluteJoint.h>
+#include <iDynTree/KinDynComputations.h>
 
 
 constexpr double mm_to_m   = 1e-3;
 constexpr double mm2_to_m2 = 1e-6;
 constexpr double epsilon   = 1e-12;
-
+constexpr double rad2deg   = 57.295779513;
 enum class c2uLogLevel
 {
     INFO = 0,
@@ -44,22 +45,14 @@ const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::WARN, "c2uWARN"}
 };
 
-void printToMessageWindow(pfcSession_ptr session, std::string message, c2uLogLevel log_level = c2uLogLevel::INFO)
+void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLevel::INFO)
 {
+    pfcSession_ptr session_ptr = pfcGetProESession();
     xstringsequence_ptr msg_sequence = xstringsequence::create();
     msg_sequence->append(xstring(message.c_str()));
-    session->UIClearMessage();
-    session->UIDisplayMessage("creo2urdf.txt", log_level_key.at(log_level).c_str(), msg_sequence);
+    session_ptr->UIClearMessage();
+    session_ptr->UIDisplayMessage("creo2urdf.txt", log_level_key.at(log_level).c_str(), msg_sequence);
 }
-
-bool validateTransform()
-{
-    iDynTree::ModelLoader mdl_loader;
-    auto model_urdf = mdl_loader.loadModelFromFile("model.urdf");
-
-}
-
-
 
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data)
 {
@@ -115,6 +108,56 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf) {
     return idyn_trf;
 }
 
+bool validateTransform(pfcTransform3D_ptr creo_matrix)
+{
+    iDynTree::ModelLoader mdl_loader;
+    if (!mdl_loader.loadModelFromFile("model.urdf"))
+    {
+        printToMessageWindow("Could not load urdf!", c2uLogLevel::WARN);
+        return false;
+    }
+
+    auto model_urdf = mdl_loader.model();
+
+    size_t n_frames = model_urdf.getNrOfFrames();
+
+    printToMessageWindow("Running model validation");
+
+    printToMessageWindow("There are " + to_string(n_frames) + " frames");
+
+    for (size_t i = 0; i < n_frames; i++)
+    {
+        printToMessageWindow(to_string(i) + ": " + model_urdf.getFrameName(i));
+    }
+
+    iDynTree::KinDynComputations computer;
+    computer.loadRobotModel(model_urdf);
+    auto urdf_trf = computer.getRelativeTransform("BAR", "BARLONGER");
+    auto urdf_rpy = urdf_trf.getRotation().asRPY();
+
+    printToMessageWindow("URDF trf between BAR and BARLONGER as RPY:\nR: "
+        + to_string(urdf_rpy(0) * rad2deg) +
+        "\nP: " + to_string(urdf_rpy(1) * rad2deg) +
+        "\nY: " + to_string(urdf_rpy(2) * rad2deg));
+
+
+    auto creo_trf = fromCreo(creo_matrix);
+    auto creo_rpy = creo_trf.getRotation().asRPY();
+
+    printToMessageWindow("Creo trf between BAR and BARLONGER as RPY:\nR: "
+        + to_string(creo_rpy(0) * rad2deg) +
+        "\nP: " + to_string(creo_rpy(1) * rad2deg) +
+        "\nY: " + to_string(creo_rpy(2) * rad2deg));
+
+    printToMessageWindow("Transform error as RPY:\nR: "
+        + to_string(urdf_rpy(0) - creo_rpy(0)) +
+        "\nP: " + to_string(urdf_rpy(1) - creo_rpy(1)) +
+        "\nY: " + to_string(urdf_rpy(2) - creo_rpy(2)));
+
+    return true;
+}
+
+
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
     void OnCommand() override {
@@ -134,11 +177,13 @@ public:
 
         auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
         if (asm_component_list->getarraysize() == 0) {
-            printToMessageWindow(session_ptr, "There are no FEATURES in the asm", c2uLogLevel::WARN);
+            printToMessageWindow("There are no FEATURES in the asm", c2uLogLevel::WARN);
             return;
         }
 
         std::string prevLinkName = "";
+
+        pfcTransform3D_ptr validation_trf;
 
         for (int i = 0; i < asm_component_list->getarraysize(); i++)
         {
@@ -161,44 +206,46 @@ public:
 
             auto transform = comp_path->GetTransform(xfalse);
 
+            validation_trf = transform;
+
             auto m = transform->GetMatrix();
             auto o = transform->GetOrigin();
-            printToMessageWindow(session_ptr, "feat name: id: " + to_string(feat_id));
+            printToMessageWindow("feat name: id: " + to_string(feat_id));
 
-            printToMessageWindow(session_ptr, "origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
-            printToMessageWindow(session_ptr, "transform:");
-            printToMessageWindow(session_ptr, to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
-            printToMessageWindow(session_ptr, to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
-            printToMessageWindow(session_ptr, to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
+            printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
+            printToMessageWindow("transform:");
+            printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
+            printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
+            printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
 
             auto name = modelhdl->GetFullName();
             auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
             auto com = mass_prop->GetGravityCenter();
             auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 
-            printToMessageWindow(session_ptr, "Model name is " + std::string(name) + " and weighs " + to_string(mass_prop->GetMass()));
-            printToMessageWindow(session_ptr, "Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
-            printToMessageWindow(session_ptr, "Inertia tensor:");
-            printToMessageWindow(session_ptr, to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
-            printToMessageWindow(session_ptr, to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
-            printToMessageWindow(session_ptr, to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
+            printToMessageWindow("Model name is " + std::string(name) + " and weighs " + to_string(mass_prop->GetMass()));
+            printToMessageWindow("Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
+            printToMessageWindow("Inertia tensor:");
+            printToMessageWindow(to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
+            printToMessageWindow(to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
+            printToMessageWindow(to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
 
             auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
             if (csys_list->getarraysize() == 0) {
-                printToMessageWindow(session_ptr, "There are no CYS in the part " + string(name));
+                printToMessageWindow("There are no CYS in the part " + string(name));
                 return;
             }
 
             auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
-            printToMessageWindow(session_ptr, "There are " + to_string(axes_list->getarraysize()) + " axes");
+            printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
             if (axes_list->getarraysize() == 0) {
-                printToMessageWindow(session_ptr, "There are no AXIS in the part " + string(name));
+                printToMessageWindow("There are no AXIS in the part " + string(name));
                 return;
             }
 
             // TODO We assume we have 1 axis and it is the one of the joint
             auto axis = pfcAxis::cast(axes_list->get(0));
-            printToMessageWindow(session_ptr, "The axis is called " + string(axis->GetName()) + " axes");
+            printToMessageWindow("The axis is called " + string(axis->GetName()) + " axes");
 
             auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
 
@@ -206,7 +253,7 @@ public:
 
             auto unit = computeUnitVectorFromAxis(axis_line);
 
-            printToMessageWindow(session_ptr, "unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
+            printToMessageWindow("unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
 
             link.setInertia(fromCreo(mass_prop));
             if (i == asm_component_list->getarraysize() - 1) { // TODO This is valid only for twobars
@@ -224,7 +271,7 @@ public:
                 //joint.setRestTransform()
 
                 if (idyn_model.addJointAndLink(prevLinkName, prevLinkName + "--" + string(name), &joint, string(name), link) == iDynTree::JOINT_INVALID_INDEX) {
-                    printToMessageWindow(session_ptr, "FAILED TO ADD JOINT!");
+                    printToMessageWindow("FAILED TO ADD JOINT!");
                     return;
                 }
             }
@@ -263,15 +310,17 @@ public:
 
         }
 
-        printToMessageWindow(session_ptr, "idynModel " + idyn_model.toString());
+        printToMessageWindow("idynModel " + idyn_model.toString());
         std::string model_str = ""; 
 
         mdl_exporter.init(idyn_model);
         mdl_exporter.setExportingOptions(export_options);
 
         if (!mdl_exporter.exportModelToFile("model.urdf")) {
-            printToMessageWindow(session_ptr, "Error exporting the urdf");
+            printToMessageWindow("Error exporting the urdf");
         }
+
+        validateTransform(validation_trf);
 
         return;
     }
