@@ -25,6 +25,7 @@
 
 #include <iDynTree/Model/Model.h>
 #include <iDynTree/ModelIO/ModelExporter.h>
+#include <iDynTree/ModelIO/ModelLoader.h>
 #include <iDynTree/Model/RevoluteJoint.h>
 
 
@@ -49,6 +50,13 @@ void printToMessageWindow(pfcSession_ptr session, std::string message, c2uLogLev
     msg_sequence->append(xstring(message.c_str()));
     session->UIClearMessage();
     session->UIDisplayMessage("creo2urdf.txt", log_level_key.at(log_level).c_str(), msg_sequence);
+}
+
+bool validateTransform()
+{
+    iDynTree::ModelLoader mdl_loader;
+    auto model_urdf = mdl_loader.loadModelFromFile("model.urdf");
+
 }
 
 
