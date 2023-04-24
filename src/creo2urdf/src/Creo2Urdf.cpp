@@ -326,6 +326,9 @@ public:
             // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
             modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
 
+            // Replace the first 5 bytes of the binary file with a string different than "solid"
+            // to avoid issues with stl parsers.
+            // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
             sanitizeSTL(string(name) + ".stl");
 
             // Lets add the mess to the link
