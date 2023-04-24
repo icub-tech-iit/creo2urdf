@@ -36,11 +36,13 @@ constexpr double epsilon   = 1e-12;
 constexpr double rad2deg   = 57.295779513;
 enum class c2uLogLevel
 {
-    INFO = 0,
+    NONE = 0,
+    INFO,
     WARN
 };
 
 const std::map<c2uLogLevel, std::string> log_level_key = {
+    {c2uLogLevel::NONE, "c2uNONE"},
     {c2uLogLevel::INFO, "c2uINFO"},
     {c2uLogLevel::WARN, "c2uWARN"}
 };
@@ -53,6 +55,21 @@ void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLev
     session_ptr->UIClearMessage();
     session_ptr->UIDisplayMessage("creo2urdf.txt", log_level_key.at(log_level).c_str(), msg_sequence);
 }
+
+void printRotationMatrix(pfcTransform3D_ptr m)
+{
+    printToMessageWindow(to_string(m->GetMatrix()->get(0, 0)) + " " + to_string(m->GetMatrix()->get(0, 1)) + " " + to_string(m->GetMatrix()->get(0, 2)));
+    printToMessageWindow(to_string(m->GetMatrix()->get(1, 0)) + " " + to_string(m->GetMatrix()->get(1, 1)) + " " + to_string(m->GetMatrix()->get(1, 2)));
+    printToMessageWindow(to_string(m->GetMatrix()->get(2, 0)) + " " + to_string(m->GetMatrix()->get(2, 1)) + " " + to_string(m->GetMatrix()->get(2, 2)));
+}
+
+void printRotationMatrix(pfcMatrix3D_ptr m)
+{
+    printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
+    printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
+    printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
+}
+
 
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data)
 {
@@ -84,6 +101,7 @@ iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop) {
     auto com = mass_prop->GetGravityCenter();
     auto inertia_tensor = mass_prop->GetCenterGravityInertiaTensor();
     iDynTree::RotationalInertiaRaw idyn_inertia_tensor = iDynTree::RotationalInertiaRaw::Zero();
+
     for (int i_row = 0; i_row < idyn_inertia_tensor.rows(); i_row++) {
         for (int j_col = 0; j_col < idyn_inertia_tensor.cols(); j_col++) {
             idyn_inertia_tensor.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col) * mm2_to_m2);
@@ -93,6 +111,11 @@ iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop) {
     iDynTree::SpatialInertia sp_inertia(mass_prop->GetMass(),
         { com->get(0) * mm_to_m, com->get(1) * mm_to_m, com->get(2) * mm_to_m },
         idyn_inertia_tensor);
+
+    sp_inertia.fromRotationalInertiaWrtCenterOfMass(mass_prop->GetMass(),
+        { com->get(0) * mm_to_m, com->get(1) * mm_to_m, com->get(2) * mm_to_m }, 
+        idyn_inertia_tensor);
+
     return sp_inertia;
 }
 
@@ -113,7 +136,7 @@ bool validateTransform(pfcTransform3D_ptr creo_matrix)
     iDynTree::ModelLoader mdl_loader;
     if (!mdl_loader.loadModelFromFile("model.urdf"))
     {
-        printToMessageWindow("Could not load urdf!", c2uLogLevel::WARN);
+        printToMessageWindow("Could not load urdf for validation!", c2uLogLevel::WARN);
         return false;
     }
 
@@ -123,31 +146,26 @@ bool validateTransform(pfcTransform3D_ptr creo_matrix)
 
     printToMessageWindow("Running model validation");
 
-    printToMessageWindow("There are " + to_string(n_frames) + " frames");
-
-    for (size_t i = 0; i < n_frames; i++)
-    {
-        printToMessageWindow(to_string(i) + ": " + model_urdf.getFrameName(i));
-    }
-
     iDynTree::KinDynComputations computer;
     computer.loadRobotModel(model_urdf);
     auto urdf_trf = computer.getRelativeTransform("BAR", "BARLONGER");
     auto urdf_rpy = urdf_trf.getRotation().asRPY();
-
+    /*
     printToMessageWindow("URDF trf between BAR and BARLONGER as RPY:\nR: "
         + to_string(urdf_rpy(0) * rad2deg) +
         "\nP: " + to_string(urdf_rpy(1) * rad2deg) +
         "\nY: " + to_string(urdf_rpy(2) * rad2deg));
-
+    */
 
     auto creo_trf = fromCreo(creo_matrix);
     auto creo_rpy = creo_trf.getRotation().asRPY();
 
+    /*
     printToMessageWindow("Creo trf between BAR and BARLONGER as RPY:\nR: "
         + to_string(creo_rpy(0) * rad2deg) +
         "\nP: " + to_string(creo_rpy(1) * rad2deg) +
         "\nY: " + to_string(creo_rpy(2) * rad2deg));
+        */
 
     printToMessageWindow("Transform error as RPY:\nR: "
         + to_string(urdf_rpy(0) - creo_rpy(0)) +
@@ -156,7 +174,6 @@ bool validateTransform(pfcTransform3D_ptr creo_matrix)
 
     return true;
 }
-
 
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
@@ -212,12 +229,13 @@ public:
             auto o = transform->GetOrigin();
             printToMessageWindow("feat name: id: " + to_string(feat_id));
 
+            /*
             printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
             printToMessageWindow("transform:");
             printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
             printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
             printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
-
+            */
             auto name = modelhdl->GetFullName();
             auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
             auto com = mass_prop->GetGravityCenter();
@@ -232,14 +250,14 @@ public:
 
             auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
             if (csys_list->getarraysize() == 0) {
-                printToMessageWindow("There are no CYS in the part " + string(name));
+                printToMessageWindow("There are no CYS in the part " + string(name), c2uLogLevel::WARN);
                 return;
             }
 
             auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
             printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
             if (axes_list->getarraysize() == 0) {
-                printToMessageWindow("There are no AXIS in the part " + string(name));
+                printToMessageWindow("There are no AXIS in the part " + string(name), c2uLogLevel::WARN);
                 return;
             }
 
@@ -256,6 +274,15 @@ public:
             printToMessageWindow("unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
 
             link.setInertia(fromCreo(mass_prop));
+
+            if (link.getInertia().isPhysicallyConsistent())
+            {
+                printToMessageWindow("Link " + string(name) + " is physically consistent");
+            }
+            else
+            {
+                printToMessageWindow("Link " + string(name) + " is NOT physically consistent!", c2uLogLevel::WARN);
+            }
             if (i == asm_component_list->getarraysize() - 1) { // TODO This is valid only for twobars
                 iDynTree::RevoluteJoint joint(fromCreo(transform), { {unit[0], unit[1], unit[2]},
                                                                       iDynTree::Position().Zero()});
@@ -271,7 +298,7 @@ public:
                 //joint.setRestTransform()
 
                 if (idyn_model.addJointAndLink(prevLinkName, prevLinkName + "--" + string(name), &joint, string(name), link) == iDynTree::JOINT_INVALID_INDEX) {
-                    printToMessageWindow("FAILED TO ADD JOINT!");
+                    printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
                     return;
                 }
             }
@@ -317,7 +344,7 @@ public:
         mdl_exporter.setExportingOptions(export_options);
 
         if (!mdl_exporter.exportModelToFile("model.urdf")) {
-            printToMessageWindow("Error exporting the urdf");
+            printToMessageWindow("Error exporting the urdf", c2uLogLevel::WARN);
         }
 
         validateTransform(validation_trf);
