@@ -175,6 +175,20 @@ bool validateTransform(pfcTransform3D_ptr creo_matrix)
     return true;
 }
 
+void sanitizeSTL(std::string stl)
+{
+    size_t n_bytes = 5;
+    char placeholder[6] = "iCubT";
+    std::ofstream output(stl, std::ios::binary | std::ios::out | std::ios::in);
+    
+    for (size_t i = 0; i < n_bytes; i++)
+    {
+        output.seekp(i);
+        output.write(&placeholder[i], 1);
+    }
+    output.close();
+}
+
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
     void OnCommand() override {
@@ -311,6 +325,9 @@ public:
 
             // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
             modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
+
+            sanitizeSTL(string(name) + ".stl");
+
             // Lets add the mess to the link
             iDynTree::ExternalMesh visualMesh;
             // Meshes are in millimeters, while iDynTree models are in meters
