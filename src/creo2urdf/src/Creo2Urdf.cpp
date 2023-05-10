@@ -406,7 +406,7 @@ extern "C" int user_initialize(
     cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
     cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
 
-    session->RibbonDefinitionfileLoad("toolkitribbonui.rbn");
+    session->RibbonDefinitionfileLoad("creo2urdf.rbn");
 
     return (0);
 }
