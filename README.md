@@ -9,8 +9,8 @@ Generate URDF model from CREO mechanisms.
 
 **Right now this plugin support only the simple case of an assembly with two links and one joints**
 
- <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/71cdae9f-551c-4247-baf3-701adac25898" width=600 align=center >
- <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/b6469d7a-72c3-4431-b307-24b0ee93c267" width=600 align=center >
+ <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/19866e6c-8f52-4010-84ef-db458189b753" width=600 align=center >
+ <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/968a544f-d991-423f-9b4f-752d0db9dd45" width=600 align=center >
 
 ## Installation
 
