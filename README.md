@@ -1,6 +1,17 @@
 # creo2urdf
 Generate URDF model from CREO mechanisms.
 
+
+⚠️ LIBRARY UNDER DEVELOPMENT ⚠️
+
+**Since it is under development, we cannot guarantee that the user interface of `creo2urdf` will not implement breaking changes. Be aware of this if you start using the code contained in this repository, sorry for the unconvenience.**
+
+
+**Right now this plugin support only the simple case of an assembly with two links and one joints**
+
+ <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/71cdae9f-551c-4247-baf3-701adac25898" width=600 align=center >
+ <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/b6469d7a-72c3-4431-b307-24b0ee93c267" width=600 align=center >
+
 ## Installation
 
 ### Dependencies
