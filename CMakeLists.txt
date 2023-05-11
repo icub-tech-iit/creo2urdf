@@ -11,7 +11,6 @@ project(creo2urdf LANGUAGES C CXX
 include(GNUInstallDirs)
 include(FeatureSummary)
 
-find_package(YCM 0.12 REQUIRED)
 # Needed for https://github.com/robotology/idyntree/issues/1065
 find_package(Eigen3 REQUIRED)
 find_package(iDynTree REQUIRED)
@@ -78,5 +77,3 @@ option(BUILD_TESTING "Create tests using CMake" OFF)
 ##############################
 
 set_property(GLOBAL PROPERTY USE_FOLDERS 1)
-
-include(AddUninstallTarget)
