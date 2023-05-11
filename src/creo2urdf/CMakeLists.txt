@@ -108,3 +108,12 @@ set_property(TARGET creo2urdf PROPERTY FOLDER "Libraries")
 set(CREO2URDF_PUBLIC_DEPS ${CREO2URDF_PUBLIC_DEPS} PARENT_SCOPE)
 set(CREO2URDF_PRIVATE_DEPS ${CREO2URDF_PRIVATE_DEPS} PARENT_SCOPE)
 
+## Generate protk.dat with correct paths
+file(WRITE ${PROJECT_BINARY_DIR}/protk.dat "")
+file(APPEND ${PROJECT_BINARY_DIR}/protk.dat "name creo2urdf\n")
+file(APPEND ${PROJECT_BINARY_DIR}/protk.dat "Startup dll\n")
+file(APPEND ${PROJECT_BINARY_DIR}/protk.dat "Allow_stop True\n")
+file(APPEND ${PROJECT_BINARY_DIR}/protk.dat "Delay_start False\n")
+file(APPEND ${PROJECT_BINARY_DIR}/protk.dat "exec_file ${CMAKE_BINARY_DIR}/bin/creo2urdf.dll\n")
+file(APPEND ${PROJECT_BINARY_DIR}/protk.dat "text_dir ${CMAKE_CURRENT_SOURCE_DIR}/text\n")
+file(APPEND ${PROJECT_BINARY_DIR}/protk.dat "END\n")
