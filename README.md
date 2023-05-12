@@ -13,6 +13,11 @@ Generate URDF model from CREO mechanisms.
  <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/19866e6c-8f52-4010-84ef-db458189b753" width=600 align=center >
  <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/968a544f-d991-423f-9b4f-752d0db9dd45" width=600 align=center >
 
+## Assumptions & limitations
+
+- The assembly must contains max 2 links an 1 revolute joint.
+- The joint is in 0.
+
 ## Installation
 
 ### Dependencies
