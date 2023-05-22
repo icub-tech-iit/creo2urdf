@@ -226,16 +226,19 @@ public:
 
         pfcTransform3D_ptr validation_trf;
 
-        iDynTree::Link prev_link;
+        iDynTree::Transform root_H_prev_link;
 
         int component_counter = 0;
 
         for (int i = 0; i < asm_component_list->getarraysize(); i++)
         {
             iDynTree::Link link;
+            iDynTree::Transform root_H_link;
+            iDynTree::Transform prev_link_H_link;
             auto comp = asm_component_list->get(i);
             auto feat = pfcFeature::cast(comp);
             auto feat_id = feat->GetId();
+
 
             if (feat->GetFeatType() != pfcFeatureType::pfcFEATTYPE_COMPONENT)
             {
@@ -264,11 +267,12 @@ public:
                auto o = trf->GetOrigin();
                printToMessageWindow("csys name " + string(csys->GetName()));
 
-
-               if (string(csys->GetName()) != relevant_csys_names[component_counter])
+               if (std::find(relevant_csys_names.begin(), relevant_csys_names.end(), string(csys->GetName())) == relevant_csys_names.end())
                {
                    continue;
                }
+
+               root_H_link = fromCreo(trf);
 
                printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
                printToMessageWindow("transform:");
@@ -279,27 +283,6 @@ public:
                 //printToMessageWindow(string(csys_feat->GetFeatTypeName()));
             }
 
-
-            xintsequence_ptr seq = xintsequence::create();
-
-            seq->append(feat_id);
-
-            pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
-
-            auto transform = comp_path->GetTransform(xfalse);
-
-            validation_trf = transform;
-
-            auto m = transform->GetMatrix();
-            auto o = transform->GetOrigin();
-            printToMessageWindow("feat name: id: " + to_string(feat_id));
-
- 
-            printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
-            printToMessageWindow("transform:");
-            printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
-            printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
-            printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
             
             auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
             auto com = mass_prop->GetGravityCenter();
@@ -350,10 +333,14 @@ public:
 
                 printToMessageWindow("Iteration n. " + to_string(i));
 
-                iDynTree::RevoluteJoint joint(fromCreo(transform), { {unit[0], unit[1], unit[2]},
-                                                                      iDynTree::Position().Zero()});
-                                                                     // Should be 0 the origin of the axis, the displacement is already considered in transform
-                                                                    //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
+                prev_link_H_link = iDynTree::Transform::compose(root_H_prev_link.inverse(), root_H_link);
+
+                printToMessageWindow("prev_link_H_link: " + prev_link_H_link.toString());
+
+                iDynTree::RevoluteJoint joint(prev_link_H_link, { {unit[0], unit[1], unit[2]},
+                                                                   iDynTree::Position().Zero()});
+                                                                   // Should be 0 the origin of the axis, the displacement is already considered in transform
+                                                                   //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
 
                 // TODO let's put the limits hardcoded, to be retrieved from Creo
                 double min = 0.0;
@@ -378,6 +365,7 @@ public:
             component_counter++;
 
             prevLinkName = string(name);
+            root_H_prev_link = root_H_link;
 
             // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
             modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
