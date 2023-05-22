@@ -226,15 +226,15 @@ public:
 
         pfcTransform3D_ptr validation_trf;
 
-        iDynTree::Transform root_H_prev_link;
+        iDynTree::Transform root_H_prev_link = iDynTree::Transform::Identity();
 
         int component_counter = 0;
 
         for (int i = 0; i < asm_component_list->getarraysize(); i++)
         {
             iDynTree::Link link;
-            iDynTree::Transform root_H_link;
-            iDynTree::Transform prev_link_H_link;
+            iDynTree::Transform root_H_link = iDynTree::Transform::Identity();
+            iDynTree::Transform prev_link_H_link = iDynTree::Transform::Identity();
             auto comp = asm_component_list->get(i);
             auto feat = pfcFeature::cast(comp);
             auto feat_id = feat->GetId();
@@ -331,8 +331,6 @@ public:
             if (component_counter > 0)
             { // TODO This is valid only for twobars
 
-                printToMessageWindow("Iteration n. " + to_string(i));
-
                 prev_link_H_link = iDynTree::Transform::compose(root_H_prev_link.inverse(), root_H_link);
 
                 printToMessageWindow("prev_link_H_link: " + prev_link_H_link.toString());
@@ -402,6 +400,11 @@ public:
         }
 
         printToMessageWindow("idynModel " + idyn_model.toString());
+        
+        std::ofstream out("idynModel.txt");
+        out << idyn_model.toString();
+        out.close();
+
         std::string model_str = ""; 
 
         mdl_exporter.init(idyn_model);
