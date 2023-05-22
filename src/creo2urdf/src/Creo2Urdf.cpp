@@ -34,6 +34,16 @@ constexpr double mm_to_m   = 1e-3;
 constexpr double mm2_to_m2 = 1e-6;
 constexpr double epsilon   = 1e-12;
 constexpr double rad2deg   = 57.295779513;
+
+
+std::array<std::string, 4> relevant_csys_names = {
+"SCSYS_NECK_2",
+"SCSYS_NECK_3", 
+"SCSYS_HEAD", 
+"SCSYS_REALSENSE"
+};
+
+
 enum class c2uLogLevel
 {
     NONE = 0,
@@ -204,7 +214,7 @@ public:
         iDynTree::Model idyn_model;
         iDynTree::ModelExporterOptions export_options;
         export_options.robotExportedName = "2BARS";
-        export_options.baseLink = "BAR";
+        export_options.baseLink = "SIM_ECUB_HEAD_NECK_1";
 
         auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
         if (asm_component_list->getarraysize() == 0) {
@@ -215,6 +225,10 @@ public:
         std::string prevLinkName = "";
 
         pfcTransform3D_ptr validation_trf;
+
+        iDynTree::Link prev_link;
+
+        int component_counter = 0;
 
         for (int i = 0; i < asm_component_list->getarraysize(); i++)
         {
@@ -229,6 +243,43 @@ public:
             }
 
             auto modelhdl = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
+            auto name = modelhdl->GetFullName();
+
+            auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+            if (csys_list->getarraysize() == 0) {
+                printToMessageWindow("There are no CYS in the part " + string(name), c2uLogLevel::WARN);
+                return;
+            }
+
+            for (size_t i = 0; i < csys_list->getarraysize(); i++)
+            {
+                auto csys_elem = csys_list->get(i);
+
+
+                auto csys = pfcCoordSystem::cast(csys_elem);
+
+               auto trf = csys->GetCoordSys();
+
+               auto m = trf->GetMatrix();
+               auto o = trf->GetOrigin();
+               printToMessageWindow("csys name " + string(csys->GetName()));
+
+
+               if (string(csys->GetName()) != relevant_csys_names[component_counter])
+               {
+                   continue;
+               }
+
+               printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
+               printToMessageWindow("transform:");
+               printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
+               printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
+               printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
+               
+                //printToMessageWindow(string(csys_feat->GetFeatTypeName()));
+            }
+
+
             xintsequence_ptr seq = xintsequence::create();
 
             seq->append(feat_id);
@@ -243,30 +294,26 @@ public:
             auto o = transform->GetOrigin();
             printToMessageWindow("feat name: id: " + to_string(feat_id));
 
-            /*
+ 
             printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
             printToMessageWindow("transform:");
             printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
             printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
             printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
-            */
-            auto name = modelhdl->GetFullName();
+            
             auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
             auto com = mass_prop->GetGravityCenter();
             auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 
+            /*
             printToMessageWindow("Model name is " + std::string(name) + " and weighs " + to_string(mass_prop->GetMass()));
             printToMessageWindow("Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
             printToMessageWindow("Inertia tensor:");
             printToMessageWindow(to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
             printToMessageWindow(to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
             printToMessageWindow(to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
+            */
 
-            auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-            if (csys_list->getarraysize() == 0) {
-                printToMessageWindow("There are no CYS in the part " + string(name), c2uLogLevel::WARN);
-                return;
-            }
 
             auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
             printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
@@ -297,7 +344,12 @@ public:
             {
                 printToMessageWindow("Link " + string(name) + " is NOT physically consistent!", c2uLogLevel::WARN);
             }
-            if (i == asm_component_list->getarraysize() - 1) { // TODO This is valid only for twobars
+
+            if (component_counter > 0)
+            { // TODO This is valid only for twobars
+
+                printToMessageWindow("Iteration n. " + to_string(i));
+
                 iDynTree::RevoluteJoint joint(fromCreo(transform), { {unit[0], unit[1], unit[2]},
                                                                       iDynTree::Position().Zero()});
                                                                      // Should be 0 the origin of the axis, the displacement is already considered in transform
@@ -315,13 +367,17 @@ public:
                     printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
                     return;
                 }
+                printToMessageWindow(to_string(component_counter) + ": " + prevLinkName + "--" + string(name));
             }
             else
             {
-                prevLinkName = string(name);
+                printToMessageWindow("First link, skipping joint addition");
                 idyn_model.addLink(string(name), link);
             }
 
+            component_counter++;
+
+            prevLinkName = string(name);
 
             // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
             modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
