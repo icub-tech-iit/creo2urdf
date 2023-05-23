@@ -28,6 +28,7 @@
 #include <iDynTree/ModelIO/ModelLoader.h>
 #include <iDynTree/Model/RevoluteJoint.h>
 #include <iDynTree/KinDynComputations.h>
+#include <iDynTree/Model/Traversal.h>
 
 
 constexpr double mm_to_m   = 1e-3;
@@ -36,13 +37,20 @@ constexpr double epsilon   = 1e-12;
 constexpr double rad2deg   = 57.295779513;
 
 
-std::array<std::string, 4> relevant_csys_names = {
+std::array<std::string, 5> relevant_csys_names = {
+"SCSYS_NECK_1",
 "SCSYS_NECK_2",
 "SCSYS_NECK_3", 
 "SCSYS_HEAD", 
 "SCSYS_REALSENSE"
 };
 
+std::map<std::string, std::string> child_axis_map = {
+    {"SIM_ECUB_HEAD_NECK_2", "NECK_PITCH_AXIS"},
+    {"SIM_ECUB_HEAD_NECK_3", "NECK_ROLL_AXIS"},
+    {"SIM_ECUB_HEAD", "NECK_YAW_AXIS"},
+    {"SIM_ECUB_REALSENSE", "REALSENSE_PITCH_AXIS"}
+};
 
 enum class c2uLogLevel
 {
@@ -213,7 +221,7 @@ public:
 
         iDynTree::Model idyn_model;
         iDynTree::ModelExporterOptions export_options;
-        export_options.robotExportedName = "2BARS";
+        export_options.robotExportedName = "ECUB_HEAD";
         export_options.baseLink = "SIM_ECUB_HEAD_NECK_1";
 
         auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
@@ -221,6 +229,11 @@ public:
             printToMessageWindow("There are no FEATURES in the asm", c2uLogLevel::WARN);
             return;
         }
+
+        std::ofstream out("idynModel.txt");
+
+        std::stringstream oss;
+
 
         std::string prevLinkName = "";
 
@@ -298,25 +311,6 @@ public:
             */
 
 
-            auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
-            printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
-            if (axes_list->getarraysize() == 0) {
-                printToMessageWindow("There are no AXIS in the part " + string(name), c2uLogLevel::WARN);
-                return;
-            }
-
-            // TODO We assume we have 1 axis and it is the one of the joint
-            auto axis = pfcAxis::cast(axes_list->get(0));
-            printToMessageWindow("The axis is called " + string(axis->GetName()) + " axes");
-
-            auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
-
-            auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
-
-            auto unit = computeUnitVectorFromAxis(axis_line);
-
-            printToMessageWindow("unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
-
             link.setInertia(fromCreo(mass_prop));
 
             if (link.getInertia().isPhysicallyConsistent())
@@ -330,6 +324,41 @@ public:
 
             if (component_counter > 0)
             { // TODO This is valid only for twobars
+
+                printToMessageWindow("-------- Iteration " + to_string(component_counter)  + " --------");
+
+                auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
+                printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
+                if (axes_list->getarraysize() == 0) {
+                    printToMessageWindow("There are no AXIS in the part " + string(name), c2uLogLevel::WARN);
+                    return;
+                }
+
+                // TODO We assume we have 1 axis and it is the one of the joint
+
+                pfcAxis* axis = nullptr;
+
+                for (size_t i = 0; i < axes_list->getarraysize(); i++)
+                {
+
+                    auto axis_elem = pfcAxis::cast(axes_list->get(i));
+
+                    if (string(axis_elem->GetName()) == child_axis_map.at(string(name)))
+                    {
+                        axis = axis_elem;
+                        printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
+
+                    }
+
+                }
+
+                auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
+
+                auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
+
+                auto unit = computeUnitVectorFromAxis(axis_line);
+
+                printToMessageWindow("unit vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(unit[0]) + ", " + std::to_string(unit[1]) + ", " + std::to_string(unit[2]) + ")");
 
                 prev_link_H_link = iDynTree::Transform::compose(root_H_prev_link.inverse(), root_H_link);
 
@@ -392,8 +421,8 @@ public:
             // Assign name
             visualMesh.setFilename(string(name) + ".stl");
             // TODO Right now let's consider visual and collision with the same mesh
-            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
-            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
+            //idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
+            //idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
 
             //idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); TODO when we have an additional frame to add
 
@@ -401,14 +430,40 @@ public:
 
         printToMessageWindow("idynModel " + idyn_model.toString());
         
-        std::ofstream out("idynModel.txt");
+
+        // std::streambuf* old = std::cerr.rdbuf(oss.rdbuf());
+        // std::cerr.rdbuf(old);
+
         out << idyn_model.toString();
-        out.close();
 
         std::string model_str = ""; 
 
         mdl_exporter.init(idyn_model);
         mdl_exporter.setExportingOptions(export_options);
+
+        if (!mdl_exporter.isValid())
+        {
+            printToMessageWindow("Model is not valid!", c2uLogLevel::WARN);
+        }
+
+        /*
+        if (idyn_model.getLinkIndex("SIM_ECUB_HEAD_NECK_1") == iDynTree::LINK_INVALID_INDEX)
+        {
+            printToMessageWindow("[ERROR] URDFStringFromModel: specified baseLink is not part of the model");
+        }
+
+       iDynTree::Traversal exportTraversal;
+        if (!idyn_model.computeFullTreeTraversal(exportTraversal, idyn_model.getLinkIndex("SIM_ECUB_HEAD_NECK_1")))
+        {
+            printToMessageWindow("[ERROR] URDFStringFromModel: error in computeFullTreeTraversal", c2uLogLevel::WARN);
+        }
+        else
+        {
+            printToMessageWindow("Traversal completed successfully");
+        }
+        */
+
+        out.close();
 
         if (!mdl_exporter.exportModelToFile("model.urdf")) {
             printToMessageWindow("Error exporting the urdf", c2uLogLevel::WARN);
