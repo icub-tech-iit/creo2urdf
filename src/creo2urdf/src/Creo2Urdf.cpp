@@ -38,7 +38,7 @@ constexpr double rad2deg   = 57.295779513;
 
 
 std::array<std::string, 5> relevant_csys_names = {
-"SCSYS_NECK_1",
+"CSYS",
 "SCSYS_NECK_2",
 "SCSYS_NECK_3", 
 "SCSYS_HEAD", 
@@ -263,7 +263,7 @@ public:
 
             auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
             if (csys_list->getarraysize() == 0) {
-                printToMessageWindow("There are no CYS in the part " + string(name), c2uLogLevel::WARN);
+                printToMessageWindow("There are no CSYS in the part " + string(name), c2uLogLevel::WARN);
                 return;
             }
 
@@ -278,15 +278,17 @@ public:
 
                auto m = trf->GetMatrix();
                auto o = trf->GetOrigin();
-               printToMessageWindow("csys name " + string(csys->GetName()));
 
-               if (std::find(relevant_csys_names.begin(), relevant_csys_names.end(), string(csys->GetName())) == relevant_csys_names.end())
+               if (component_counter > 0)
                {
-                   continue;
+                   if (std::find(relevant_csys_names.begin()+1, relevant_csys_names.end(), string(csys->GetName())) == relevant_csys_names.end())
+                   {
+                       continue;
+                   }
                }
 
                root_H_link = fromCreo(trf);
-
+               printToMessageWindow("csys name " + string(csys->GetName()));
                printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
                printToMessageWindow("transform:");
                printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
@@ -323,18 +325,13 @@ public:
             }
 
             if (component_counter > 0)
-            { // TODO This is valid only for twobars
-
-                printToMessageWindow("-------- Iteration " + to_string(component_counter)  + " --------");
-
+            {
                 auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
-                printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
+                // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
                 if (axes_list->getarraysize() == 0) {
                     printToMessageWindow("There are no AXIS in the part " + string(name), c2uLogLevel::WARN);
                     return;
                 }
-
-                // TODO We assume we have 1 axis and it is the one of the joint
 
                 pfcAxis* axis = nullptr;
 
@@ -346,7 +343,7 @@ public:
                     if (string(axis_elem->GetName()) == child_axis_map.at(string(name)))
                     {
                         axis = axis_elem;
-                        printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
+                        // printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
 
                     }
 
@@ -364,8 +361,9 @@ public:
 
                 printToMessageWindow("prev_link_H_link: " + prev_link_H_link.toString());
 
+
                 iDynTree::RevoluteJoint joint(prev_link_H_link, { {unit[0], unit[1], unit[2]},
-                                                                   iDynTree::Position().Zero()});
+                                                                   prev_link_H_link.getPosition()});
                                                                    // Should be 0 the origin of the axis, the displacement is already considered in transform
                                                                    //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
 
@@ -389,13 +387,21 @@ public:
                 idyn_model.addLink(string(name), link);
             }
 
-            component_counter++;
 
             prevLinkName = string(name);
             root_H_prev_link = root_H_link;
 
             // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
-            modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_list->get(0)->GetName())));
+
+            auto stl_csys_name = relevant_csys_names[component_counter];
+
+            printToMessageWindow("Using " + stl_csys_name + " to make stl");
+
+
+            modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(stl_csys_name.c_str())));
+
+            component_counter++;
+
 
             // Replace the first 5 bytes of the binary file with a string different than "solid"
             // to avoid issues with stl parsers.
@@ -416,7 +422,7 @@ public:
             visualMesh.setMaterial(material);
             // Assign transform
             // TODO Right now maybe it is not needed it ie exported respct the link csys
-            // visualMesh.link_H_geometry = link_H_geometry;
+            //visualMesh.setLink_H_geometry(prev_link_H_link);
 
             // Assign name
             visualMesh.setFilename(string(name) + ".stl");
@@ -456,13 +462,20 @@ public:
         }
         */
 
-        if (!mdl_exporter.exportModelToFile("model.urdf")) {
+        if (!mdl_exporter.exportModelToFile("model.urdf"))
+        {
             printToMessageWindow("Error exporting the urdf", c2uLogLevel::WARN);
+        }
+        else
+        {
+            printToMessageWindow("Urdf created successfully!");
         }
 
         std::cerr.rdbuf(cerr_old_buf); // Restore original cerr buffer after using iDynTree
 
-        validateTransform(validation_trf);
+
+        // Do not validate yet, it crashes creo
+       //validateTransform(validation_trf);
 
         return;
     }
