@@ -481,6 +481,7 @@ public:
     }
 };
 
+
 class Creo2UrdfAccessListener : public pfcUICommandAccessListener {
 public:
     pfcCommandAccess OnCommandAccess(xbool AllowErrorMessages) override {
@@ -496,6 +497,29 @@ public:
     }
 };
 
+
+class ValidatorListener : public pfcUICommandActionListener {
+public:
+    void OnCommand() override {
+        printToMessageWindow("TODO: This button is used to validate the model");
+        return;
+    }
+};
+
+class ValidatorAccessListener : public pfcUICommandAccessListener {
+public:
+    pfcCommandAccess OnCommandAccess(xbool AllowErrorMessages) override {
+        auto model = pfcGetProESession()->GetCurrentModel();
+        if (!model) {
+            return pfcCommandAccess::pfcACCESS_AVAILABLE;
+        }
+        auto type = model->GetType();
+        if (type != pfcMDL_PART && type != pfcMDL_ASSEMBLY) {
+            return pfcCommandAccess::pfcACCESS_UNAVAILABLE;
+        }
+        return pfcCommandAccess::pfcACCESS_AVAILABLE;
+    }
+};
 
 /*====================================================================*\
 FUNCTION : user_initialize()
@@ -513,6 +537,10 @@ extern "C" int user_initialize(
     auto cmd = session->UICreateCommand("Creo2Urdf", new Creo2UrdfActionListerner());
     cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
     cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
+
+    auto cmd_validate = session->UICreateCommand("Validator", new ValidatorListener());
+    cmd_validate->AddActionListener(new ValidatorAccessListener()); // To be checked it is odd
+    cmd_validate->Designate("ui.txt", "Run Validation", "Run Validation", "Run Validation");
 
     session->RibbonDefinitionfileLoad("creo2urdf.rbn");
 
