@@ -196,7 +196,7 @@ bool validateTransform(pfcTransform3D_ptr creo_matrix)
 void sanitizeSTL(std::string stl)
 {
     size_t n_bytes = 5;
-    char placeholder[6] = "iCubT";
+    char placeholder[6] = "robot";
     std::ofstream output(stl, std::ios::binary | std::ios::out | std::ios::in);
     
     for (size_t i = 0; i < n_bytes; i++)
@@ -230,10 +230,10 @@ public:
             return;
         }
 
-        std::ofstream out("idynModel.txt");
-
-        std::stringstream oss;
-
+        std::ofstream idyn_model_out("iDynModel.txt");
+        std::ofstream idyn_error_out("iDynErrors.txt");
+        std::streambuf* cerr_old_buf = std::cerr.rdbuf(); // store the original cerr buffer
+        std::cerr.rdbuf(idyn_error_out.rdbuf());          // Pass file buffer to set it as new buffer
 
         std::string prevLinkName = "";
 
@@ -421,22 +421,15 @@ public:
             // Assign name
             visualMesh.setFilename(string(name) + ".stl");
             // TODO Right now let's consider visual and collision with the same mesh
-            //idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
-            //idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
+            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
 
             //idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); TODO when we have an additional frame to add
 
         }
 
-        printToMessageWindow("idynModel " + idyn_model.toString());
-        
-
-        // std::streambuf* old = std::cerr.rdbuf(oss.rdbuf());
-        // std::cerr.rdbuf(old);
-
-        out << idyn_model.toString();
-
-        std::string model_str = ""; 
+        idyn_model_out << idyn_model.toString();
+        idyn_model_out.close();
 
         mdl_exporter.init(idyn_model);
         mdl_exporter.setExportingOptions(export_options);
@@ -463,11 +456,11 @@ public:
         }
         */
 
-        out.close();
-
         if (!mdl_exporter.exportModelToFile("model.urdf")) {
             printToMessageWindow("Error exporting the urdf", c2uLogLevel::WARN);
         }
+
+        std::cerr.rdbuf(cerr_old_buf); // Restore original cerr buffer after using iDynTree
 
         validateTransform(validation_trf);
 
