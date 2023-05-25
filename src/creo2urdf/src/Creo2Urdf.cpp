@@ -207,6 +207,97 @@ void sanitizeSTL(std::string stl)
     output.close();
 }
 
+std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name) {
+
+    iDynTree::Transform H_child;
+
+    auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+    if (csys_list->getarraysize() == 0) {
+        printToMessageWindow("There are no CSYS in the part " + string(link_child_name), c2uLogLevel::WARN);
+        
+        H_child = iDynTree::Transform::Identity();
+        
+        return { false, H_child };
+    }
+
+    for (size_t i = 0; i < csys_list->getarraysize(); i++)
+    {
+        auto csys_elem = csys_list->get(i);
+
+        auto csys = pfcCoordSystem::cast(csys_elem);
+
+        auto trf = csys->GetCoordSys();
+
+        auto m = trf->GetMatrix();
+        auto o = trf->GetOrigin();
+
+        if (std::find(relevant_csys_names.begin(), relevant_csys_names.end(), string(csys->GetName())) == relevant_csys_names.end())
+        {
+            continue;
+        }
+
+        H_child = fromCreo(trf);
+
+        /*
+        printToMessageWindow("csys name " + string(csys->GetName()));
+        printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
+        printToMessageWindow("transform:");
+        printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
+        printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
+        printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
+        */
+        //printToMessageWindow(string(csys_feat->GetFeatTypeName()));
+
+        return { true, H_child };
+
+    }
+}
+
+std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name, iDynTree::Transform H_child) {
+
+    iDynTree::Direction axis_unit_vector;
+
+    auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
+    // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
+    if (axes_list->getarraysize() == 0) {
+        printToMessageWindow("There is no AXIS in the part " + string(link_child_name), c2uLogLevel::WARN);
+
+        axis_unit_vector.zero();
+        return { false, axis_unit_vector};
+    }
+
+    pfcAxis* axis = nullptr;
+
+    for (size_t i = 0; i < axes_list->getarraysize(); i++)
+    {
+        auto axis_elem = pfcAxis::cast(axes_list->get(i));
+
+        if (string(axis_elem->GetName()) == child_axis_map.at(string(link_child_name)))
+        {
+            axis = axis_elem;
+            // printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
+        }
+    }
+
+    auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
+
+    auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
+
+    auto unit = computeUnitVectorFromAxis(axis_line);
+
+    axis_unit_vector.setVal(0, unit[0]);
+    axis_unit_vector.setVal(1, unit[1]);
+    axis_unit_vector.setVal(2, unit[2]);
+
+    axis_unit_vector = H_child.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
+    axis_unit_vector.Normalize();
+
+    printToMessageWindow(string(axis->GetName()) + ": (" + std::to_string(axis_unit_vector[0]) + ", "
+                                                        + std::to_string(axis_unit_vector[1]) + ", "
+                                                        + std::to_string(axis_unit_vector[2]) + ")");
+    return { true, axis_unit_vector };
+}
+
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
     void OnCommand() override {
@@ -238,11 +329,10 @@ public:
 
         std::string link_parent_name = "";
 
-        pfcTransform3D_ptr validation_trf;
-
         iDynTree::Transform H_parent = iDynTree::Transform::Identity();
 
         int component_counter = 0;
+        bool ret;
 
         for (int i = 0; i < asm_component_list->getarraysize(); i++)
         {
@@ -251,7 +341,7 @@ public:
             iDynTree::Transform H_parent_to_child = iDynTree::Transform::Identity();
             auto comp = asm_component_list->get(i);
             auto feat = pfcFeature::cast(comp);
-            auto feat_id = feat->GetId();
+            // auto feat_id = feat->GetId();
 
 
             if (feat->GetFeatType() != pfcFeatureType::pfcFEATTYPE_COMPONENT)
@@ -260,110 +350,57 @@ public:
             }
 
             auto modelhdl = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
-            auto name = modelhdl->GetFullName();
+            auto link_child_name = modelhdl->GetFullName();
 
-            auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-            if (csys_list->getarraysize() == 0) {
-                printToMessageWindow("There are no CSYS in the part " + string(name), c2uLogLevel::WARN);
+            std::tie(ret, H_child) = getTransformFromPart(modelhdl, string(link_child_name));
+            if (!ret)
+            {
                 std::cerr.rdbuf(cerr_old_buf);
                 return;
             }
 
-            for (size_t i = 0; i < csys_list->getarraysize(); i++)
-            {
-                auto csys_elem = csys_list->get(i);
-
-
-                auto csys = pfcCoordSystem::cast(csys_elem);
-
-               auto trf = csys->GetCoordSys();
-
-               auto m = trf->GetMatrix();
-               auto o = trf->GetOrigin();
-
-                if (std::find(relevant_csys_names.begin(), relevant_csys_names.end(), string(csys->GetName())) == relevant_csys_names.end())
-                {
-                    continue;
-                }
-
-               H_child = fromCreo(trf);
-               printToMessageWindow("csys name " + string(csys->GetName()));
-               printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
-               printToMessageWindow("transform:");
-               printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
-               printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
-               printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
-               
-                //printToMessageWindow(string(csys_feat->GetFeatTypeName()));
-            }
-            
             auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
             auto com = mass_prop->GetGravityCenter();                     // TODO transform the center of mass in relative coords
             auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 
+            link_child.setInertia(fromCreo(mass_prop));
+
+            if (!link_child.getInertia().isPhysicallyConsistent())
+            {
+                printToMessageWindow("Link " + string(link_child_name) + " is NOT physically consistent!", c2uLogLevel::WARN);
+            }
+
             /*
             printToMessageWindow("Model name is " + std::string(name) + " and weighs " + to_string(mass_prop->GetMass()));
+            */
             printToMessageWindow("Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
+            
+            /*
             printToMessageWindow("Inertia tensor:");
             printToMessageWindow(to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
             printToMessageWindow(to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
             printToMessageWindow(to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
             */
 
-
-            link_child.setInertia(fromCreo(mass_prop));
-
-            if (!link_child.getInertia().isPhysicallyConsistent())
-            {
-                printToMessageWindow("Link " + string(name) + " is NOT physically consistent!", c2uLogLevel::WARN);
-            }
-
             if (component_counter > 0)
             {
-                auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
-                // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
-                if (axes_list->getarraysize() == 0) {
-                    printToMessageWindow("There is no AXIS in the part " + string(name), c2uLogLevel::WARN);
+                iDynTree::Direction axis;
+                std::tie(ret, axis) = getRotationAxisFromPart(modelhdl, string(link_child_name), H_child);
 
-                    std::cerr.rdbuf(cerr_old_buf);
-                    return;
-                }
-
-                pfcAxis* axis = nullptr;
-
-                for (size_t i = 0; i < axes_list->getarraysize(); i++)
+                if (!ret)
                 {
-                    auto axis_elem = pfcAxis::cast(axes_list->get(i));
-
-                    if (string(axis_elem->GetName()) == child_axis_map.at(string(name)))
-                    {
-                        axis = axis_elem;
-                        // printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
-                    }
+                    std::cerr.rdbuf(cerr_old_buf);
+                    return; 
                 }
 
-                auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
+                H_parent_to_child = H_parent.inverse() * H_child;
 
-                auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
-
-                auto unit = computeUnitVectorFromAxis(axis_line);
-
-                iDynTree::Direction axis_unit_vector(unit.data(), 3);
-
-                H_parent_to_child = iDynTree::Transform::compose(H_parent.inverse(), H_child);
+                printToMessageWindow("H_parent: " + H_parent.toString());
+                printToMessageWindow("H_child: " + H_child.toString());
 
                 printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
 
-                iDynTree::Direction axis_unit_vector_from_child = H_child.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
-  
-                axis_unit_vector_from_child.Normalize();
-
-                printToMessageWindow(string(axis->GetName()) + ": (" + std::to_string(axis_unit_vector_from_child[0]) + ", "
-                                                                                                 + std::to_string(axis_unit_vector_from_child[1]) + ", " 
-                                                                                                 + std::to_string(axis_unit_vector_from_child[2]) + ")");
-
-
-                iDynTree::RevoluteJoint joint(H_parent_to_child, { {axis_unit_vector_from_child[0], axis_unit_vector_from_child[1], axis_unit_vector_from_child[2]},
+                iDynTree::RevoluteJoint joint(H_parent_to_child, {{axis[0], axis[1], axis[2]},
                                                                    H_parent_to_child.getPosition()});
                                                                    // Should be 0 the origin of the axis, the displacement is already considered in transform
                                                                    //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
@@ -376,26 +413,28 @@ public:
                 // TODO we have to retrieve the rest transform from creo
                 //joint.setRestTransform()
 
-                if (idyn_model.addJointAndLink(link_parent_name, link_parent_name + "--" + string(name), &joint, string(name), link_child) == iDynTree::JOINT_INVALID_INDEX) {
+                if (idyn_model.addJointAndLink(link_parent_name, link_parent_name + "--" + string(link_child_name), &joint, string(link_child_name), link_child) == iDynTree::JOINT_INVALID_INDEX) {
                     printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
+
+                    std::cerr.rdbuf(cerr_old_buf);
                     return;
                 }
-                printToMessageWindow(to_string(component_counter) + ": " + link_parent_name + "--" + string(name));
+                printToMessageWindow(to_string(component_counter) + ": " + link_parent_name + "--" + string(link_child_name));
             }
             else
             {
                 printToMessageWindow("First link, skipping joint addition");
-                idyn_model.addLink(string(name), link_child);
+                idyn_model.addLink(string(link_child_name), link_child);
             }
 
 
-            link_parent_name = string(name);
+            link_parent_name = string(link_child_name);
             H_parent = H_child;
 
             // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
 
             //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
-            modelhdl->Export(name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(relevant_csys_names[component_counter].c_str())));
+            modelhdl->Export(link_child_name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(relevant_csys_names[component_counter].c_str())));
 
             component_counter++;
 
@@ -403,7 +442,7 @@ public:
             // Replace the first 5 bytes of the binary file with a string different than "solid"
             // to avoid issues with stl parsers.
             // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
-            sanitizeSTL(string(name) + ".stl");
+            sanitizeSTL(string(link_child_name) + ".stl");
 
             // Lets add the mess to the link
             iDynTree::ExternalMesh visualMesh;
@@ -419,13 +458,13 @@ public:
             visualMesh.setMaterial(material);
             // Assign transform
             // TODO Right now maybe it is not needed it ie exported respct the link csys
-            //visualMesh.setLink_H_geometry(prev_link_H_link);
+            // visualMesh.setLink_H_geometry(H_parent_to_child);
 
             // Assign name
-            visualMesh.setFilename(string(name) + ".stl");
+            visualMesh.setFilename(string(link_child_name) + ".stl");
             // TODO Right now let's consider visual and collision with the same mesh
-            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
-            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(name))].push_back(visualMesh.clone());
+            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
 
             //idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); TODO when we have an additional frame to add
         }
