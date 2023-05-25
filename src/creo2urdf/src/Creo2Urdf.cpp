@@ -298,7 +298,7 @@ public:
             }
             
             auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
-            auto com = mass_prop->GetGravityCenter();
+            auto com = mass_prop->GetGravityCenter();                     // TODO transform the center of mass in relative coords
             auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 
             /*
@@ -358,7 +358,7 @@ public:
   
                 axis_unit_vector_from_child.Normalize();
 
-                printToMessageWindow("trf vector of axis " + string(axis->GetName()) + " is : (" + std::to_string(axis_unit_vector_from_child[0]) + ", "
+                printToMessageWindow(string(axis->GetName()) + ": (" + std::to_string(axis_unit_vector_from_child[0]) + ", "
                                                                                                  + std::to_string(axis_unit_vector_from_child[1]) + ", " 
                                                                                                  + std::to_string(axis_unit_vector_from_child[2]) + ")");
 
