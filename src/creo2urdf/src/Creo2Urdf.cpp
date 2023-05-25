@@ -142,9 +142,9 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf) {
     auto o = creo_trf->GetOrigin();
     auto m = creo_trf->GetMatrix();
     idyn_trf.setPosition({ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m });
-    idyn_trf.setRotation({ m->get(0,0), m->get(0,1), m->get(0,2),
-                           m->get(1,0), m->get(1,1), m->get(1,2),
-                           m->get(2,0), m->get(2,1), m->get(2,2) });
+    idyn_trf.setRotation({ m->get(0,0), m->get(1,0), m->get(2,0),
+                           m->get(0,1), m->get(1,1), m->get(2,1),
+                           m->get(0,2), m->get(1,2), m->get(2,2) });
 
     return idyn_trf;
 }
@@ -226,18 +226,18 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 
         auto csys = pfcCoordSystem::cast(csys_elem);
 
-        auto trf = csys->GetCoordSys();
-
-        auto m = trf->GetMatrix();
-        auto o = trf->GetOrigin();
-
         if (std::find(relevant_csys_names.begin(), relevant_csys_names.end(), string(csys->GetName())) == relevant_csys_names.end())
         {
             continue;
         }
 
-        H_child = fromCreo(trf);
+        auto trf = csys->GetCoordSys();
 
+        auto m = trf->GetMatrix();
+        auto o = trf->GetOrigin();
+
+        H_child = fromCreo(trf);
+        
         /*
         printToMessageWindow("csys name " + string(csys->GetName()));
         printToMessageWindow("origin x: " + to_string(o->get(0)) + " y: " + to_string(o->get(1)) + " z: " + to_string(o->get(2)));
@@ -352,6 +352,8 @@ public:
             auto modelhdl = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
             auto link_child_name = modelhdl->GetFullName();
 
+            printToMessageWindow(std::string(link_child_name));
+
             std::tie(ret, H_child) = getTransformFromPart(modelhdl, string(link_child_name));
             if (!ret)
             {
@@ -397,7 +399,6 @@ public:
 
                 printToMessageWindow("H_parent: " + H_parent.toString());
                 printToMessageWindow("H_child: " + H_child.toString());
-
                 printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
 
                 iDynTree::RevoluteJoint joint(H_parent_to_child, {{axis[0], axis[1], axis[2]},
