@@ -213,7 +213,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 
     auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
     if (csys_list->getarraysize() == 0) {
-        printToMessageWindow("There are no CSYS in the part " + string(link_child_name), c2uLogLevel::WARN);
+        printToMessageWindow("There are no CSYS in the part " + link_child_name, c2uLogLevel::WARN);
         
         H_child = iDynTree::Transform::Identity();
         
@@ -261,7 +261,7 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
     auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
     // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
     if (axes_list->getarraysize() == 0) {
-        printToMessageWindow("There is no AXIS in the part " + string(link_child_name), c2uLogLevel::WARN);
+        printToMessageWindow("There is no AXIS in the part " + link_child_name, c2uLogLevel::WARN);
 
         axis_unit_vector.zero();
         return { false, axis_unit_vector};
@@ -299,6 +299,48 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
                                                         + std::to_string(axis_unit_vector[2]) + ")");
     */
     return { true, axis_unit_vector };
+}
+
+bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, int component_counter, iDynTree::Model& idyn_model)
+{
+    //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
+
+    std::string stl_file_name = link_child_name + ".stl";
+
+    // Make all alphabetic characters lowercase
+    std::transform(stl_file_name.begin(), stl_file_name.end(), stl_file_name.begin(),
+                    [](unsigned char c) { return std::tolower(c); });
+
+    modelhdl->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(relevant_csys_names[component_counter].c_str())));
+
+    // Replace the first 5 bytes of the binary file with a string different than "solid"
+    // to avoid issues with stl parsers.
+    // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
+    sanitizeSTL(string(link_child_name) + ".stl");
+
+    // Lets add the mesh to the link
+    iDynTree::ExternalMesh visualMesh;
+    // Meshes are in millimeters, while iDynTree models are in meters
+    iDynTree::Vector3 scale; scale(0) = scale(1) = scale(2) = mm_to_m;
+    visualMesh.setScale(scale);
+    // Let's assign a gray as default color
+    iDynTree::Vector4 color;
+    iDynTree::Material material;
+    color(0) = color(1) = color(2) = 0.5;
+    color(3) = 1.0;
+    material.setColor(color);
+    visualMesh.setMaterial(material);
+    // Assign transform
+    // TODO Right now maybe it is not needed it ie exported respct the link csys
+    // visualMesh.setLink_H_geometry(H_parent_to_child);
+
+    // Assign name
+    visualMesh.setFilename(stl_file_name);
+    // TODO Right now let's consider visual and collision with the same mesh
+    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
+    idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
+
+    return true;
 }
 
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
@@ -353,11 +395,11 @@ public:
             }
 
             auto modelhdl = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
-            auto link_child_name = modelhdl->GetFullName();
+            auto link_child_name = string(modelhdl->GetFullName());
 
-            printToMessageWindow(std::string(link_child_name));
+            printToMessageWindow(link_child_name);
 
-            std::tie(ret, H_child) = getTransformFromPart(modelhdl, string(link_child_name));
+            std::tie(ret, H_child) = getTransformFromPart(modelhdl, link_child_name);
             if (!ret)
             {
                 std::cerr.rdbuf(cerr_old_buf);
@@ -372,7 +414,7 @@ public:
 
             if (!link_child.getInertia().isPhysicallyConsistent())
             {
-                printToMessageWindow("Link " + string(link_child_name) + " is NOT physically consistent!", c2uLogLevel::WARN);
+                printToMessageWindow(link_child_name + " is NOT physically consistent!", c2uLogLevel::WARN);
             }
 
             /*
@@ -387,7 +429,7 @@ public:
             if (component_counter > 0)
             {
                 iDynTree::Direction axis;
-                std::tie(ret, axis) = getRotationAxisFromPart(modelhdl, string(link_child_name), H_child);
+                std::tie(ret, axis) = getRotationAxisFromPart(modelhdl, link_child_name, H_child);
 
                 if (!ret)
                 {
@@ -401,8 +443,7 @@ public:
                 //printToMessageWindow("H_child: " + H_child.toString());
                 //printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
 
-                iDynTree::RevoluteJoint joint(H_parent_to_child, {{axis[0], axis[1], axis[2]},
-                                                                   H_parent_to_child.getPosition()});
+                iDynTree::RevoluteJoint joint(H_parent_to_child, {axis, H_parent_to_child.getPosition()});
                                                                    // Should be 0 the origin of the axis, the displacement is already considered in transform
                                                                    //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
 
@@ -412,15 +453,15 @@ public:
                 joint.enablePosLimits(true);
                 joint.setPosLimits(0, min, max);
                 // TODO we have to retrieve the rest transform from creo
-                //joint.setRestTransform()
+                //joint.setRestTransform();
 
-                if (idyn_model.addJointAndLink(link_parent_name, link_parent_name + "--" + string(link_child_name), &joint, string(link_child_name), link_child) == iDynTree::JOINT_INVALID_INDEX) {
+                if (idyn_model.addJointAndLink(link_parent_name, link_parent_name + "--" +link_child_name, &joint, link_child_name, link_child) == iDynTree::JOINT_INVALID_INDEX) {
                     printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
 
                     std::cerr.rdbuf(cerr_old_buf);
                     return;
                 }
-                printToMessageWindow(to_string(component_counter) + ": " + link_parent_name + "--" + string(link_child_name));
+                printToMessageWindow(to_string(component_counter) + ": " + link_parent_name + "--" + link_child_name);
             }
             else
             {
@@ -428,45 +469,14 @@ public:
                 idyn_model.addLink(string(link_child_name), link_child);
             }
 
+            addMeshAndExport(modelhdl, link_child_name, component_counter, idyn_model);
 
-            link_parent_name = string(link_child_name);
+            link_parent_name = link_child_name;
             H_parent = H_child;
-
-            // Getting just the first csys is a valid assumption for the MVP-1, for more complex asm we will need to change it
-
-            //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
-            modelhdl->Export(link_child_name + ".stl", pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(relevant_csys_names[component_counter].c_str())));
-
             component_counter++;
 
-            // Replace the first 5 bytes of the binary file with a string different than "solid"
-            // to avoid issues with stl parsers.
-            // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
-            sanitizeSTL(string(link_child_name) + ".stl");
-
-            // Lets add the mesh to the link
-            iDynTree::ExternalMesh visualMesh;
-            // Meshes are in millimeters, while iDynTree models are in meters
-            iDynTree::Vector3 scale; scale(0) = scale(1) = scale(2) = mm_to_m;
-            visualMesh.setScale(scale);
-            // Let's assign a gray as default color
-            iDynTree::Vector4 color;
-            iDynTree::Material material;
-            color(0) = color(1) = color(2) = 0.5;
-            color(3) = 1.0;
-            material.setColor(color);
-            visualMesh.setMaterial(material);
-            // Assign transform
-            // TODO Right now maybe it is not needed it ie exported respct the link csys
-            // visualMesh.setLink_H_geometry(H_parent_to_child);
-
-            // Assign name
-            visualMesh.setFilename(string(link_child_name) + ".stl");
-            // TODO Right now let's consider visual and collision with the same mesh
-            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
-            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
-
-            //idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); TODO when we have an additional frame to add
+            // TODO when we have an additional frame to add
+            // idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); 
         }
 
         idyn_model_out << idyn_model.toString();
