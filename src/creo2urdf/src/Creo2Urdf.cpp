@@ -97,7 +97,7 @@ std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data
     pfcPoint3D_ptr pstart = axis_line->GetEnd1();
     pfcPoint3D_ptr pend = axis_line->GetEnd2();
 
-    std::array<double, 3> unit_vector;
+    std::array<double, 3> unit_vector = {0, 0, 0};
 
     double module = sqrt(pow(pend->get(0) - pstart->get(0), 2) +
         pow(pend->get(1) - pstart->get(1), 2) +
@@ -115,7 +115,8 @@ std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data
     return unit_vector;
 }
 
-iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop) {
+iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H)
+{
     auto com = mass_prop->GetGravityCenter();
     auto inertia_tensor = mass_prop->GetCenterGravityInertiaTensor();
     iDynTree::RotationalInertiaRaw idyn_inertia_tensor = iDynTree::RotationalInertiaRaw::Zero();
@@ -126,18 +127,17 @@ iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop) {
         }
     }
 
-    iDynTree::SpatialInertia sp_inertia(mass_prop->GetMass(),
-        { com->get(0) * mm_to_m, com->get(1) * mm_to_m, com->get(2) * mm_to_m },
-        idyn_inertia_tensor);
+    iDynTree::Position com_child({ com->get(0) * mm_to_m , com->get(1) * mm_to_m, com->get(2) * mm_to_m });
+    com_child = H.inverse() * com_child;  // TODO verify
 
-    sp_inertia.fromRotationalInertiaWrtCenterOfMass(mass_prop->GetMass(),
-        { com->get(0) * mm_to_m, com->get(1) * mm_to_m, com->get(2) * mm_to_m }, 
-        idyn_inertia_tensor);
+    iDynTree::SpatialInertia sp_inertia(mass_prop->GetMass(), com_child, idyn_inertia_tensor);
+    sp_inertia.fromRotationalInertiaWrtCenterOfMass(mass_prop->GetMass(), com_child, idyn_inertia_tensor);
 
     return sp_inertia;
 }
 
-iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf) {
+iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf)
+{
     iDynTree::Transform idyn_trf;
     auto o = creo_trf->GetOrigin();
     auto m = creo_trf->GetMatrix();
@@ -249,8 +249,9 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
         //printToMessageWindow(string(csys_feat->GetFeatTypeName()));
 
         return { true, H_child };
-
     }
+
+    return { false, H_child };
 }
 
 std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name, iDynTree::Transform H_child) {
@@ -292,9 +293,11 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
     axis_unit_vector = H_child.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
     axis_unit_vector.Normalize();
 
+    /*
     printToMessageWindow(string(axis->GetName()) + ": (" + std::to_string(axis_unit_vector[0]) + ", "
                                                         + std::to_string(axis_unit_vector[1]) + ", "
                                                         + std::to_string(axis_unit_vector[2]) + ")");
+    */
     return { true, axis_unit_vector };
 }
 
@@ -365,7 +368,7 @@ public:
             auto com = mass_prop->GetGravityCenter();                     // TODO transform the center of mass in relative coords
             auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 
-            link_child.setInertia(fromCreo(mass_prop));
+            link_child.setInertia(fromCreo(mass_prop, H_child));
 
             if (!link_child.getInertia().isPhysicallyConsistent())
             {
@@ -374,10 +377,7 @@ public:
 
             /*
             printToMessageWindow("Model name is " + std::string(name) + " and weighs " + to_string(mass_prop->GetMass()));
-            */
             printToMessageWindow("Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
-            
-            /*
             printToMessageWindow("Inertia tensor:");
             printToMessageWindow(to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
             printToMessageWindow(to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
@@ -397,9 +397,9 @@ public:
 
                 H_parent_to_child = H_parent.inverse() * H_child;
 
-                printToMessageWindow("H_parent: " + H_parent.toString());
-                printToMessageWindow("H_child: " + H_child.toString());
-                printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
+                //printToMessageWindow("H_parent: " + H_parent.toString());
+                //printToMessageWindow("H_child: " + H_child.toString());
+                //printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
 
                 iDynTree::RevoluteJoint joint(H_parent_to_child, {{axis[0], axis[1], axis[2]},
                                                                    H_parent_to_child.getPosition()});
@@ -439,13 +439,12 @@ public:
 
             component_counter++;
 
-
             // Replace the first 5 bytes of the binary file with a string different than "solid"
             // to avoid issues with stl parsers.
             // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
             sanitizeSTL(string(link_child_name) + ".stl");
 
-            // Lets add the mess to the link
+            // Lets add the mesh to the link
             iDynTree::ExternalMesh visualMesh;
             // Meshes are in millimeters, while iDynTree models are in meters
             iDynTree::Vector3 scale; scale(0) = scale(1) = scale(2) = mm_to_m;
@@ -500,7 +499,7 @@ public:
 
         if (!mdl_exporter.exportModelToFile("model.urdf"))
         {
-            printToMessageWindow("Error exporting the urdf", c2uLogLevel::WARN);
+            printToMessageWindow("Error exporting the urdf. See iDynTreeErrors.txt for details", c2uLogLevel::WARN);
         }
         else
         {
