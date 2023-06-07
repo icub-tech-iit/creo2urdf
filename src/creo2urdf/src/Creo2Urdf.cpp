@@ -149,50 +149,6 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf)
     return idyn_trf;
 }
 
-bool validateTransform(pfcTransform3D_ptr creo_matrix)
-{
-    iDynTree::ModelLoader mdl_loader;
-    if (!mdl_loader.loadModelFromFile("model.urdf"))
-    {
-        printToMessageWindow("Could not load urdf for validation!", c2uLogLevel::WARN);
-        return false;
-    }
-
-    auto model_urdf = mdl_loader.model();
-
-    size_t n_frames = model_urdf.getNrOfFrames();
-
-    printToMessageWindow("Running model validation");
-
-    iDynTree::KinDynComputations computer;
-    computer.loadRobotModel(model_urdf);
-    auto urdf_trf = computer.getRelativeTransform("BAR", "BARLONGER");
-    auto urdf_rpy = urdf_trf.getRotation().asRPY();
-    /*
-    printToMessageWindow("URDF trf between BAR and BARLONGER as RPY:\nR: "
-        + to_string(urdf_rpy(0) * rad2deg) +
-        "\nP: " + to_string(urdf_rpy(1) * rad2deg) +
-        "\nY: " + to_string(urdf_rpy(2) * rad2deg));
-    */
-
-    auto creo_trf = fromCreo(creo_matrix);
-    auto creo_rpy = creo_trf.getRotation().asRPY();
-
-    /*
-    printToMessageWindow("Creo trf between BAR and BARLONGER as RPY:\nR: "
-        + to_string(creo_rpy(0) * rad2deg) +
-        "\nP: " + to_string(creo_rpy(1) * rad2deg) +
-        "\nY: " + to_string(creo_rpy(2) * rad2deg));
-        */
-
-    printToMessageWindow("Transform error as RPY:\nR: "
-        + to_string(urdf_rpy(0) - creo_rpy(0)) +
-        "\nP: " + to_string(urdf_rpy(1) - creo_rpy(1)) +
-        "\nY: " + to_string(urdf_rpy(2) - creo_rpy(2)));
-
-    return true;
-}
-
 void sanitizeSTL(std::string stl)
 {
     size_t n_bytes = 5;
@@ -347,7 +303,6 @@ class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
     void OnCommand() override {
 
-        iDynTree::ModelExporter mdl_exporter;
         pfcSession_ptr session_ptr = pfcGetProESession();
         pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
         pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
@@ -481,7 +436,7 @@ public:
 
         idyn_model_out << idyn_model.toString();
         idyn_model_out.close();
-
+        iDynTree::ModelExporter mdl_exporter;
         mdl_exporter.init(idyn_model);
         mdl_exporter.setExportingOptions(export_options);
 
@@ -517,11 +472,6 @@ public:
         }
 
         std::cerr.rdbuf(cerr_old_buf); // Restore original cerr buffer after using iDynTree
-
-
-        // Do not validate yet, it crashes creo
-       //validateTransform(validation_trf);
-
         return;
     }
 };
@@ -546,7 +496,73 @@ public:
 class ValidatorListener : public pfcUICommandActionListener {
 public:
     void OnCommand() override {
-        printToMessageWindow("TODO: This button is used to validate the model");
+        std::map<std::string, iDynTree::Transform> link_name_to_creo_computed_trf_map;
+        iDynTree::ModelLoader mdl_loader;
+        if (!mdl_loader.loadModelFromFile("model.urdf"))
+        {
+            printToMessageWindow("Could not load urdf for validation!", c2uLogLevel::WARN);
+            return;
+        }
+        auto idyn_model = mdl_loader.model();
+        auto creo_session_ptr = pfcGetProESession();
+        auto creo_model_ptr = pfcGetProESession()->GetCurrentModel();
+        bool ret{ false };
+
+        iDynTree::Transform H_child = iDynTree::Transform::Identity();
+
+        auto asm_component_list = creo_model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
+        if (asm_component_list->getarraysize() == 0) {
+            printToMessageWindow("There are no FEATURES in the asm", c2uLogLevel::WARN);
+            return;
+        }
+        // Let's first retrieve the trfs from root to all the links and store it in a map.
+        for (int i = 0; i < asm_component_list->getarraysize(); i++)
+        {
+            auto feat = pfcFeature::cast(asm_component_list->get(i));
+
+            if (feat->GetFeatType() != pfcFeatureType::pfcFEATTYPE_COMPONENT)
+            {
+                continue;
+            }
+
+            auto modelhdl = creo_session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
+            auto link_child_name = string(modelhdl->GetFullName());
+
+            std::tie(ret, H_child) = getTransformFromPart(modelhdl, link_child_name);
+            if (!ret)
+            {
+                printToMessageWindow("Unable to get the transform respect to the root for" + link_child_name);
+                return;
+            }
+
+            link_name_to_creo_computed_trf_map[link_child_name] = H_child;
+
+        }
+        printToMessageWindow("Running model validation");
+        iDynTree::KinDynComputations computer;
+        computer.loadRobotModel(idyn_model);
+
+        auto creo_neck_1_trf = link_name_to_creo_computed_trf_map.at("SIM_ECUB_HEAD_NECK_1");
+        // TODO: ask by a pront the joint position, after moved the cad
+        //computer.setJointPos()
+
+        // Lets ask the same transform to idyntree and check the difference w/ the
+        // creo computed one
+        for (int i = 0; i < idyn_model.getNrOfLinks(); i++) {
+            auto link_name = idyn_model.getLinkName(i);
+            // TODO: understand what is wrong when we get the world transform.
+            //auto idyn_trf = computer.getWorldTransform(link_name);
+            auto idyn_trf = computer.getRelativeTransform("SIM_ECUB_HEAD_NECK_1",link_name);
+            auto creo_trf = creo_neck_1_trf.inverse() * link_name_to_creo_computed_trf_map.at(link_name);
+
+            printToMessageWindow("Position error for "+ link_name + ": "+ (idyn_trf.getPosition() - creo_trf.getPosition()).toString());
+            printToMessageWindow("RPY error for " + link_name + ": " +
+                                std::to_string(idyn_trf.getRotation().asRPY()[0] - creo_trf.getRotation().asRPY()[0]) + ", " +
+                                std::to_string(idyn_trf.getRotation().asRPY()[1] - creo_trf.getRotation().asRPY()[1]) + ", " +
+                                std::to_string(idyn_trf.getRotation().asRPY()[2] - creo_trf.getRotation().asRPY()[2]));
+            printToMessageWindow("IDYN TRANSFORM: " + idyn_trf.toString());
+            printToMessageWindow("CREO TRANSFORM: " + creo_trf.toString());
+        }
         return;
     }
 };
