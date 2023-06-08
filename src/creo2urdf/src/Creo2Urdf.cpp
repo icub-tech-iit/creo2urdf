@@ -542,7 +542,14 @@ public:
         iDynTree::KinDynComputations computer;
         computer.loadRobotModel(idyn_model);
 
-        auto creo_neck_1_trf = link_name_to_creo_computed_trf_map.at("SIM_ECUB_HEAD_NECK_1");
+
+        // Setting the `world_T_base`
+        iDynTree::Vector3 gravity; gravity.zero(); gravity(2) = -9.8;
+        auto H_base = link_name_to_creo_computed_trf_map.at("SIM_ECUB_HEAD_NECK_1");
+        computer.setRobotState(H_base, iDynTree::VectorDynSize(idyn_model.getNrOfDOFs()),
+                               iDynTree::Twist(),
+                               iDynTree::VectorDynSize(idyn_model.getNrOfDOFs()),
+                               gravity);
         // TODO: ask by a pront the joint position, after moved the cad
         //computer.setJointPos()
 
@@ -550,18 +557,16 @@ public:
         // creo computed one
         for (int i = 0; i < idyn_model.getNrOfLinks(); i++) {
             auto link_name = idyn_model.getLinkName(i);
-            // TODO: understand what is wrong when we get the world transform.
-            //auto idyn_trf = computer.getWorldTransform(link_name);
-            auto idyn_trf = computer.getRelativeTransform("SIM_ECUB_HEAD_NECK_1",link_name);
-            auto creo_trf = creo_neck_1_trf.inverse() * link_name_to_creo_computed_trf_map.at(link_name);
+            auto idyn_trf = computer.getWorldTransform(link_name);
+            auto creo_trf = link_name_to_creo_computed_trf_map.at(link_name);
 
             printToMessageWindow("Position error for "+ link_name + ": "+ (idyn_trf.getPosition() - creo_trf.getPosition()).toString());
             printToMessageWindow("RPY error for " + link_name + ": " +
                                 std::to_string(idyn_trf.getRotation().asRPY()[0] - creo_trf.getRotation().asRPY()[0]) + ", " +
                                 std::to_string(idyn_trf.getRotation().asRPY()[1] - creo_trf.getRotation().asRPY()[1]) + ", " +
                                 std::to_string(idyn_trf.getRotation().asRPY()[2] - creo_trf.getRotation().asRPY()[2]));
-            printToMessageWindow("IDYN TRANSFORM: " + idyn_trf.toString());
-            printToMessageWindow("CREO TRANSFORM: " + creo_trf.toString());
+            //printToMessageWindow("IDYN TRANSFORM: " + idyn_trf.toString());
+            //printToMessageWindow("CREO TRANSFORM: " + creo_trf.toString());
         }
         return;
     }
