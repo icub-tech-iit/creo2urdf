@@ -56,13 +56,15 @@ enum class c2uLogLevel
 {
     NONE = 0,
     INFO,
-    WARN
+    WARN,
+    PROMPT
 };
 
 const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::NONE, "c2uNONE"},
     {c2uLogLevel::INFO, "c2uINFO"},
-    {c2uLogLevel::WARN, "c2uWARN"}
+    {c2uLogLevel::WARN, "c2uWARN"},
+    {c2uLogLevel::PROMPT, "c2uPROMPT"}
 };
 
 void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLevel::INFO)
@@ -503,10 +505,17 @@ public:
             printToMessageWindow("Could not load urdf for validation!", c2uLogLevel::WARN);
             return;
         }
+
         auto idyn_model = mdl_loader.model();
         auto creo_session_ptr = pfcGetProESession();
-        auto creo_model_ptr = pfcGetProESession()->GetCurrentModel();
+        auto creo_model_ptr = creo_session_ptr->GetCurrentModel();
         bool ret{ false };
+        iDynTree::VectorDynSize positions(idyn_model.getNrOfDOFs());
+        for (int i = 0; i < idyn_model.getNrOfJoints(); i++) {
+            printToMessageWindow("Please insert value for joint " + idyn_model.getJointName(i), c2uLogLevel::PROMPT);
+            positions[i] = creo_session_ptr->UIReadRealMessage(-360.0, 360.0);
+            printToMessageWindow("joint" + to_string(i) + " value " + to_string(positions[i]), c2uLogLevel::INFO);
+        }
 
         iDynTree::Transform H_child = iDynTree::Transform::Identity();
 
@@ -546,12 +555,10 @@ public:
         // Setting the `world_T_base`
         iDynTree::Vector3 gravity; gravity.zero(); gravity(2) = -9.8;
         auto H_base = link_name_to_creo_computed_trf_map.at("SIM_ECUB_HEAD_NECK_1");
-        computer.setRobotState(H_base, iDynTree::VectorDynSize(idyn_model.getNrOfDOFs()),
+        computer.setRobotState(H_base, positions,
                                iDynTree::Twist(),
                                iDynTree::VectorDynSize(idyn_model.getNrOfDOFs()),
                                gravity);
-        // TODO: ask by a pront the joint position, after moved the cad
-        //computer.setJointPos()
 
         // Lets ask the same transform to idyntree and check the difference w/ the
         // creo computed one
