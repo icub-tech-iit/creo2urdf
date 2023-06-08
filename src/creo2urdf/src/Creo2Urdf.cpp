@@ -35,6 +35,7 @@ constexpr double mm_to_m   = 1e-3;
 constexpr double mm2_to_m2 = 1e-6;
 constexpr double epsilon   = 1e-12;
 constexpr double rad2deg   = 57.295779513;
+constexpr double deg2rad   = 0.017453293;
 
 
 std::array<std::string, 5> relevant_csys_names = {
@@ -513,7 +514,7 @@ public:
         iDynTree::VectorDynSize positions(idyn_model.getNrOfDOFs());
         for (int i = 0; i < idyn_model.getNrOfJoints(); i++) {
             printToMessageWindow("Please insert value for joint " + idyn_model.getJointName(i), c2uLogLevel::PROMPT);
-            positions[i] = creo_session_ptr->UIReadRealMessage(-360.0, 360.0);
+            positions[i] = creo_session_ptr->UIReadRealMessage(-360.0, 360.0) * deg2rad;
             printToMessageWindow("joint" + to_string(i) + " value " + to_string(positions[i]), c2uLogLevel::INFO);
         }
 
@@ -555,10 +556,15 @@ public:
         // Setting the `world_T_base`
         iDynTree::Vector3 gravity; gravity.zero(); gravity(2) = -9.8;
         auto H_base = link_name_to_creo_computed_trf_map.at("SIM_ECUB_HEAD_NECK_1");
-        computer.setRobotState(H_base, positions,
-                               iDynTree::Twist(),
-                               iDynTree::VectorDynSize(idyn_model.getNrOfDOFs()),
-                               gravity);
+
+
+        if (!computer.setRobotState(H_base, positions,
+             iDynTree::Twist(),
+             iDynTree::VectorDynSize(idyn_model.getNrOfDOFs()),
+             gravity))
+        {
+            printToMessageWindow("Could not set the robot state!", c2uLogLevel::WARN);
+        }
 
         // Lets ask the same transform to idyntree and check the difference w/ the
         // creo computed one
