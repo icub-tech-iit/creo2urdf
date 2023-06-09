@@ -68,30 +68,6 @@ const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::PROMPT, "c2uPROMPT"}
 };
 
-void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLevel::INFO)
-{
-    pfcSession_ptr session_ptr = pfcGetProESession();
-    xstringsequence_ptr msg_sequence = xstringsequence::create();
-    msg_sequence->append(xstring(message.c_str()));
-    session_ptr->UIClearMessage();
-    session_ptr->UIDisplayMessage("creo2urdf.txt", log_level_key.at(log_level).c_str(), msg_sequence);
-}
-
-void printRotationMatrix(pfcTransform3D_ptr m)
-{
-    printToMessageWindow(to_string(m->GetMatrix()->get(0, 0)) + " " + to_string(m->GetMatrix()->get(0, 1)) + " " + to_string(m->GetMatrix()->get(0, 2)));
-    printToMessageWindow(to_string(m->GetMatrix()->get(1, 0)) + " " + to_string(m->GetMatrix()->get(1, 1)) + " " + to_string(m->GetMatrix()->get(1, 2)));
-    printToMessageWindow(to_string(m->GetMatrix()->get(2, 0)) + " " + to_string(m->GetMatrix()->get(2, 1)) + " " + to_string(m->GetMatrix()->get(2, 2)));
-}
-
-void printRotationMatrix(pfcMatrix3D_ptr m)
-{
-    printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
-    printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
-    printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
-}
-
-
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data)
 {
     auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
@@ -100,7 +76,7 @@ std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data
     pfcPoint3D_ptr pstart = axis_line->GetEnd1();
     pfcPoint3D_ptr pend = axis_line->GetEnd2();
 
-    std::array<double, 3> unit_vector = {0, 0, 0};
+    std::array<double, 3> unit_vector = { 0, 0, 0 };
 
     double module = sqrt(pow(pend->get(0) - pstart->get(0), 2) +
         pow(pend->get(1) - pstart->get(1), 2) +
@@ -151,6 +127,30 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf)
 
     return idyn_trf;
 }
+
+void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLevel::INFO)
+{
+    pfcSession_ptr session_ptr = pfcGetProESession();
+    xstringsequence_ptr msg_sequence = xstringsequence::create();
+    msg_sequence->append(xstring(message.c_str()));
+    session_ptr->UIClearMessage();
+    session_ptr->UIDisplayMessage("creo2urdf.txt", log_level_key.at(log_level).c_str(), msg_sequence);
+}
+
+void printTransformMatrix(pfcTransform3D_ptr m)
+{
+    printToMessageWindow(fromCreo(m).toString());
+}
+
+void printRotationMatrix(pfcMatrix3D_ptr m)
+{
+    printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
+    printToMessageWindow(to_string(m->get(1, 0)) + " " + to_string(m->get(1, 1)) + " " + to_string(m->get(1, 2)));
+    printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
+}
+
+
+
 
 void sanitizeSTL(std::string stl)
 {
@@ -357,7 +357,18 @@ public:
 
             printToMessageWindow(link_child_name);
 
-            std::tie(ret, H_child) = getTransformFromPart(modelhdl, link_child_name);
+            xintsequence_ptr seq = xintsequence::create();
+            seq->append(feat->GetId());
+
+            pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
+
+            auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xfalse));
+
+            iDynTree::Transform csys_H_child;
+            std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
+
+            H_child = asm_csys_H_csys * csys_H_child;
+
             if (!ret)
             {
                 std::cerr.rdbuf(cerr_old_buf);
@@ -528,6 +539,7 @@ public:
         // Let's first retrieve the trfs from root to all the links and store it in a map.
         for (int i = 0; i < asm_component_list->getarraysize(); i++)
         {
+
             auto feat = pfcFeature::cast(asm_component_list->get(i));
 
             if (feat->GetFeatType() != pfcFeatureType::pfcFEATTYPE_COMPONENT)
@@ -535,15 +547,24 @@ public:
                 continue;
             }
 
+            xintsequence_ptr seq = xintsequence::create();
+            seq->append(feat->GetId());
+
+            pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(creo_model_ptr), seq);
+
+            auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xfalse));
             auto modelhdl = creo_session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
             auto link_child_name = string(modelhdl->GetFullName());
 
-            std::tie(ret, H_child) = getTransformFromPart(modelhdl, link_child_name);
+            iDynTree::Transform csys_H_child;
+            std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
             if (!ret)
             {
                 printToMessageWindow("Unable to get the transform respect to the root for" + link_child_name);
                 return;
             }
+
+            H_child = asm_csys_H_csys * csys_H_child;
 
             link_name_to_creo_computed_trf_map[link_child_name] = H_child;
 
