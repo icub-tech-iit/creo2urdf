@@ -362,7 +362,7 @@ public:
 
             pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
-            auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xfalse));
+            auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xtrue));
 
             iDynTree::Transform csys_H_child;
             std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
@@ -552,7 +552,7 @@ public:
 
             pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(creo_model_ptr), seq);
 
-            auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xfalse));
+            auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xtrue));
             auto modelhdl = creo_session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
             auto link_child_name = string(modelhdl->GetFullName());
 
@@ -564,7 +564,7 @@ public:
                 return;
             }
 
-            H_child = asm_csys_H_csys * csys_H_child;
+            H_child = iDynTree::Transform::compose(asm_csys_H_csys,csys_H_child);
 
             link_name_to_creo_computed_trf_map[link_child_name] = H_child;
 
