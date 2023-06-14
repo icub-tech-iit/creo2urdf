@@ -10,38 +10,33 @@
 
 #include <creo2urdf/Validator.h>
 
-void ValidatorListener::OnCommand() {
-    std::map<std::string, iDynTree::Transform> link_name_to_creo_computed_trf_map;
+bool Validator::loadUrdfFromFile(const std::string& filename) {
     iDynTree::ModelLoader mdl_loader;
-    if (!mdl_loader.loadModelFromFile("model.urdf"))
+    if (!mdl_loader.loadModelFromFile(filename))
     {
         printToMessageWindow("Could not load urdf for validation!", c2uLogLevel::WARN);
-        return;
+        return false;
     }
 
-    auto idyn_model = mdl_loader.model();
-    auto creo_session_ptr = pfcGetProESession();
-    auto creo_model_ptr = creo_session_ptr->GetCurrentModel();
+    idyn_model = mdl_loader.model();
+
+    return true;
+}
+
+bool Validator::assignCreoTransformToLink() {
     bool ret{ false };
-    iDynTree::VectorDynSize positions(idyn_model.getNrOfDOFs());
-    for (int i = 0; i < idyn_model.getNrOfJoints(); i++) {
-        printToMessageWindow("Please insert value for joint " + idyn_model.getJointName(i), c2uLogLevel::PROMPT);
-        positions[i] = creo_session_ptr->UIReadRealMessage(-360.0, 360.0) * deg2rad;
-        printToMessageWindow("joint" + to_string(i) + " value " + to_string(positions[i]), c2uLogLevel::INFO);
-    }
-
     iDynTree::Transform H_child = iDynTree::Transform::Identity();
 
-    auto asm_component_list = creo_model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
-    if (asm_component_list->getarraysize() == 0) {
+    auto components = creo_model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
+    if (components->getarraysize() == 0) {
         printToMessageWindow("There are no FEATURES in the asm", c2uLogLevel::WARN);
-        return;
+        return false;
     }
     // Let's first retrieve the trfs from root to all the links and store it in a map.
-    for (int i = 0; i < asm_component_list->getarraysize(); i++)
+    for (int i = 0; i < components->getarraysize(); i++)
     {
 
-        auto feat = pfcFeature::cast(asm_component_list->get(i));
+        auto feat = pfcFeature::cast(components->get(i));
 
         if (feat->GetFeatType() != pfcFeatureType::pfcFEATTYPE_COMPONENT)
         {
@@ -62,18 +57,19 @@ void ValidatorListener::OnCommand() {
         if (!ret)
         {
             printToMessageWindow("Unable to get the transform respect to the root for" + link_child_name);
-            return;
+            return false;
         }
 
-        H_child = iDynTree::Transform::compose(asm_csys_H_csys,csys_H_child);
+        H_child = iDynTree::Transform::compose(asm_csys_H_csys, csys_H_child);
 
         link_name_to_creo_computed_trf_map[link_child_name] = H_child;
 
     }
-    printToMessageWindow("Running model validation");
-    iDynTree::KinDynComputations computer;
-    computer.loadRobotModel(idyn_model);
 
+    return true;
+}
+
+bool Validator::validatePositions(iDynTree::VectorDynSize positions) {
 
     // Setting the `world_T_base`
     iDynTree::Vector3 gravity; gravity.zero(); gravity(2) = -9.8;
@@ -81,11 +77,12 @@ void ValidatorListener::OnCommand() {
 
 
     if (!computer.setRobotState(H_base, positions,
-            iDynTree::Twist(),
-            iDynTree::VectorDynSize(idyn_model.getNrOfDOFs()),
-            gravity))
+        iDynTree::Twist(),
+        iDynTree::VectorDynSize(idyn_model.getNrOfDOFs()),
+        gravity))
     {
         printToMessageWindow("Could not set the robot state!", c2uLogLevel::WARN);
+        return false;
     }
 
     // Lets ask the same transform to idyntree and check the difference w/ the
@@ -95,18 +92,50 @@ void ValidatorListener::OnCommand() {
         auto idyn_trf = computer.getWorldTransform(link_name);
         auto creo_trf = link_name_to_creo_computed_trf_map.at(link_name);
 
-        printToMessageWindow("Position error for "+ link_name + ": "+ (idyn_trf.getPosition() - creo_trf.getPosition()).toString());
+        printToMessageWindow("Position error for " + link_name + ": " + (idyn_trf.getPosition() - creo_trf.getPosition()).toString());
         printToMessageWindow("RPY error for " + link_name + ": " +
-                            std::to_string(idyn_trf.getRotation().asRPY()[0] - creo_trf.getRotation().asRPY()[0]) + ", " +
-                            std::to_string(idyn_trf.getRotation().asRPY()[1] - creo_trf.getRotation().asRPY()[1]) + ", " +
-                            std::to_string(idyn_trf.getRotation().asRPY()[2] - creo_trf.getRotation().asRPY()[2]));
+            std::to_string(idyn_trf.getRotation().asRPY()[0] - creo_trf.getRotation().asRPY()[0]) + ", " +
+            std::to_string(idyn_trf.getRotation().asRPY()[1] - creo_trf.getRotation().asRPY()[1]) + ", " +
+            std::to_string(idyn_trf.getRotation().asRPY()[2] - creo_trf.getRotation().asRPY()[2]));
         //printToMessageWindow("IDYN TRANSFORM: " + idyn_trf.toString());
         //printToMessageWindow("CREO TRANSFORM: " + creo_trf.toString());
     }
+
+    return true;
+
+}
+
+void Validator::OnCommand() {
+    bool ret{ false };
+
+    if (!loadUrdfFromFile("model.urdf")) {
+        return;
+    }
+
+    creo_session_ptr = pfcGetProESession();
+    creo_model_ptr = creo_session_ptr->GetCurrentModel();
+
+    iDynTree::VectorDynSize positions(idyn_model.getNrOfDOFs());
+    for (int i = 0; i < idyn_model.getNrOfJoints(); i++) {
+        printToMessageWindow("Please insert value for joint " + idyn_model.getJointName(i), c2uLogLevel::PROMPT);
+        positions[i] = creo_session_ptr->UIReadRealMessage(-360.0, 360.0) * deg2rad;
+        printToMessageWindow("joint" + to_string(i) + " value " + to_string(positions[i]), c2uLogLevel::INFO);
+    }
+
+    if (!assignCreoTransformToLink()) {
+        return;
+    }
+
+    printToMessageWindow("Running model validation");
+
+    computer.loadRobotModel(idyn_model);
+
+    validatePositions(positions);
+
     return;
 }
 
-pfcCommandAccess ValidatorAccessListener::OnCommandAccess(xbool AllowErrorMessages) {
+pfcCommandAccess ValidatorAccess::OnCommandAccess(xbool AllowErrorMessages) {
     auto model = pfcGetProESession()->GetCurrentModel();
     if (!model) {
         return pfcCommandAccess::pfcACCESS_AVAILABLE;

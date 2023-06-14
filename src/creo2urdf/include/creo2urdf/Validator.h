@@ -11,12 +11,24 @@
 #include <pfcGlobal.h>
 #include <creo2urdf/Utils.h>
 
-class ValidatorListener : public pfcUICommandActionListener {
+class Validator : public pfcUICommandActionListener {
 public:
     void OnCommand() override;
+
+private:
+
+    iDynTree::Model idyn_model;
+    pfcSession_ptr creo_session_ptr;
+    pfcModel_ptr creo_model_ptr;
+    std::map<std::string, iDynTree::Transform> link_name_to_creo_computed_trf_map;
+    iDynTree::KinDynComputations computer;
+
+    bool loadUrdfFromFile(const std::string& filename);
+    bool assignCreoTransformToLink();
+    bool validatePositions(iDynTree::VectorDynSize positions);
 };
 
-class ValidatorAccessListener : public pfcUICommandAccessListener {
+class ValidatorAccess : public pfcUICommandAccessListener {
 public:
     pfcCommandAccess OnCommandAccess(xbool AllowErrorMessages) override;
 };

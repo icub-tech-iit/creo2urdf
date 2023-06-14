@@ -27,8 +27,8 @@ extern "C" int user_initialize(
     cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
     cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
 
-    auto cmd_validate = session->UICreateCommand("Validator", new ValidatorListener());
-    cmd_validate->AddActionListener(new ValidatorAccessListener()); // To be checked it is odd
+    auto cmd_validate = session->UICreateCommand("Validator", new Validator());
+    cmd_validate->AddActionListener(new ValidatorAccess()); // To be checked it is odd
     cmd_validate->Designate("ui.txt", "Run Validation", "Run Validation", "Run Validation");
 
     session->RibbonDefinitionfileLoad("creo2urdf.rbn");

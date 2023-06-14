@@ -8,6 +8,8 @@
 
 #pragma once
 
+#define _USE_MATH_DEFINES
+
 #include <pfcGlobal.h>
 
 #include <cmath>
@@ -37,8 +39,8 @@
 constexpr double mm_to_m = 1e-3;
 constexpr double mm2_to_m2 = 1e-6;
 constexpr double epsilon = 1e-12;
-constexpr double rad2deg = 57.295779513;
-constexpr double deg2rad = 0.017453293;
+constexpr double rad2deg = 180.0 / M_PI;
+constexpr double deg2rad = 1 / rad2deg;
 
 
 enum class c2uLogLevel
