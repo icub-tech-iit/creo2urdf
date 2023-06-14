@@ -6,15 +6,17 @@
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
 
+#pragma once
+
 #include <pfcGlobal.h>
 #include <creo2urdf/Utils.h>
 
-class Creo2UrdfActionListerner : public pfcUICommandActionListener {
+class ValidatorListener : public pfcUICommandActionListener {
 public:
     void OnCommand() override;
 };
 
-class Creo2UrdfAccessListener : public pfcUICommandAccessListener {
+class ValidatorAccessListener : public pfcUICommandAccessListener {
 public:
     pfcCommandAccess OnCommandAccess(xbool AllowErrorMessages) override;
 };

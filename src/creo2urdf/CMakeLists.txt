@@ -8,11 +8,15 @@ add_library(creo2urdf SHARED)
 add_library(creo2urdf::creo2urdf ALIAS creo2urdf)
 
 set(CREO2URDF_HDRS include/creo2urdf/Creo2Urdf.h
+                   include/creo2urdf/Validator.h
                    include/creo2urdf/Utils.h
 )
-set(CREO2URDF_SRCS src/Creo2Urdf.cpp
+set(CREO2URDF_SRCS src/main.cpp
+                   src/Creo2Urdf.cpp
+                   src/Validator.cpp
                    src/Utils.cpp
 )
+
 set(CREO2URDF_IMPL_HDRS )
 set(CREO2URDF_IMPL_SRCS )
 
