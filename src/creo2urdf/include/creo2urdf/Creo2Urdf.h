@@ -6,6 +6,8 @@
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
 
+#pragma once
+
 #include <pfcGlobal.h>
 #include <creo2urdf/Utils.h>
 
