@@ -25,6 +25,7 @@ bool Validator::loadUrdfFromFile(const std::string& filename) {
 
 bool Validator::assignCreoTransformToLink() {
     bool ret{ false };
+
     iDynTree::Transform H_child = iDynTree::Transform::Identity();
 
     auto components = creo_model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
@@ -56,7 +57,7 @@ bool Validator::assignCreoTransformToLink() {
         std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
         if (!ret)
         {
-            printToMessageWindow("Unable to get the transform respect to the root for" + link_child_name);
+            printToMessageWindow("Unable to get the transform respect to the root for" + link_child_name, c2uLogLevel::WARN);
             return false;
         }
 
@@ -106,7 +107,8 @@ bool Validator::validatePositions(iDynTree::VectorDynSize positions) {
 }
 
 void Validator::OnCommand() {
-    bool ret{ false };
+
+    idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
 
     if (!loadUrdfFromFile("model.urdf")) {
         return;

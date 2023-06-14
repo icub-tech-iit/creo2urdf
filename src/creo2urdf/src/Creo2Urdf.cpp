@@ -31,9 +31,9 @@ void Creo2UrdfActionListerner::OnCommand() {
     }
 
     std::ofstream idyn_model_out("iDynTreeModel.txt");
-    std::ofstream idyn_error_out("iDynTreeErrors.txt");
-    std::streambuf* cerr_old_buf = std::cerr.rdbuf(); // store the original cerr buffer
-    std::cerr.rdbuf(idyn_error_out.rdbuf());          // Pass file buffer to set it as new buffer
+
+    iDynRedirectErrors idyn_redirect;
+    idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
 
     std::string link_parent_name = "";
 
@@ -76,7 +76,6 @@ void Creo2UrdfActionListerner::OnCommand() {
 
         if (!ret)
         {
-            std::cerr.rdbuf(cerr_old_buf);
             return;
         }
 
@@ -107,7 +106,6 @@ void Creo2UrdfActionListerner::OnCommand() {
 
             if (!ret)
             {
-                std::cerr.rdbuf(cerr_old_buf);
                 return; 
             }
 
@@ -132,7 +130,6 @@ void Creo2UrdfActionListerner::OnCommand() {
             if (idyn_model.addJointAndLink(link_parent_name, link_parent_name + "--" +link_child_name, &joint, link_child_name, link_child) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
 
-                std::cerr.rdbuf(cerr_old_buf);
                 return;
             }
             printToMessageWindow(to_string(component_counter) + ": " + link_parent_name + "--" + link_child_name);
@@ -190,7 +187,6 @@ void Creo2UrdfActionListerner::OnCommand() {
         printToMessageWindow("Urdf created successfully!");
     }
 
-    std::cerr.rdbuf(cerr_old_buf); // Restore original cerr buffer after using iDynTree
     return;
 }
 

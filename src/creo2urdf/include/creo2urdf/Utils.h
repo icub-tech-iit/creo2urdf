@@ -58,6 +58,36 @@ const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::PROMPT, "c2uPROMPT"}
 };
 
+class iDynRedirectErrors {
+public:
+
+    iDynRedirectErrors() {
+        old_buf = nullptr;
+    
+    }
+
+    ~iDynRedirectErrors() {
+        if (old_buf != nullptr) {
+            std::cerr.rdbuf(old_buf);
+        }
+
+        if (idyn_out.is_open()) {
+            idyn_out.close();
+        }
+    }
+
+    void redirectBuffer(std::streambuf* old_buffer, const std::string& filename)
+    {
+        old_buf = old_buffer;
+        idyn_out = std::ofstream(filename);
+        std::cerr.rdbuf(idyn_out.rdbuf());
+    }
+
+private:
+    std::streambuf* old_buf;
+    std::ofstream idyn_out;
+};
+
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data);
 
 iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H);

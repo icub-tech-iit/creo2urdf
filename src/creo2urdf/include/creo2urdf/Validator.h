@@ -23,6 +23,8 @@ private:
     std::map<std::string, iDynTree::Transform> link_name_to_creo_computed_trf_map;
     iDynTree::KinDynComputations computer;
 
+    iDynRedirectErrors idyn_redirect;
+
     bool loadUrdfFromFile(const std::string& filename);
     bool assignCreoTransformToLink();
     bool validatePositions(iDynTree::VectorDynSize positions);
