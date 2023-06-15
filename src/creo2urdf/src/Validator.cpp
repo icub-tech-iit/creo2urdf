@@ -83,11 +83,36 @@ bool Validator::validatePositions(iDynTree::VectorDynSize positions) {
         auto idyn_trf = computer.getWorldTransform(link_name);
         auto creo_trf = link_name_to_creo_computed_trf_map.at(link_name);
 
-        printToMessageWindow("Position error for " + link_name + ": " + (idyn_trf.getPosition() - creo_trf.getPosition()).toString());
-        printToMessageWindow("RPY error for " + link_name + ": " +
-            std::to_string(idyn_trf.getRotation().asRPY()[0] - creo_trf.getRotation().asRPY()[0]) + ", " +
-            std::to_string(idyn_trf.getRotation().asRPY()[1] - creo_trf.getRotation().asRPY()[1]) + ", " +
-            std::to_string(idyn_trf.getRotation().asRPY()[2] - creo_trf.getRotation().asRPY()[2]));
+        iDynTree::Position position_error = idyn_trf.getPosition() - creo_trf.getPosition();
+        double position_error_mag = sqrt(position_error[0] * position_error[0] + 
+                                         position_error[1] * position_error[1] + 
+                                         position_error[2] * position_error[2]);
+   
+        if (position_error_mag > epsilon)
+        {
+            printToMessageWindow("Position error for " + link_name + " is outside tolerance! : " + to_string(position_error_mag), c2uLogLevel::WARN);
+        }
+
+        double angle_error;
+
+        angle_error = idyn_trf.getRotation().asRPY()[0] - creo_trf.getRotation().asRPY()[0];
+        if (angle_error > epsilon * 1e3)
+        {
+            printToMessageWindow("Roll error for " + link_name + " is outside tolerance! " + to_string(angle_error), c2uLogLevel::WARN);
+        }
+
+        angle_error = idyn_trf.getRotation().asRPY()[1] - creo_trf.getRotation().asRPY()[1];
+        if (angle_error > epsilon * 1e3)
+        {
+            printToMessageWindow("Pitch error for " + link_name + " is outside tolerance! " + to_string(angle_error), c2uLogLevel::WARN);
+        }
+
+        angle_error = idyn_trf.getRotation().asRPY()[2] - creo_trf.getRotation().asRPY()[2];
+        if (angle_error > epsilon * 1e3)
+        {
+            printToMessageWindow("Yaw error for " + link_name + " is outside tolerance! " + to_string(angle_error), c2uLogLevel::WARN);
+        }
+
         //printToMessageWindow("IDYN TRANSFORM: " + idyn_trf.toString());
         //printToMessageWindow("CREO TRANSFORM: " + creo_trf.toString());
     }
@@ -123,7 +148,14 @@ void Validator::OnCommand() {
 
     computer.loadRobotModel(idyn_model);
 
-    validatePositions(positions);
+    if (!validatePositions(positions))
+    {
+        printToMessageWindow("Validation unsuccessful!", c2uLogLevel::WARN);
+    }
+    else
+    {
+        printToMessageWindow("Validation successful!");
+    }
 
     return;
 }

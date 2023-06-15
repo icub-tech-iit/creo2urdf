@@ -13,10 +13,10 @@ void Creo2UrdfActionListerner::OnCommand() {
 
     pfcSession_ptr session_ptr = pfcGetProESession();
     pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
-    pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
 
     // TODO Principal units probably to be changed from MM to M before getting the model properties
-    //auto length_unit = solid_ptr->GetPrincipalUnits()->GetUnit(pfcUnitType::pfcUNIT_LENGTH);
+    // pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
+    // auto length_unit = solid_ptr->GetPrincipalUnits()->GetUnit(pfcUnitType::pfcUNIT_LENGTH);
     // length_unit->Modify(pfcUnitConversionFactor::Create(0.001), length_unit->GetReferenceUnit()); // IT DOES NOT WORK
 
     iDynTree::Model idyn_model;
@@ -72,10 +72,7 @@ void Creo2UrdfActionListerner::OnCommand() {
         printToMessageWindow(link_child_name);
 
         auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
-        auto com = mass_prop->GetGravityCenter();                     // TODO transform the center of mass in relative coords
-        auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
-
-
+        
         iDynTree::Link link_child;
         link_child.setInertia(fromCreo(mass_prop, H_child));
 
@@ -85,6 +82,8 @@ void Creo2UrdfActionListerner::OnCommand() {
         }
 
         /*
+        auto com = mass_prop->GetGravityCenter();                     // TODO transform the center of mass in relative coords
+        auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
         printToMessageWindow("Model name is " + std::string(name) + " and weighs " + to_string(mass_prop->GetMass()));
         printToMessageWindow("Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
         printToMessageWindow("Inertia tensor:");
@@ -155,23 +154,6 @@ void Creo2UrdfActionListerner::OnCommand() {
     {
         printToMessageWindow("Model is not valid!", c2uLogLevel::WARN);
     }
-
-    /*
-    if (idyn_model.getLinkIndex("SIM_ECUB_HEAD_NECK_1") == iDynTree::LINK_INVALID_INDEX)
-    {
-        printToMessageWindow("[ERROR] URDFStringFromModel: specified baseLink is not part of the model");
-    }
-
-    iDynTree::Traversal exportTraversal;
-    if (!idyn_model.computeFullTreeTraversal(exportTraversal, idyn_model.getLinkIndex("SIM_ECUB_HEAD_NECK_1")))
-    {
-        printToMessageWindow("[ERROR] URDFStringFromModel: error in computeFullTreeTraversal", c2uLogLevel::WARN);
-    }
-    else
-    {
-        printToMessageWindow("Traversal completed successfully");
-    }
-    */
 
     if (!mdl_exporter.exportModelToFile("model.urdf"))
     {
