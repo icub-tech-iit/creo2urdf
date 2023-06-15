@@ -75,7 +75,8 @@ target_link_libraries(creo2urdf PRIVATE iDynTree::idyntree-modelio
                                         mpr
                                         netapi32)
 
-
+# Useful global defines
+add_compile_definitions(_USE_MATH_DEFINES)
 
 # FIXME all these win32 libraries that are used by protk dll have to be set as dependencies of the target
 ## FIXME

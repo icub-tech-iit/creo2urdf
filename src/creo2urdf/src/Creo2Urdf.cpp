@@ -5,7 +5,6 @@
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
-#define _USE_MATH_DEFINES
 
 #include <creo2urdf/Creo2Urdf.h>
 #include <creo2urdf/Utils.h>
@@ -172,7 +171,7 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
     }
 
     printToMessageWindow("Urdf created successfully!");
-    return false;
+    return true;
 }
 
 bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::string& csys_name)

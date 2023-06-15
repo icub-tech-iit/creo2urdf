@@ -5,7 +5,6 @@
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
-#define _USE_MATH_DEFINES
 
 #include <creo2urdf/Creo2Urdf.h>
 #include <creo2urdf/Validator.h>
