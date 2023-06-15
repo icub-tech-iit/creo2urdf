@@ -14,6 +14,8 @@
 class Creo2UrdfActionListerner : public pfcUICommandActionListener {
 public:
     void OnCommand() override;
+
+    bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
 };
 
 class Creo2UrdfAccessListener : public pfcUICommandAccessListener {

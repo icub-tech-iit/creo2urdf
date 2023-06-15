@@ -20,11 +20,6 @@ void Creo2UrdfActionListerner::OnCommand() {
     // length_unit->Modify(pfcUnitConversionFactor::Create(0.001), length_unit->GetReferenceUnit()); // IT DOES NOT WORK
 
     iDynTree::Model idyn_model;
-    iDynTree::ModelExporterOptions export_options;
-    export_options.robotExportedName = "ECUB_HEAD";
-    export_options.baseLink = "SIM_ECUB_HEAD_NECK_1";
-
-    std::ofstream idyn_model_out("iDynTreeModel.txt");
 
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
@@ -144,30 +139,40 @@ void Creo2UrdfActionListerner::OnCommand() {
         // idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); 
     }
 
+    std::ofstream idyn_model_out("iDynTreeModel.txt");
     idyn_model_out << idyn_model.toString();
     idyn_model_out.close();
+
+    iDynTree::ModelExporterOptions export_options;
+    export_options.robotExportedName = "ECUB_HEAD";
+    export_options.baseLink = "SIM_ECUB_HEAD_NECK_1";
+
+    exportModelToUrdf(idyn_model, export_options);
+
+    return;
+}
+
+bool Creo2UrdfActionListerner::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options) {
     iDynTree::ModelExporter mdl_exporter;
-    mdl_exporter.init(idyn_model);
-    mdl_exporter.setExportingOptions(export_options);
+
+    mdl_exporter.init(mdl);
+    mdl_exporter.setExportingOptions(options);
 
     if (!mdl_exporter.isValid())
     {
         printToMessageWindow("Model is not valid!", c2uLogLevel::WARN);
+        return false;
     }
 
     if (!mdl_exporter.exportModelToFile("model.urdf"))
     {
         printToMessageWindow("Error exporting the urdf. See iDynTreeErrors.txt for details", c2uLogLevel::WARN);
-    }
-    else
-    {
-        printToMessageWindow("Urdf created successfully!");
+        return false;
     }
 
-    return;
+    printToMessageWindow("Urdf created successfully!");
+    return false;
 }
-
-
 
 pfcCommandAccess Creo2UrdfAccessListener::OnCommandAccess(xbool AllowErrorMessages) {
     auto model = pfcGetProESession()->GetCurrentModel();
