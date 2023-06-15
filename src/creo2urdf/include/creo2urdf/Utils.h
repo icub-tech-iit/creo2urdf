@@ -67,13 +67,7 @@ public:
     }
 
     ~iDynRedirectErrors() {
-        if (old_buf != nullptr) {
-            std::cerr.rdbuf(old_buf);
-        }
-
-        if (idyn_out.is_open()) {
-            idyn_out.close();
-        }
+        restoreBuffer();
     }
 
     void redirectBuffer(std::streambuf* old_buffer, const std::string& filename)
@@ -81,6 +75,16 @@ public:
         old_buf = old_buffer;
         idyn_out = std::ofstream(filename);
         std::cerr.rdbuf(idyn_out.rdbuf());
+    }
+
+    void restoreBuffer() {
+        if (old_buf != nullptr) {
+            std::cerr.rdbuf(old_buf);
+        }
+
+        if (idyn_out.is_open()) {
+            idyn_out.close();
+        }
     }
 
 private:

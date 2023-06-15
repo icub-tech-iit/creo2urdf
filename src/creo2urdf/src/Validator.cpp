@@ -108,6 +108,7 @@ bool Validator::validatePositions(iDynTree::VectorDynSize positions) {
 
 void Validator::OnCommand() {
 
+    iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
 
     if (!loadUrdfFromFile("model.urdf")) {
