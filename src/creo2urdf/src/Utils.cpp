@@ -119,6 +119,30 @@ void sanitizeSTL(std::string stl)
     output.close();
 }
 
+std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl) {
+    
+    iDynTree::Transform H_child = iDynTree::Transform::Identity();
+
+    auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xtrue));
+    auto link_child_name = string(modelhdl->GetFullName());
+
+    iDynTree::Transform csys_H_child;
+
+    bool ret = false;
+    std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
+    if (!ret)
+    {
+        printToMessageWindow("Unable to get the transform respect to the root for " + link_child_name, c2uLogLevel::WARN);
+        return make_pair(false, H_child);
+    }
+
+    H_child = asm_csys_H_csys * csys_H_child;
+
+    return make_pair(true, H_child);
+
+}
+
+
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name) {
 
     iDynTree::Transform H_child;

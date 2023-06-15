@@ -24,12 +24,6 @@ void Creo2UrdfActionListerner::OnCommand() {
     export_options.robotExportedName = "ECUB_HEAD";
     export_options.baseLink = "SIM_ECUB_HEAD_NECK_1";
 
-    auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
-    if (asm_component_list->getarraysize() == 0) {
-        printToMessageWindow("There are no FEATURES in the asm", c2uLogLevel::WARN);
-        return;
-    }
-
     std::ofstream idyn_model_out("iDynTreeModel.txt");
 
     iDynRedirectErrors idyn_redirect;
@@ -42,13 +36,15 @@ void Creo2UrdfActionListerner::OnCommand() {
     int component_counter = 0;
     bool ret;
 
+    auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
+    if (asm_component_list->getarraysize() == 0) {
+        printToMessageWindow("There are no FEATURES in the asm", c2uLogLevel::WARN);
+        return;
+    }
+
     for (int i = 0; i < asm_component_list->getarraysize(); i++)
-    {
-        iDynTree::Link link_child;
-        iDynTree::Transform H_child = iDynTree::Transform::Identity();
-        iDynTree::Transform H_parent_to_child = iDynTree::Transform::Identity();
-        auto comp = asm_component_list->get(i);
-        auto feat = pfcFeature::cast(comp);
+    {      
+        auto feat = pfcFeature::cast(asm_component_list->get(i));
         // auto feat_id = feat->GetId();
 
 
@@ -57,32 +53,30 @@ void Creo2UrdfActionListerner::OnCommand() {
             continue;
         }
 
-        auto modelhdl = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
-        auto link_child_name = string(modelhdl->GetFullName());
-
-        printToMessageWindow(link_child_name);
-
         xintsequence_ptr seq = xintsequence::create();
         seq->append(feat->GetId());
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
-        auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xtrue));
+        auto modelhdl = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
 
-        iDynTree::Transform csys_H_child;
-        std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
-
-        H_child = asm_csys_H_csys * csys_H_child;
+        iDynTree::Transform H_child = iDynTree::Transform::Identity();
+        std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, modelhdl);
 
         if (!ret)
         {
             return;
         }
 
+        auto link_child_name = string(modelhdl->GetFullName());
+        printToMessageWindow(link_child_name);
+
         auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
         auto com = mass_prop->GetGravityCenter();                     // TODO transform the center of mass in relative coords
         auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
 
+
+        iDynTree::Link link_child;
         link_child.setInertia(fromCreo(mass_prop, H_child));
 
         if (!link_child.getInertia().isPhysicallyConsistent())
@@ -109,6 +103,7 @@ void Creo2UrdfActionListerner::OnCommand() {
                 return; 
             }
 
+            iDynTree::Transform H_parent_to_child = iDynTree::Transform::Identity();
             H_parent_to_child = H_parent.inverse() * H_child;
 
             //printToMessageWindow("H_parent: " + H_parent.toString());

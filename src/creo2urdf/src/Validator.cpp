@@ -48,20 +48,10 @@ bool Validator::assignCreoTransformToLink() {
         seq->append(feat->GetId());
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(creo_model_ptr), seq);
-
-        auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xtrue));
         auto modelhdl = creo_session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
         auto link_child_name = string(modelhdl->GetFullName());
 
-        iDynTree::Transform csys_H_child;
-        std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
-        if (!ret)
-        {
-            printToMessageWindow("Unable to get the transform respect to the root for" + link_child_name, c2uLogLevel::WARN);
-            return false;
-        }
-
-        H_child = iDynTree::Transform::compose(asm_csys_H_csys, csys_H_child);
+        std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, modelhdl);
 
         link_name_to_creo_computed_trf_map[link_child_name] = H_child;
 
@@ -73,7 +63,7 @@ bool Validator::assignCreoTransformToLink() {
 bool Validator::validatePositions(iDynTree::VectorDynSize positions) {
 
     // Setting the `world_T_base`
-    iDynTree::Vector3 gravity; gravity.zero(); gravity(2) = -9.8;
+    iDynTree::Vector3 gravity; gravity.zero(); gravity(2) = gravity_z;
     auto H_base = link_name_to_creo_computed_trf_map.at("SIM_ECUB_HEAD_NECK_1");
 
 

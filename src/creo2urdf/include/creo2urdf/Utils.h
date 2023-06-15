@@ -41,6 +41,7 @@ constexpr double mm2_to_m2 = 1e-6;
 constexpr double epsilon = 1e-12;
 constexpr double rad2deg = 180.0 / M_PI;
 constexpr double deg2rad = 1 / rad2deg;
+constexpr double gravity_z = -9.81;
 
 
 enum class c2uLogLevel
@@ -105,6 +106,8 @@ void printTransformMatrix(pfcTransform3D_ptr m);
 void printRotationMatrix(pfcMatrix3D_ptr m);
 
 void sanitizeSTL(std::string stl);
+
+std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl);
 
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name);
 
