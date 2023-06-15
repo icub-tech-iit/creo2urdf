@@ -9,7 +9,7 @@
 
 #include <creo2urdf/Creo2Urdf.h>
 
-void Creo2UrdfActionListerner::OnCommand() {
+void Creo2Urdf::OnCommand() {
 
     pfcSession_ptr session_ptr = pfcGetProESession();
     pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
@@ -152,7 +152,7 @@ void Creo2UrdfActionListerner::OnCommand() {
     return;
 }
 
-bool Creo2UrdfActionListerner::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options) {
+bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options) {
     iDynTree::ModelExporter mdl_exporter;
 
     mdl_exporter.init(mdl);
@@ -174,7 +174,7 @@ bool Creo2UrdfActionListerner::exportModelToUrdf(iDynTree::Model mdl, iDynTree::
     return false;
 }
 
-pfcCommandAccess Creo2UrdfAccessListener::OnCommandAccess(xbool AllowErrorMessages) {
+pfcCommandAccess Creo2UrdfAccess::OnCommandAccess(xbool AllowErrorMessages) {
     auto model = pfcGetProESession()->GetCurrentModel();
     if (!model) {
         return pfcCommandAccess::pfcACCESS_AVAILABLE;

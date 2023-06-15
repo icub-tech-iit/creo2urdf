@@ -23,8 +23,8 @@ extern "C" int user_initialize(
 {
     auto session = pfcGetProESession();
 
-    auto cmd = session->UICreateCommand("Creo2Urdf", new Creo2UrdfActionListerner());
-    cmd->AddActionListener(new Creo2UrdfAccessListener()); // To be checked it is odd
+    auto cmd = session->UICreateCommand("Creo2Urdf", new Creo2Urdf());
+    cmd->AddActionListener(new Creo2UrdfAccess()); // To be checked it is odd
     cmd->Designate("ui.txt", "Run Creo2Urdf", "Run Creo2Urdf", "Run Creo2Urdf");
 
     auto cmd_validate = session->UICreateCommand("Validator", new Validator());

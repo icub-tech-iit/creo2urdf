@@ -53,8 +53,10 @@ bool Validator::assignCreoTransformToLink() {
 
         std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, modelhdl);
 
-        link_name_to_creo_computed_trf_map[link_child_name] = H_child;
+        if (!ret)
+            return ret;
 
+        link_name_to_creo_computed_trf_map[link_child_name] = H_child;
     }
 
     return true;
