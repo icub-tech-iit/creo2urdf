@@ -8,6 +8,7 @@
 #define _USE_MATH_DEFINES
 
 #include <creo2urdf/Creo2Urdf.h>
+#include <creo2urdf/Utils.h>
 
 void Creo2Urdf::OnCommand() {
 
@@ -19,7 +20,7 @@ void Creo2Urdf::OnCommand() {
     // auto length_unit = solid_ptr->GetPrincipalUnits()->GetUnit(pfcUnitType::pfcUNIT_LENGTH);
     // length_unit->Modify(pfcUnitConversionFactor::Create(0.001), length_unit->GetReferenceUnit()); // IT DOES NOT WORK
 
-    iDynTree::Model idyn_model;
+    idyn_model = iDynTree::Model::Model(); // no trivial way to clear the model
 
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
@@ -53,20 +54,20 @@ void Creo2Urdf::OnCommand() {
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
-        auto modelhdl = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
+        component_handle = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
 
         iDynTree::Transform H_child = iDynTree::Transform::Identity();
-        std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, modelhdl);
+        std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, component_handle);
 
         if (!ret)
         {
             return;
         }
 
-        auto link_child_name = string(modelhdl->GetFullName());
+        auto link_child_name = string(component_handle->GetFullName());
         printToMessageWindow(link_child_name);
 
-        auto mass_prop = pfcSolid::cast(modelhdl)->GetMassProperty();
+        auto mass_prop = pfcSolid::cast(component_handle)->GetMassProperty();
         
         iDynTree::Link link_child;
         link_child.setInertia(fromCreo(mass_prop, H_child));
@@ -90,7 +91,7 @@ void Creo2Urdf::OnCommand() {
         if (component_counter > 0)
         {
             iDynTree::Direction axis;
-            std::tie(ret, axis) = getRotationAxisFromPart(modelhdl, link_child_name, H_child);
+            std::tie(ret, axis) = getRotationAxisFromPart(component_handle, link_child_name, H_child);
 
             if (!ret)
             {
@@ -129,7 +130,7 @@ void Creo2Urdf::OnCommand() {
             idyn_model.addLink(string(link_child_name), link_child);
         }
 
-        addMeshAndExport(modelhdl, link_child_name, component_counter, idyn_model);
+        addMeshAndExport(link_child_name, relevant_csys_names[component_counter]);
 
         link_parent_name = link_child_name;
         H_parent = H_child;
@@ -173,6 +174,49 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
     printToMessageWindow("Urdf created successfully!");
     return false;
 }
+
+bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::string& csys_name)
+{
+    //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
+
+    std::string stl_file_name = link_child_name + ".stl";
+
+    // Make all alphabetic characters lowercase
+    std::transform(stl_file_name.begin(), stl_file_name.end(), stl_file_name.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+
+    component_handle->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_name.c_str())));
+
+    // Replace the first 5 bytes of the binary file with a string different than "solid"
+    // to avoid issues with stl parsers.
+    // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
+    sanitizeSTL(string(link_child_name) + ".stl");
+
+    // Lets add the mesh to the link
+    iDynTree::ExternalMesh visualMesh;
+    // Meshes are in millimeters, while iDynTree models are in meters
+    iDynTree::Vector3 scale; scale(0) = scale(1) = scale(2) = mm_to_m;
+    visualMesh.setScale(scale);
+    // Let's assign a gray as default color
+    iDynTree::Vector4 color;
+    iDynTree::Material material;
+    color(0) = color(1) = color(2) = 0.5;
+    color(3) = 1.0;
+    material.setColor(color);
+    visualMesh.setMaterial(material);
+    // Assign transform
+    // TODO Right now maybe it is not needed it ie exported respct the link csys
+    // visualMesh.setLink_H_geometry(H_parent_to_child);
+
+    // Assign name
+    visualMesh.setFilename(stl_file_name);
+    // TODO Right now let's consider visual and collision with the same mesh
+    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
+    idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
+
+    return true;
+}
+
 
 pfcCommandAccess Creo2UrdfAccess::OnCommandAccess(xbool AllowErrorMessages) {
     auto model = pfcGetProESession()->GetCurrentModel();

@@ -17,6 +17,7 @@ std::array<std::string, 5> relevant_csys_names = {
     "SCSYS_REALSENSE"
 };
 
+
 std::map<std::string, std::string> child_axis_map = {
     {"SIM_ECUB_HEAD_NECK_2", "NECK_PITCH_AXIS"},
     {"SIM_ECUB_HEAD_NECK_3", "NECK_ROLL_AXIS"},
@@ -235,46 +236,4 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
                                                         + std::to_string(axis_unit_vector[2]) + ")");
     */
     return { true, axis_unit_vector };
-}
-
-bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, int component_counter, iDynTree::Model& idyn_model)
-{
-    //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
-
-    std::string stl_file_name = link_child_name + ".stl";
-
-    // Make all alphabetic characters lowercase
-    std::transform(stl_file_name.begin(), stl_file_name.end(), stl_file_name.begin(),
-        [](unsigned char c) { return std::tolower(c); });
-
-    modelhdl->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(relevant_csys_names[component_counter].c_str())));
-
-    // Replace the first 5 bytes of the binary file with a string different than "solid"
-    // to avoid issues with stl parsers.
-    // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
-    sanitizeSTL(string(link_child_name) + ".stl");
-
-    // Lets add the mesh to the link
-    iDynTree::ExternalMesh visualMesh;
-    // Meshes are in millimeters, while iDynTree models are in meters
-    iDynTree::Vector3 scale; scale(0) = scale(1) = scale(2) = mm_to_m;
-    visualMesh.setScale(scale);
-    // Let's assign a gray as default color
-    iDynTree::Vector4 color;
-    iDynTree::Material material;
-    color(0) = color(1) = color(2) = 0.5;
-    color(3) = 1.0;
-    material.setColor(color);
-    visualMesh.setMaterial(material);
-    // Assign transform
-    // TODO Right now maybe it is not needed it ie exported respct the link csys
-    // visualMesh.setLink_H_geometry(H_parent_to_child);
-
-    // Assign name
-    visualMesh.setFilename(stl_file_name);
-    // TODO Right now let's consider visual and collision with the same mesh
-    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
-    idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
-
-    return true;
 }

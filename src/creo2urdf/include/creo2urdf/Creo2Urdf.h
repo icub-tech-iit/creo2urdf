@@ -16,6 +16,11 @@ public:
     void OnCommand() override;
 
     bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
+    bool addMeshAndExport(const std::string& link_child_name, const std::string& csys_name);
+
+private:
+    pfcModel_ptr component_handle;
+    iDynTree::Model idyn_model;
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {

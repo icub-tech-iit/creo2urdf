@@ -59,6 +59,8 @@ const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::PROMPT, "c2uPROMPT"}
 };
 
+extern std::array<std::string, 5> relevant_csys_names;
+
 class iDynRedirectErrors {
 public:
 
@@ -113,5 +115,5 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 
 std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name, iDynTree::Transform H_child);
 
-bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, int component_counter, iDynTree::Model& idyn_model);
+bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, const std::string& csys_name, iDynTree::Model& idyn_model);
 
