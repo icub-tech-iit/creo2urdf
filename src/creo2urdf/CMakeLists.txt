@@ -7,10 +7,16 @@
 add_library(creo2urdf SHARED)
 add_library(creo2urdf::creo2urdf ALIAS creo2urdf)
 
-set(CREO2URDF_HDRS # include/creo2urdf/Creo2Urdf.h
+set(CREO2URDF_HDRS include/creo2urdf/Creo2Urdf.h
+                   include/creo2urdf/Validator.h
+                   include/creo2urdf/Utils.h
 )
-set(CREO2URDF_SRCS src/Creo2Urdf.cpp
+set(CREO2URDF_SRCS src/main.cpp
+                   src/Creo2Urdf.cpp
+                   src/Validator.cpp
+                   src/Utils.cpp
 )
+
 set(CREO2URDF_IMPL_HDRS )
 set(CREO2URDF_IMPL_SRCS )
 
@@ -69,7 +75,8 @@ target_link_libraries(creo2urdf PRIVATE iDynTree::idyntree-modelio
                                         mpr
                                         netapi32)
 
-
+# Useful global defines
+add_compile_definitions(_USE_MATH_DEFINES)
 
 # FIXME all these win32 libraries that are used by protk dll have to be set as dependencies of the target
 ## FIXME
