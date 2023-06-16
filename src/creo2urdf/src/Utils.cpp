@@ -158,7 +158,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 
     for (size_t i = 0; i < csys_list->getarraysize(); i++)
     {
-        auto csys_elem = csys_list->get(i);
+        auto csys_elem = csys_list->get(xint(i));
 
         auto csys = pfcCoordSystem::cast(csys_elem);
 
@@ -207,7 +207,7 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
 
     for (size_t i = 0; i < axes_list->getarraysize(); i++)
     {
-        auto axis_elem = pfcAxis::cast(axes_list->get(i));
+        auto axis_elem = pfcAxis::cast(axes_list->get(xint(i)));
 
         if (string(axis_elem->GetName()) == child_axis_map.at(string(link_child_name)))
         {

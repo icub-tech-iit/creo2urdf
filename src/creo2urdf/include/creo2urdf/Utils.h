@@ -6,9 +6,8 @@
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
 
-#pragma once
-
-#define _USE_MATH_DEFINES
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <pfcGlobal.h>
 
@@ -117,3 +116,4 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
 
 bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, const std::string& csys_name, iDynTree::Model& idyn_model);
 
+#endif // !UTILS_H
