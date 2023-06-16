@@ -8,22 +8,6 @@
 
 #include <creo2urdf/Utils.h>
 
-std::array<std::string, 5> relevant_csys_names = {
-    "SCSYS_NECK_1",
-    "SCSYS_NECK_2",
-    "SCSYS_NECK_3",
-    "SCSYS_HEAD",
-    "SCSYS_REALSENSE"
-};
-
-
-std::map<std::string, std::string> child_axis_map = {
-    {"SIM_ECUB_HEAD_NECK_2", "NECK_PITCH_AXIS"},
-    {"SIM_ECUB_HEAD_NECK_3", "NECK_ROLL_AXIS"},
-    {"SIM_ECUB_HEAD", "NECK_YAW_AXIS"},
-    {"SIM_ECUB_REALSENSE", "REALSENSE_PITCH_AXIS"}
-};
-
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data)
 {
     auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
@@ -162,7 +146,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 
         auto csys = pfcCoordSystem::cast(csys_elem);
 
-        if (std::find(relevant_csys_names.begin(), relevant_csys_names.end(), string(csys->GetName())) == relevant_csys_names.end())
+        if (string(csys->GetName()) != link_csys_map.at(link_child_name))
         {
             continue;
         }

@@ -27,8 +27,6 @@ void Creo2Urdf::OnCommand() {
     std::string link_parent_name = "";
 
     iDynTree::Transform H_parent = iDynTree::Transform::Identity();
-
-    int component_counter = 0;
     bool ret;
 
     auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
@@ -87,7 +85,7 @@ void Creo2Urdf::OnCommand() {
         printToMessageWindow(to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
         */
 
-        if (component_counter > 0)
+        if (idyn_model.getNrOfLinks() > 0)
         {
             iDynTree::Direction axis;
             std::tie(ret, axis) = getRotationAxisFromPart(component_handle, link_child_name, H_child);
@@ -121,7 +119,7 @@ void Creo2Urdf::OnCommand() {
 
                 return;
             }
-            printToMessageWindow(to_string(component_counter) + ": " + link_parent_name + "--" + link_child_name);
+            printToMessageWindow("Joint " + link_parent_name + "--" + link_child_name);
         }
         else
         {
@@ -129,11 +127,10 @@ void Creo2Urdf::OnCommand() {
             idyn_model.addLink(string(link_child_name), link_child);
         }
 
-        addMeshAndExport(link_child_name, relevant_csys_names[component_counter]);
+        addMeshAndExport(link_child_name, link_csys_map.at(link_child_name));
 
         link_parent_name = link_child_name;
         H_parent = H_child;
-        component_counter++;
 
         // TODO when we have an additional frame to add
         // idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); 

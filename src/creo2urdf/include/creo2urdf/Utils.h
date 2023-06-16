@@ -51,14 +51,29 @@ enum class c2uLogLevel
     PROMPT
 };
 
-const std::map<c2uLogLevel, std::string> log_level_key = {
+static const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::NONE, "c2uNONE"},
     {c2uLogLevel::INFO, "c2uINFO"},
     {c2uLogLevel::WARN, "c2uWARN"},
     {c2uLogLevel::PROMPT, "c2uPROMPT"}
 };
 
-extern std::array<std::string, 5> relevant_csys_names;
+
+static const std::map<std::string, std::string> link_csys_map = {
+    {"SIM_ECUB_HEAD_NECK_1", "SCSYS_NECK_1"},
+    {"SIM_ECUB_HEAD_NECK_2", "SCSYS_NECK_2"},
+    {"SIM_ECUB_HEAD_NECK_3", "SCSYS_NECK_3"},
+    {"SIM_ECUB_HEAD", "SCSYS_HEAD"},
+    {"SIM_ECUB_REALSENSE", "SCSYS_REALSENSE"}
+};
+
+
+static const std::map<std::string, std::string> child_axis_map = {
+    {"SIM_ECUB_HEAD_NECK_2", "NECK_PITCH_AXIS"},
+    {"SIM_ECUB_HEAD_NECK_3", "NECK_ROLL_AXIS"},
+    {"SIM_ECUB_HEAD", "NECK_YAW_AXIS"},
+    {"SIM_ECUB_REALSENSE", "REALSENSE_PITCH_AXIS"}
+};
 
 class iDynRedirectErrors {
 public:
