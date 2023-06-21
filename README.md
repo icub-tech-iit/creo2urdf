@@ -8,15 +8,15 @@ Generate URDF model from CREO mechanisms.
 **Since it is under development, we cannot guarantee that the user interface of `creo2urdf` will not implement breaking changes. Be aware of this if you start using the code contained in this repository, sorry for the unconvenience.**
 
 
-**Right now this plugin support only the simple case of an assembly with two links and one joints**
+**Right now this plugin support only for creating the urdf of the ergocub head**
 
  <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/19866e6c-8f52-4010-84ef-db458189b753" width=600 align=center >
  <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/968a544f-d991-423f-9b4f-752d0db9dd45" width=600 align=center >
 
 ## Assumptions & limitations
 
-- The assembly must contains max 2 links an 1 revolute joint.
-- The joint is in 0.
+- The assembly must only one not circular kinematic chain.
+- The joint are in 0.
 
 ## Installation
 
