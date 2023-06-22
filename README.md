@@ -15,7 +15,7 @@ Generate URDF model from CREO mechanisms.
 
 ## Assumptions & limitations
 
-- The assembly must only one not circular kinematic chain.
+- The assembly must contain only one non-circular kinematic chain.
 - The joints are in 0.
 
 ## Installation
