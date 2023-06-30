@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.2.0] - 2023-06-30
+
+- `creo2urdf` can now export the urdf of the ergocub head+neck
+
 ## [0.1.0] - 2023-05-10
 
 - First version of `creo2urdf` plugin working with the simple assembly with two links and one joint.
