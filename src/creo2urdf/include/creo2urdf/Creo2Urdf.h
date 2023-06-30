@@ -12,16 +12,30 @@
 #include <pfcGlobal.h>
 #include <creo2urdf/Utils.h>
 
+struct AxisInfo {
+    std::string name{""};
+    std::string parent_link_name{""};
+    std::string child_link_name{""};
+};
+
+struct LinkInfo {
+    std::string name{""};
+    pfcModel_ptr modelhdl{ nullptr };
+    iDynTree::Transform root_H_link { iDynTree::Transform::Identity() };
+};
+
 class Creo2Urdf : public pfcUICommandActionListener {
 public:
     void OnCommand() override;
 
     bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
-    bool addMeshAndExport(const std::string& link_child_name, const std::string& csys_name);
+    void populateAxisInfoMap(pfcModel_ptr modelhdl);
+    bool addMeshAndExport(const std::string& link_child_name, const std::string& csys_name, pfcModel_ptr component_handle);
 
 private:
-    pfcModel_ptr component_handle;
     iDynTree::Model idyn_model;
+    std::map<std::string, AxisInfo> axis_info_map;
+    std::map<std::string, LinkInfo> link_info_map;
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {

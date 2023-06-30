@@ -68,12 +68,6 @@ static const std::map<std::string, std::string> link_csys_map = {
 };
 
 
-static const std::map<std::string, std::string> child_axis_map = {
-    {"SIM_ECUB_HEAD_NECK_2", "NECK_PITCH_AXIS"},
-    {"SIM_ECUB_HEAD_NECK_3", "NECK_ROLL_AXIS"},
-    {"SIM_ECUB_HEAD", "NECK_YAW_AXIS"},
-    {"SIM_ECUB_REALSENSE", "REALSENSE_PITCH_AXIS"}
-};
 
 class iDynRedirectErrors {
 public:
@@ -127,7 +121,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name);
 
-std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name, iDynTree::Transform H_child);
+std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_child_name, iDynTree::Transform H_child);
 
 bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, const std::string& csys_name, iDynTree::Model& idyn_model);
 

@@ -24,9 +24,6 @@ void Creo2Urdf::OnCommand() {
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
 
-    std::string link_parent_name = "";
-
-    iDynTree::Transform H_parent = iDynTree::Transform::Identity();
     bool ret;
 
     auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
@@ -35,6 +32,7 @@ void Creo2Urdf::OnCommand() {
         return;
     }
 
+    // Let's traverse the model tree and get all links and axis properties
     for (int i = 0; i < asm_component_list->getarraysize(); i++)
     {      
         auto feat = pfcFeature::cast(asm_component_list->get(i));
@@ -51,7 +49,7 @@ void Creo2Urdf::OnCommand() {
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
-        component_handle = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
+        auto component_handle = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
 
         iDynTree::Transform H_child = iDynTree::Transform::Identity();
         std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, component_handle);
@@ -61,80 +59,82 @@ void Creo2Urdf::OnCommand() {
             return;
         }
 
-        auto link_child_name = string(component_handle->GetFullName());
-        printToMessageWindow(link_child_name);
+        auto link_name = string(component_handle->GetFullName());
+        printToMessageWindow(link_name);
 
         auto mass_prop = pfcSolid::cast(component_handle)->GetMassProperty();
         
-        iDynTree::Link link_child;
-        link_child.setInertia(fromCreo(mass_prop, H_child));
+        iDynTree::Link link;
+        link.setInertia(fromCreo(mass_prop, H_child));
 
-        if (!link_child.getInertia().isPhysicallyConsistent())
+        if (!link.getInertia().isPhysicallyConsistent())
         {
-            printToMessageWindow(link_child_name + " is NOT physically consistent!", c2uLogLevel::WARN);
+            printToMessageWindow(link_name + " is NOT physically consistent!", c2uLogLevel::WARN);
         }
 
-        /*
-        auto com = mass_prop->GetGravityCenter();                     // TODO transform the center of mass in relative coords
-        auto comInertia = mass_prop->GetCenterGravityInertiaTensor(); // TODO GetCoordSysInertia ?
-        printToMessageWindow("Model name is " + std::string(name) + " and weighs " + to_string(mass_prop->GetMass()));
-        printToMessageWindow("Center of mass: x: " + to_string(com->get(0)) + " y: " + to_string(com->get(1)) + " z: " + to_string(com->get(2)));
-        printToMessageWindow("Inertia tensor:");
-        printToMessageWindow(to_string(comInertia->get(0, 0)) + " " + to_string(comInertia->get(0, 1)) + " " + to_string(comInertia->get(0, 2)));
-        printToMessageWindow(to_string(comInertia->get(1, 0)) + " " + to_string(comInertia->get(1, 1)) + " " + to_string(comInertia->get(1, 2)));
-        printToMessageWindow(to_string(comInertia->get(2, 0)) + " " + to_string(comInertia->get(2, 1)) + " " + to_string(comInertia->get(2, 2)));
-        */
+        LinkInfo l_info{ link_name, component_handle, H_child };
+        link_info_map.insert(std::make_pair(link_name, l_info));
+        populateAxisInfoMap(component_handle);
 
-        if (idyn_model.getNrOfLinks() > 0)
-        {
-            iDynTree::Direction axis;
-            std::tie(ret, axis) = getRotationAxisFromPart(component_handle, link_child_name, H_child);
+        idyn_model.addLink(string(link_name), link);
 
-            if (!ret)
-            {
-                return; 
-            }
-
-            iDynTree::Transform H_parent_to_child = iDynTree::Transform::Identity();
-            H_parent_to_child = H_parent.inverse() * H_child;
-
-            //printToMessageWindow("H_parent: " + H_parent.toString());
-            //printToMessageWindow("H_child: " + H_child.toString());
-            //printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
-
-            iDynTree::RevoluteJoint joint(H_parent_to_child, {axis, H_parent_to_child.getPosition()});
-                                                                // Should be 0 the origin of the axis, the displacement is already considered in transform
-                                                                //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
-
-            // TODO let's put the limits hardcoded, to be retrieved from Creo
-            double min = 0.0;
-            double max = M_PI;
-            joint.enablePosLimits(true);
-            joint.setPosLimits(0, min, max);
-            // TODO we have to retrieve the rest transform from creo
-            //joint.setRestTransform();
-
-            if (idyn_model.addJointAndLink(link_parent_name, link_parent_name + "--" +link_child_name, &joint, link_child_name, link_child) == iDynTree::JOINT_INVALID_INDEX) {
-                printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
-
-                return;
-            }
-            printToMessageWindow("Joint " + link_parent_name + "--" + link_child_name);
-        }
-        else
-        {
-            printToMessageWindow("First link, skipping joint addition");
-            idyn_model.addLink(string(link_child_name), link_child);
-        }
-
-        addMeshAndExport(link_child_name, link_csys_map.at(link_child_name));
-
-        link_parent_name = link_child_name;
-        H_parent = H_child;
+        addMeshAndExport(link_name, link_csys_map.at(link_name), component_handle);
 
         // TODO when we have an additional frame to add
         // idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); 
     }
+
+    // Now we have to add joints to the iDynTree model
+
+    printToMessageWindow("Axis info map has size " + to_string(axis_info_map.size()));
+    for (auto axis_info : axis_info_map) {
+        auto parent_link_name   = axis_info.second.parent_link_name;
+        auto child_link_name    = axis_info.second.child_link_name;
+        auto joint_name         = parent_link_name + "--" + child_link_name;
+        auto axis_name          = axis_info.second.name;
+        auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
+        auto root_H_child_link  = link_info_map.at(child_link_name).root_H_link;
+        auto child_model = link_info_map.at(child_link_name).modelhdl;
+        
+        printToMessageWindow("AXIS " + axis_info.second.name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
+        printToMessageWindow("Parent link H " + root_H_parent_link.toString());
+        printToMessageWindow("Child  link H " + root_H_child_link.toString());
+
+        iDynTree::Direction axis;
+        std::tie(ret, axis) = getRotationAxisFromPart(child_model, axis_name, child_link_name, root_H_child_link);
+
+        if (!ret)
+        {
+            return;
+        }
+
+        iDynTree::Transform parent_H_child = iDynTree::Transform::Identity();
+        parent_H_child = root_H_parent_link.inverse() * root_H_child_link;
+
+        //printToMessageWindow("H_parent: " + H_parent.toString());
+        //printToMessageWindow("H_child: " + H_child.toString());
+        //printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
+
+        iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
+        // Should be 0 the origin of the axis, the displacement is already considered in transform
+        //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
+
+// TODO let's put the limits hardcoded, to be retrieved from Creo
+        double min = 0.0;
+        double max = M_PI;
+        joint.enablePosLimits(true);
+        joint.setPosLimits(0, min, max);
+        // TODO we have to retrieve the rest transform from creo
+        //joint.setRestTransform();
+
+        if (idyn_model.addJoint(parent_link_name, child_link_name, joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+            printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
+
+            return;
+        }
+        printToMessageWindow("Joint " + joint_name);
+    }
+
 
     std::ofstream idyn_model_out("iDynTreeModel.txt");
     idyn_model_out << idyn_model.toString();
@@ -171,7 +171,35 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
     return true;
 }
 
-bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::string& csys_name)
+void Creo2Urdf::populateAxisInfoMap(pfcModel_ptr modelhdl) {
+    auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
+    auto link_name = string(modelhdl->GetFullName());
+    // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
+    if (axes_list->getarraysize() == 0) {
+        printToMessageWindow("There is no AXIS in the part " + link_name, c2uLogLevel::WARN);
+    }
+
+    pfcAxis* axis = nullptr;
+
+    for (size_t i = 0; i < axes_list->getarraysize(); i++)
+    {
+        auto axis_elem = pfcAxis::cast(axes_list->get(xint(i)));
+        auto axis_name_str = string(axis_elem->GetName());
+        AxisInfo axis_info;
+        axis_info.name = axis_name_str;
+
+        if (axis_info_map.find(axis_name_str) == axis_info_map.end()) {
+            axis_info.parent_link_name = link_name;
+            axis_info_map.insert(std::make_pair(axis_name_str, axis_info));
+        }
+        else {
+            auto& existing_axis_info = axis_info_map.at(axis_name_str);
+            existing_axis_info.child_link_name = link_name;
+        }
+    }
+}
+
+bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::string& csys_name, pfcModel_ptr component_handle)
 {
     //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
 
