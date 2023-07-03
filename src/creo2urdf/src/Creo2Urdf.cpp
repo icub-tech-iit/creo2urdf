@@ -90,21 +90,20 @@ void Creo2Urdf::OnCommand() {
     for (auto axis_info : axis_info_map) {
         auto parent_link_name   = axis_info.second.parent_link_name;
         auto child_link_name    = axis_info.second.child_link_name;
-
+        auto axis_name = axis_info.second.name;
+        printToMessageWindow("AXIS " + axis_name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
         if (child_link_name.empty()) {
             continue;
         }
 
         auto joint_name         = parent_link_name + "--" + child_link_name;
-        auto axis_name          = axis_info.second.name;
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
         auto root_H_child_link  = link_info_map.at(child_link_name).root_H_link;
         auto child_model        = link_info_map.at(child_link_name).modelhdl;
         
-        printToMessageWindow("AXIS " + axis_info.second.name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
-        printToMessageWindow("Parent link H " + root_H_parent_link.toString());
-        printToMessageWindow("Child  link H " + root_H_child_link.toString());
+        //printToMessageWindow("Parent link H " + root_H_parent_link.toString());
+        //printToMessageWindow("Child  link H " + root_H_child_link.toString());
 
         iDynTree::Direction axis;
         std::tie(ret, axis) = getRotationAxisFromPart(child_model, axis_name, child_link_name, root_H_child_link);
@@ -138,7 +137,7 @@ void Creo2Urdf::OnCommand() {
 
             return;
         }
-        printToMessageWindow("Joint " + joint_name);
+        //printToMessageWindow("Joint " + joint_name);
     }
 
 
