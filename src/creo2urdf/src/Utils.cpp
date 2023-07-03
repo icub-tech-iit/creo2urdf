@@ -130,7 +130,6 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name) {
 
     iDynTree::Transform H_child;
-
     auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
     if (csys_list->getarraysize() == 0) {
         printToMessageWindow("There are no CSYS in the part " + link_child_name, c2uLogLevel::WARN);

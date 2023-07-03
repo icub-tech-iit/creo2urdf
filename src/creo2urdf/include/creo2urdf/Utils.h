@@ -60,6 +60,18 @@ static const std::map<c2uLogLevel, std::string> log_level_key = {
 
 
 static const std::map<std::string, std::string> link_csys_map = {
+    {"SIM_ECUB_ROOT_LINK","SCSYS_ROOT"},
+    {"SIM_ECUB_TORSO_1","SCSYS_TORSO_1"},
+    {"SIM_ECUB_TORSO_2","SCSYS_TORSO_2"},
+    {"SIM_ECUB_CHEST","SCSYS_CHEST"},
+    {"SIM_ECUB_L_SHOULDER_1","SCSYS_L_SHOULDER_1"},
+    {"SIM_ECUB_L_SHOULDER_2","SCSYS_L_SHOULDER_2"},
+    {"SIM_ECUB_L_SHOULDER_3","SCSYS_L_SHOULDER_3"},
+    {"SIM_ECUB_L_UPPERARM","SCSYS_L_UPPERARM"},
+    {"SIM_ECUB_R_SHOULDER_1","SCSYS_R_SHOULDER_1"},
+    {"SIM_ECUB_R_SHOULDER_2","SCSYS_R_SHOULDER_2"},
+    {"SIM_ECUB_R_SHOULDER_3","SCSYS_R_SHOULDER_3"},
+    {"SIM_ECUB_R_UPPERARM","SCSYS_R_UPPERARM"},
     {"SIM_ECUB_HEAD_NECK_1", "SCSYS_NECK_1"},
     {"SIM_ECUB_HEAD_NECK_2", "SCSYS_NECK_2"},
     {"SIM_ECUB_HEAD_NECK_3", "SCSYS_NECK_3"},

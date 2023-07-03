@@ -90,11 +90,17 @@ void Creo2Urdf::OnCommand() {
     for (auto axis_info : axis_info_map) {
         auto parent_link_name   = axis_info.second.parent_link_name;
         auto child_link_name    = axis_info.second.child_link_name;
+
+        // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
+        if (child_link_name.empty()) {
+            continue;
+        }
+
         auto joint_name         = parent_link_name + "--" + child_link_name;
         auto axis_name          = axis_info.second.name;
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
         auto root_H_child_link  = link_info_map.at(child_link_name).root_H_link;
-        auto child_model = link_info_map.at(child_link_name).modelhdl;
+        auto child_model        = link_info_map.at(child_link_name).modelhdl;
         
         printToMessageWindow("AXIS " + axis_info.second.name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
         printToMessageWindow("Parent link H " + root_H_parent_link.toString());
@@ -141,8 +147,8 @@ void Creo2Urdf::OnCommand() {
     idyn_model_out.close();
 
     iDynTree::ModelExporterOptions export_options;
-    export_options.robotExportedName = "ECUB_HEAD";
-    export_options.baseLink = "SIM_ECUB_HEAD_NECK_1";
+    export_options.robotExportedName = "ECUB_UPPERBODY";
+    export_options.baseLink = "SIM_ECUB_ROOT_LINK";
 
     exportModelToUrdf(idyn_model, export_options);
 
