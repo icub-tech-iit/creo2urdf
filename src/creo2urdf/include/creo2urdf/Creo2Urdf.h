@@ -12,10 +12,19 @@
 #include <pfcGlobal.h>
 #include <creo2urdf/Utils.h>
 
-struct AxisInfo {
+enum class JointType {
+    Revolute,
+    Fixed,
+    Linear,
+    Spherical,
+    None
+};
+
+struct JointInfo {
     std::string name{""};
     std::string parent_link_name{""};
     std::string child_link_name{""};
+    JointType type {JointType::Revolute};
 };
 
 struct LinkInfo {
@@ -29,12 +38,12 @@ public:
     void OnCommand() override;
 
     bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
-    void populateAxisInfoMap(pfcModel_ptr modelhdl);
+    void populateJointInfoMap(pfcModel_ptr modelhdl);
     bool addMeshAndExport(const std::string& link_child_name, const std::string& csys_name, pfcModel_ptr component_handle);
 
 private:
     iDynTree::Model idyn_model;
-    std::map<std::string, AxisInfo> axis_info_map;
+    std::map<std::string, JointInfo> joint_info_map;
     std::map<std::string, LinkInfo> link_info_map;
 };
 

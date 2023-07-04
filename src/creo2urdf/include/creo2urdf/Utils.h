@@ -31,6 +31,7 @@
 #include <iDynTree/ModelIO/ModelExporter.h>
 #include <iDynTree/ModelIO/ModelLoader.h>
 #include <iDynTree/Model/RevoluteJoint.h>
+#include <iDynTree/Model/FixedJoint.h>
 #include <iDynTree/KinDynComputations.h>
 #include <iDynTree/Model/Traversal.h>
 

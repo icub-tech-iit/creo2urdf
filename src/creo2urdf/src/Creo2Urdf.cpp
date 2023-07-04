@@ -74,7 +74,7 @@ void Creo2Urdf::OnCommand() {
 
         LinkInfo l_info{ link_name, component_handle, H_child };
         link_info_map.insert(std::make_pair(link_name, l_info));
-        populateAxisInfoMap(component_handle);
+        populateJointInfoMap(component_handle);
 
         idyn_model.addLink(string(link_name), link);
 
@@ -86,33 +86,25 @@ void Creo2Urdf::OnCommand() {
 
     // Now we have to add joints to the iDynTree model
 
-    printToMessageWindow("Axis info map has size " + to_string(axis_info_map.size()));
-    for (auto axis_info : axis_info_map) {
-        auto parent_link_name   = axis_info.second.parent_link_name;
-        auto child_link_name    = axis_info.second.child_link_name;
-        auto axis_name = axis_info.second.name;
-        printToMessageWindow("AXIS " + axis_name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
+    printToMessageWindow("Axis info map has size " + to_string(joint_info_map.size()));
+    for (auto joint_info : joint_info_map) {
+        auto parent_link_name = joint_info.second.parent_link_name;
+        auto child_link_name = joint_info.second.child_link_name;
+        auto axis_name = joint_info.second.name;
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
         if (child_link_name.empty()) {
             continue;
         }
 
-        auto joint_name         = parent_link_name + "--" + child_link_name;
+        printToMessageWindow("AXIS " + axis_name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
+
+        auto joint_name = parent_link_name + "--" + child_link_name;
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
-        auto root_H_child_link  = link_info_map.at(child_link_name).root_H_link;
-        auto child_model        = link_info_map.at(child_link_name).modelhdl;
-        
+        auto root_H_child_link = link_info_map.at(child_link_name).root_H_link;
+        auto child_model = link_info_map.at(child_link_name).modelhdl;
+
         //printToMessageWindow("Parent link H " + root_H_parent_link.toString());
         //printToMessageWindow("Child  link H " + root_H_child_link.toString());
-
-        iDynTree::Direction axis;
-        std::tie(ret, axis) = getRotationAxisFromPart(child_model, axis_name, child_link_name, root_H_child_link);
-
-        if (!ret)
-        {
-            return;
-        }
-
         iDynTree::Transform parent_H_child = iDynTree::Transform::Identity();
         parent_H_child = root_H_parent_link.inverse() * root_H_child_link;
 
@@ -120,22 +112,38 @@ void Creo2Urdf::OnCommand() {
         //printToMessageWindow("H_child: " + H_child.toString());
         //printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
 
-        iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
-        // Should be 0 the origin of the axis, the displacement is already considered in transform
-        //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
+        if (joint_info.second.type == JointType::Revolute) {
+            iDynTree::Direction axis;
+            std::tie(ret, axis) = getRotationAxisFromPart(child_model, axis_name, child_link_name, root_H_child_link);
 
-// TODO let's put the limits hardcoded, to be retrieved from Creo
-        double min = 0.0;
-        double max = M_PI;
-        joint.enablePosLimits(true);
-        joint.setPosLimits(0, min, max);
-        // TODO we have to retrieve the rest transform from creo
-        //joint.setRestTransform();
+            if (!ret)
+            {
+                return;
+            }
+            iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
+            // Should be 0 the origin of the axis, the displacement is already considered in transform
+            //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
 
-        if (idyn_model.addJoint(parent_link_name, child_link_name, joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
-            printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
+    // TODO let's put the limits hardcoded, to be retrieved from Creo
+            double min = 0.0;
+            double max = M_PI;
+            joint.enablePosLimits(true);
+            joint.setPosLimits(0, min, max);
+            // TODO we have to retrieve the rest transform from creo
+            //joint.setRestTransform();
 
-            return;
+            if (idyn_model.addJoint(parent_link_name, child_link_name, joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+                printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
+
+                return;
+            }
+        }
+        else if (joint_info.second.type == JointType::Fixed) {
+            iDynTree::FixedJoint joint(parent_H_child);
+            if (idyn_model.addJoint(parent_link_name, child_link_name, joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+                printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
+                return;
+            }
         }
         //printToMessageWindow("Joint " + joint_name);
     }
@@ -176,7 +184,11 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
     return true;
 }
 
-void Creo2Urdf::populateAxisInfoMap(pfcModel_ptr modelhdl) {
+void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
+
+    // The revolute joints are defined by aligning along the
+    // rotational axis
+
     auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
     auto link_name = string(modelhdl->GetFullName());
     // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
@@ -190,18 +202,48 @@ void Creo2Urdf::populateAxisInfoMap(pfcModel_ptr modelhdl) {
     {
         auto axis_elem = pfcAxis::cast(axes_list->get(xint(i)));
         auto axis_name_str = string(axis_elem->GetName());
-        AxisInfo axis_info;
-        axis_info.name = axis_name_str;
+        JointInfo joint_info;
+        joint_info.name = axis_name_str;
+        joint_info.type = JointType::Revolute;
 
-        if (axis_info_map.find(axis_name_str) == axis_info_map.end()) {
-            axis_info.parent_link_name = link_name;
-            axis_info_map.insert(std::make_pair(axis_name_str, axis_info));
+        if (joint_info_map.find(axis_name_str) == joint_info_map.end()) {
+            joint_info.parent_link_name = link_name;
+            joint_info_map.insert(std::make_pair(axis_name_str, joint_info));
         }
         else {
-            auto& existing_axis_info = axis_info_map.at(axis_name_str);
-            existing_axis_info.child_link_name = link_name;
+            auto& existing_joint_info = joint_info_map.at(axis_name_str);
+            existing_joint_info.child_link_name = link_name;
         }
     }
+
+    // The fixed joint right now is defined making coincident the csys.
+
+    auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+
+    if (csys_list->getarraysize() == 0) {
+        printToMessageWindow("There is no CSYS in the part " + link_name, c2uLogLevel::WARN);
+    }
+
+    for (size_t i = 0; i < csys_list->getarraysize(); i++)
+    {
+        auto csys_name = string(csys_list->get(i)->GetName());
+        // We need to discard "general" csys, such as CSYS and ASM_CSYS
+        if (csys_name.find("SCSYS") == std::string::npos) {
+            continue;
+        }
+        JointInfo joint_info;
+        joint_info.name = csys_name;
+        joint_info.type = JointType::Fixed;
+        if (joint_info_map.find(csys_name) == joint_info_map.end()) {
+            joint_info.parent_link_name = link_name;
+            joint_info_map.insert(std::make_pair(csys_name, joint_info));
+        }
+        else {
+            auto& existing_joint_info = joint_info_map.at(csys_name);
+            existing_joint_info.child_link_name = link_name;
+        }
+    }
+
 }
 
 bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::string& csys_name, pfcModel_ptr component_handle)
