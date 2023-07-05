@@ -31,6 +31,7 @@
 #include <iDynTree/ModelIO/ModelExporter.h>
 #include <iDynTree/ModelIO/ModelLoader.h>
 #include <iDynTree/Model/RevoluteJoint.h>
+#include <iDynTree/Model/FixedJoint.h>
 #include <iDynTree/KinDynComputations.h>
 #include <iDynTree/Model/Traversal.h>
 
@@ -60,6 +61,18 @@ static const std::map<c2uLogLevel, std::string> log_level_key = {
 
 
 static const std::map<std::string, std::string> link_csys_map = {
+    {"SIM_ECUB_ROOT_LINK","SCSYS_ROOT"},
+    {"SIM_ECUB_TORSO_1","SCSYS_TORSO_1"},
+    {"SIM_ECUB_TORSO_2","SCSYS_TORSO_2"},
+    {"SIM_ECUB_CHEST","SCSYS_CHEST"},
+    {"SIM_ECUB_L_SHOULDER_1","SCSYS_L_SHOULDER_1"},
+    {"SIM_ECUB_L_SHOULDER_2","SCSYS_L_SHOULDER_2"},
+    {"SIM_ECUB_L_SHOULDER_3","SCSYS_L_SHOULDER_3"},
+    {"SIM_ECUB_L_UPPERARM","SCSYS_L_UPPERARM"},
+    {"SIM_ECUB_R_SHOULDER_1","SCSYS_R_SHOULDER_1"},
+    {"SIM_ECUB_R_SHOULDER_2","SCSYS_R_SHOULDER_2"},
+    {"SIM_ECUB_R_SHOULDER_3","SCSYS_R_SHOULDER_3"},
+    {"SIM_ECUB_R_UPPERARM","SCSYS_R_UPPERARM"},
     {"SIM_ECUB_HEAD_NECK_1", "SCSYS_NECK_1"},
     {"SIM_ECUB_HEAD_NECK_2", "SCSYS_NECK_2"},
     {"SIM_ECUB_HEAD_NECK_3", "SCSYS_NECK_3"},
@@ -68,12 +81,6 @@ static const std::map<std::string, std::string> link_csys_map = {
 };
 
 
-static const std::map<std::string, std::string> child_axis_map = {
-    {"SIM_ECUB_HEAD_NECK_2", "NECK_PITCH_AXIS"},
-    {"SIM_ECUB_HEAD_NECK_3", "NECK_ROLL_AXIS"},
-    {"SIM_ECUB_HEAD", "NECK_YAW_AXIS"},
-    {"SIM_ECUB_REALSENSE", "REALSENSE_PITCH_AXIS"}
-};
 
 class iDynRedirectErrors {
 public:
@@ -127,7 +134,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name);
 
-std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name, iDynTree::Transform H_child);
+std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_child_name, iDynTree::Transform H_child);
 
 bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, const std::string& csys_name, iDynTree::Model& idyn_model);
 

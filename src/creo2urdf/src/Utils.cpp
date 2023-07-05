@@ -130,7 +130,6 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name) {
 
     iDynTree::Transform H_child;
-
     auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
     if (csys_list->getarraysize() == 0) {
         printToMessageWindow("There are no CSYS in the part " + link_child_name, c2uLogLevel::WARN);
@@ -174,7 +173,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
     return { false, H_child };
 }
 
-std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name, iDynTree::Transform H_child) {
+std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_child_name, iDynTree::Transform H_child) {
 
     iDynTree::Direction axis_unit_vector;
 
@@ -192,8 +191,7 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
     for (size_t i = 0; i < axes_list->getarraysize(); i++)
     {
         auto axis_elem = pfcAxis::cast(axes_list->get(xint(i)));
-
-        if (string(axis_elem->GetName()) == child_axis_map.at(string(link_child_name)))
+        if (string(axis_elem->GetName()) == axis_name)
         {
             axis = axis_elem;
             // printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
