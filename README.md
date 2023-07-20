@@ -15,7 +15,7 @@ Generate URDF model from CREO mechanisms.
 
 ## Assumptions & limitations
 
-- The assembly must contain only one non-circular kinematic chain.
+- The assembly has to be the entire ergoCub 1.1 simulation model.
 - The joints are in 0.
 
 ## Installation

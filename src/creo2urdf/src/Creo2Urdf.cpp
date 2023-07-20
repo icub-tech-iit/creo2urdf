@@ -32,6 +32,11 @@ void Creo2Urdf::OnCommand() {
         return;
     }
 
+    // Let's clear the map in case of multiple click
+    if (joint_info_map.size() > 0) {
+        joint_info_map.clear();
+    }
+
     // Let's traverse the model tree and get all links and axis properties
     for (int i = 0; i < asm_component_list->getarraysize(); i++)
     {      
@@ -60,7 +65,7 @@ void Creo2Urdf::OnCommand() {
         }
 
         auto link_name = string(component_handle->GetFullName());
-        printToMessageWindow(link_name);
+        //printToMessageWindow(link_name);
 
         auto mass_prop = pfcSolid::cast(component_handle)->GetMassProperty();
         
@@ -86,17 +91,17 @@ void Creo2Urdf::OnCommand() {
 
     // Now we have to add joints to the iDynTree model
 
-    printToMessageWindow("Axis info map has size " + to_string(joint_info_map.size()));
+    //printToMessageWindow("Axis info map has size " + to_string(joint_info_map.size()));
     for (auto joint_info : joint_info_map) {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
         auto axis_name = joint_info.second.name;
+        //printToMessageWindow("AXIS " + axis_name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
         if (child_link_name.empty()) {
             continue;
         }
 
-        printToMessageWindow("AXIS " + axis_name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
 
         auto joint_name = parent_link_name + "--" + child_link_name;
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
@@ -133,7 +138,7 @@ void Creo2Urdf::OnCommand() {
             //joint.setRestTransform();
 
             if (idyn_model.addJoint(parent_link_name, child_link_name, joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
-                printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
+                printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
 
                 return;
             }
@@ -141,7 +146,7 @@ void Creo2Urdf::OnCommand() {
         else if (joint_info.second.type == JointType::Fixed) {
             iDynTree::FixedJoint joint(parent_H_child);
             if (idyn_model.addJoint(parent_link_name, child_link_name, joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
-                printToMessageWindow("FAILED TO ADD JOINT!", c2uLogLevel::WARN);
+                printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
                 return;
             }
         }
@@ -154,8 +159,8 @@ void Creo2Urdf::OnCommand() {
     idyn_model_out.close();
 
     iDynTree::ModelExporterOptions export_options;
-    export_options.robotExportedName = "ECUB_UPPERBODY";
-    export_options.baseLink = "SIM_ECUB_ROOT_LINK";
+    export_options.robotExportedName = "ergoCub";
+    export_options.baseLink = "SIM_ECUB_1-1_ROOT_LINK";
 
     exportModelToUrdf(idyn_model, export_options);
 
