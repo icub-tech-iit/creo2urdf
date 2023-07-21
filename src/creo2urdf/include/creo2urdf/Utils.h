@@ -26,7 +26,6 @@
 #include <wfcGeometry.h>
 #include <wfcModelItem.h>
 
-
 #include <iDynTree/Model/Model.h>
 #include <iDynTree/ModelIO/ModelExporter.h>
 #include <iDynTree/ModelIO/ModelLoader.h>
@@ -34,7 +33,6 @@
 #include <iDynTree/Model/FixedJoint.h>
 #include <iDynTree/KinDynComputations.h>
 #include <iDynTree/Model/Traversal.h>
-
 
 constexpr double mm_to_m = 1e-3;
 constexpr double mm2_to_m2 = 1e-6;

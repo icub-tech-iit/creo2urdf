@@ -14,6 +14,7 @@ include(FeatureSummary)
 # Needed for https://github.com/robotology/idyntree/issues/1065
 find_package(Eigen3 REQUIRED)
 find_package(iDynTree REQUIRED)
+find_package(yaml-cpp REQUIRED)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Control where libraries and executables are placed during the build.

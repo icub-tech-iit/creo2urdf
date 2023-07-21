@@ -21,6 +21,8 @@ void Creo2Urdf::OnCommand() {
 
     idyn_model = iDynTree::Model::Model(); // no trivial way to clear the model
 
+    loadYamlConfig("ERGOCUB_all_options.yaml");
+
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
 
@@ -81,8 +83,7 @@ void Creo2Urdf::OnCommand() {
         link_info_map.insert(std::make_pair(link_name, l_info));
         populateJointInfoMap(component_handle);
 
-        idyn_model.addLink(string(link_name), link);
-
+        idyn_model.addLink(link_name, link);
         addMeshAndExport(link_name, link_csys_map.at(link_name), component_handle);
 
         // TODO when we have an additional frame to add
@@ -102,8 +103,7 @@ void Creo2Urdf::OnCommand() {
             continue;
         }
 
-
-        auto joint_name = parent_link_name + "--" + child_link_name;
+        auto joint_name = renameJoint(parent_link_name + "--" + child_link_name);
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
         auto root_H_child_link = link_info_map.at(child_link_name).root_H_link;
         auto child_model = link_info_map.at(child_link_name).modelhdl;
@@ -152,7 +152,6 @@ void Creo2Urdf::OnCommand() {
         }
         //printToMessageWindow("Joint " + joint_name);
     }
-
 
     std::ofstream idyn_model_out("iDynTreeModel.txt");
     idyn_model_out << idyn_model.toString();
@@ -248,7 +247,6 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
             existing_joint_info.child_link_name = link_name;
         }
     }
-
 }
 
 bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::string& csys_name, pfcModel_ptr component_handle)
@@ -293,8 +291,30 @@ bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::
     return true;
 }
 
+bool Creo2Urdf::loadYamlConfig(const std::string& filename)
+{
+    config = YAML::LoadFile(filename);      
 
-pfcCommandAccess Creo2UrdfAccess::OnCommandAccess(xbool AllowErrorMessages) {
+    return true;
+}
+
+std::string Creo2Urdf::renameJoint(const std::string& joint_name)
+{
+    if (config["rename"][joint_name].IsDefined())
+    {
+        std::string new_name = config["rename"][joint_name].Scalar();
+        printToMessageWindow("Renaming joint " + joint_name + " to " + new_name);
+        return new_name;
+    }
+    else
+    {
+        printToMessageWindow("Joint " + joint_name + " is not present in the configuration file!", c2uLogLevel::WARN);
+        return joint_name;
+    }
+}
+
+pfcCommandAccess Creo2UrdfAccess::OnCommandAccess(xbool AllowErrorMessages)
+{
     auto model = pfcGetProESession()->GetCurrentModel();
     if (!model) {
         return pfcCommandAccess::pfcACCESS_AVAILABLE;
