@@ -21,7 +21,11 @@ void Creo2Urdf::OnCommand() {
 
     idyn_model = iDynTree::Model::Model(); // no trivial way to clear the model
 
-    loadYamlConfig("ERGOCUB_all_options.yaml");
+    if (!loadYamlConfig("ERGOCUB_all_options.yaml"))
+    {
+        printToMessageWindow("Failed to run Creo2Urdf!", c2uLogLevel::WARN);
+        return;
+    }
 
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
@@ -300,7 +304,15 @@ bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::
 
 bool Creo2Urdf::loadYamlConfig(const std::string& filename)
 {
-    config = YAML::LoadFile(filename);      
+    try {
+        config = YAML::LoadFile(filename);
+    }
+    catch (YAML::Exception file_does_not_exist) {
+        printToMessageWindow("Configuration file " + filename + " does not exist!", c2uLogLevel::WARN);
+        return false;
+    }
+
+    printToMessageWindow("Configuration file " + filename + " was loaded successfully");
 
     return true;
 }
