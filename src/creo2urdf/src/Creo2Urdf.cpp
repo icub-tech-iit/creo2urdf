@@ -125,6 +125,13 @@ void Creo2Urdf::OnCommand() {
             {
                 return;
             }
+
+            if (config["reverseRotationAxis"].Scalar().find(joint_name) != std::string::npos)
+            {
+               // printToMessageWindow("Reversing axis of " + joint_name);
+                axis = axis.reverse();
+            }
+
             iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
             // Should be 0 the origin of the axis, the displacement is already considered in transform
             //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
@@ -303,7 +310,7 @@ std::string Creo2Urdf::renameJoint(const std::string& joint_name)
     if (config["rename"][joint_name].IsDefined())
     {
         std::string new_name = config["rename"][joint_name].Scalar();
-        printToMessageWindow("Renaming joint " + joint_name + " to " + new_name);
+        // printToMessageWindow("Renaming joint " + joint_name + " to " + new_name);
         return new_name;
     }
     else
