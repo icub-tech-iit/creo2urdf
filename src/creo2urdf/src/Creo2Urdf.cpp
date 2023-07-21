@@ -304,11 +304,18 @@ bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::
 
 bool Creo2Urdf::loadYamlConfig(const std::string& filename)
 {
-    try {
+    try 
+    {
         config = YAML::LoadFile(filename);
     }
-    catch (YAML::Exception file_does_not_exist) {
+    catch (YAML::BadFile file_does_not_exist) 
+    {
         printToMessageWindow("Configuration file " + filename + " does not exist!", c2uLogLevel::WARN);
+        return false;
+    }
+    catch (YAML::ParserException badly_formed) 
+    {
+        printToMessageWindow(badly_formed.msg, c2uLogLevel::WARN);
         return false;
     }
 
