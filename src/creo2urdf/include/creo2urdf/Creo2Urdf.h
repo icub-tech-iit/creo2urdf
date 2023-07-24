@@ -40,7 +40,7 @@ public:
 
     bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
     void populateJointInfoMap(pfcModel_ptr modelhdl);
-    bool addMeshAndExport(const std::string& link_child_name, const std::string& csys_name, pfcModel_ptr component_handle);
+    bool addMeshAndExport(pfcModel_ptr component_handle);
     bool loadYamlConfig(const std::string& filename);
     std::string renameJoint(const std::string& joint_name);
 

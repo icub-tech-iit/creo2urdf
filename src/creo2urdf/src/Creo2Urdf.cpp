@@ -87,8 +87,8 @@ void Creo2Urdf::OnCommand() {
         link_info_map.insert(std::make_pair(link_name, l_info));
         populateJointInfoMap(component_handle);
 
-        idyn_model.addLink(link_name, link);
-        addMeshAndExport(link_name, link_csys_map.at(link_name), component_handle);
+        idyn_model.addLink(config["rename"][link_name].Scalar(), link);
+        addMeshAndExport(component_handle);
 
         // TODO when we have an additional frame to add
         // idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); 
@@ -148,7 +148,8 @@ void Creo2Urdf::OnCommand() {
             // TODO we have to retrieve the rest transform from creo
             //joint.setRestTransform();
 
-            if (idyn_model.addJoint(parent_link_name, child_link_name, joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+            if (idyn_model.addJoint(config["rename"][parent_link_name].Scalar(),
+                config["rename"][child_link_name].Scalar(), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
 
                 return;
@@ -156,7 +157,8 @@ void Creo2Urdf::OnCommand() {
         }
         else if (joint_info.second.type == JointType::Fixed) {
             iDynTree::FixedJoint joint(parent_H_child);
-            if (idyn_model.addJoint(parent_link_name, child_link_name, joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+            if (idyn_model.addJoint(config["rename"][parent_link_name].Scalar(), 
+                config["rename"][child_link_name].Scalar(), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
                 return;
             }
@@ -169,8 +171,8 @@ void Creo2Urdf::OnCommand() {
     idyn_model_out.close();
 
     iDynTree::ModelExporterOptions export_options;
-    export_options.robotExportedName = "ergoCub";
-    export_options.baseLink = "SIM_ECUB_1-1_ROOT_LINK";
+    export_options.robotExportedName = config["robotName"].Scalar();
+    export_options.baseLink = config["rename"]["SIM_ECUB_1-1_ROOT_LINK"].Scalar();
 
     exportModelToUrdf(idyn_model, export_options);
 
@@ -260,12 +262,16 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
     }
 }
 
-bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::string& csys_name, pfcModel_ptr component_handle)
+bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle)
 {
     //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
 
-    std::string stl_file_name = link_child_name + ".stl";
+    std::string link_child_name = component_handle->GetFullName();
 
+    std::string csys_name = link_csys_map.at(link_child_name);
+
+    std::string stl_file_name = link_child_name + ".stl";
+    
     // Make all alphabetic characters lowercase
     std::transform(stl_file_name.begin(), stl_file_name.end(), stl_file_name.begin(),
         [](unsigned char c) { return std::tolower(c); });
@@ -296,8 +302,12 @@ bool Creo2Urdf::addMeshAndExport(const std::string& link_child_name, const std::
     // Assign name
     visualMesh.setFilename(stl_file_name);
     // TODO Right now let's consider visual and collision with the same mesh
-    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
-    idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
+    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(config["rename"][link_child_name].Scalar())].push_back(visualMesh.clone());
+    idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(config["rename"][link_child_name].Scalar())].push_back(visualMesh.clone());
+
+    // idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
+    // idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
+
 
     return true;
 }
