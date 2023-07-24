@@ -42,7 +42,7 @@ public:
     void populateJointInfoMap(pfcModel_ptr modelhdl);
     bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
     bool loadYamlConfig(const std::string& filename);
-    std::string renameJoint(const std::string& joint_name);
+    std::string renameElementFromConfig(const std::string& elem_name);
 
 private:
     iDynTree::Model idyn_model;

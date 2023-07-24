@@ -67,7 +67,7 @@ void Creo2Urdf::OnCommand() {
 
         iDynTree::Transform H_child = iDynTree::Transform::Identity();
         
-        std::string urdf_link_name = config["rename"][link_name].Scalar();
+        std::string urdf_link_name = renameElementFromConfig(link_name);
 
         std::string link_transform_name = "";
 
@@ -99,7 +99,7 @@ void Creo2Urdf::OnCommand() {
         link_info_map.insert(std::make_pair(link_name, l_info));
         populateJointInfoMap(component_handle);
 
-        idyn_model.addLink(config["rename"][link_name].Scalar(), link);
+        idyn_model.addLink(urdf_link_name, link);
         addMeshAndExport(component_handle, link_transform_name);
 
         // TODO when we have an additional frame to add
@@ -119,7 +119,7 @@ void Creo2Urdf::OnCommand() {
             continue;
         }
 
-        auto joint_name = renameJoint(parent_link_name + "--" + child_link_name);
+        auto joint_name = renameElementFromConfig(parent_link_name + "--" + child_link_name);
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
         auto root_H_child_link = link_info_map.at(child_link_name).root_H_link;
         auto child_model = link_info_map.at(child_link_name).modelhdl;
@@ -160,8 +160,8 @@ void Creo2Urdf::OnCommand() {
             // TODO we have to retrieve the rest transform from creo
             //joint.setRestTransform();
 
-            if (idyn_model.addJoint(config["rename"][parent_link_name].Scalar(),
-                config["rename"][child_link_name].Scalar(), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+            if (idyn_model.addJoint(renameElementFromConfig(parent_link_name),
+                renameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
 
                 return;
@@ -169,8 +169,8 @@ void Creo2Urdf::OnCommand() {
         }
         else if (joint_info.second.type == JointType::Fixed) {
             iDynTree::FixedJoint joint(parent_H_child);
-            if (idyn_model.addJoint(config["rename"][parent_link_name].Scalar(), 
-                config["rename"][child_link_name].Scalar(), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+            if (idyn_model.addJoint(renameElementFromConfig(parent_link_name),
+                renameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
                 return;
             }
@@ -350,18 +350,17 @@ bool Creo2Urdf::loadYamlConfig(const std::string& filename)
     return true;
 }
 
-std::string Creo2Urdf::renameJoint(const std::string& joint_name)
+std::string Creo2Urdf::renameElementFromConfig(const std::string& elem_name)
 {
-    if (config["rename"][joint_name].IsDefined())
+    if (config["rename"][elem_name].IsDefined())
     {
-        std::string new_name = config["rename"][joint_name].Scalar();
-        // printToMessageWindow("Renaming joint " + joint_name + " to " + new_name);
+        std::string new_name = config["rename"][elem_name].Scalar();
         return new_name;
     }
     else
     {
-        printToMessageWindow("Joint " + joint_name + " is not present in the configuration file!", c2uLogLevel::WARN);
-        return joint_name;
+        printToMessageWindow("Joint " + elem_name + " is not present in the configuration file!", c2uLogLevel::WARN);
+        return elem_name;
     }
 }
 
