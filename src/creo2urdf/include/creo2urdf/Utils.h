@@ -57,7 +57,7 @@ static const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::PROMPT, "c2uPROMPT"}
 };
 
-
+/*
 static const std::map<std::string, std::string> link_csys_map = {
     {"SIM_ECUB_1-1_L_HIP_1","SCSYS_L_HIP_1"},
     {"SIM_ECUB_1-1_L_HIP_2","SCSYS_L_HIP_2"},
@@ -127,6 +127,7 @@ static const std::map<std::string, std::string> link_csys_map = {
     {"SIM_ECUB_1-1_HEAD", "SCSYS_HEAD"},
     {"SIM_ECUB_1-1_REALSENSE", "SCSYS_REALSENSE"}
 };
+*/
 
 
 
@@ -178,12 +179,10 @@ void printRotationMatrix(pfcMatrix3D_ptr m);
 
 void sanitizeSTL(std::string stl);
 
-std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl);
+std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& target_transform);
 
-std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name);
+std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& transform);
 
 std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_child_name, iDynTree::Transform H_child);
-
-bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, const std::string& csys_name, iDynTree::Model& idyn_model);
 
 #endif // !UTILS_H

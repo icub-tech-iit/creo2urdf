@@ -61,17 +61,29 @@ void Creo2Urdf::OnCommand() {
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
         auto component_handle = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
+        
+        auto link_name = string(component_handle->GetFullName());
+        //printToMessageWindow(link_name);
 
         iDynTree::Transform H_child = iDynTree::Transform::Identity();
-        std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, component_handle);
+        
+        std::string urdf_link_name = config["rename"][link_name].Scalar();
+
+        std::string link_transform_name = "";
+
+        for (const auto& lf : config["linkFrames"]) {
+            if (lf["linkName"].Scalar() != urdf_link_name)
+            {
+                continue;
+            }
+            link_transform_name = lf["frameName"].Scalar();
+        }
+        std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, component_handle, link_transform_name);
 
         if (!ret)
         {
             return;
         }
-
-        auto link_name = string(component_handle->GetFullName());
-        //printToMessageWindow(link_name);
 
         auto mass_prop = pfcSolid::cast(component_handle)->GetMassProperty();
         
@@ -88,7 +100,7 @@ void Creo2Urdf::OnCommand() {
         populateJointInfoMap(component_handle);
 
         idyn_model.addLink(config["rename"][link_name].Scalar(), link);
-        addMeshAndExport(component_handle);
+        addMeshAndExport(component_handle, link_transform_name);
 
         // TODO when we have an additional frame to add
         // idyn_model.addAdditionalFrameToLink(string(name), string(name) + "_" + string(csys_list->get(0)->GetName()), fromCreo(transform)); 
@@ -262,23 +274,19 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
     }
 }
 
-bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle)
+bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform)
 {
     //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
 
     std::string link_child_name = component_handle->GetFullName();
-
-    std::string csys_name = link_csys_map.at(link_child_name);
-
     std::string stl_file_name = link_child_name + ".stl";
-    
     std::string renamed_link_child_name = config["rename"][link_child_name].Scalar();
 
     // Make all alphabetic characters lowercase
     std::transform(stl_file_name.begin(), stl_file_name.end(), stl_file_name.begin(),
         [](unsigned char c) { return std::tolower(c); });
 
-    component_handle->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(csys_name.c_str())));
+    component_handle->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(stl_transform.c_str())));
 
     // Replace the first 5 bytes of the binary file with a string different than "solid"
     // to avoid issues with stl parsers.

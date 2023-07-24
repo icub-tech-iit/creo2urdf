@@ -103,20 +103,18 @@ void sanitizeSTL(std::string stl)
     output.close();
 }
 
-std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl) {
+std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& target_transform) {
     
     iDynTree::Transform H_child = iDynTree::Transform::Identity();
 
     auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xtrue));
-    auto link_child_name = string(modelhdl->GetFullName());
-
     iDynTree::Transform csys_H_child;
 
     bool ret = false;
-    std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
+    std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, target_transform);
     if (!ret)
     {
-        printToMessageWindow("Unable to get the transform respect to the root for " + link_child_name, c2uLogLevel::WARN);
+        printToMessageWindow("Unable to get the transform from to the root for " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
         return make_pair(false, H_child);
     }
 
@@ -127,10 +125,13 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 }
 
 
-std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name) {
+std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& transform) {
 
     iDynTree::Transform H_child;
     auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+
+    auto link_child_name = string(modelhdl->GetFullName());
+    
     if (csys_list->getarraysize() == 0) {
         printToMessageWindow("There are no CSYS in the part " + link_child_name, c2uLogLevel::WARN);
 
@@ -145,7 +146,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 
         auto csys = pfcCoordSystem::cast(csys_elem);
 
-        if (string(csys->GetName()) != link_csys_map.at(link_child_name))
+        if (string(csys->GetName()) != transform)
         {
             continue;
         }
