@@ -140,7 +140,7 @@ void Creo2Urdf::OnCommand() {
             // Should be 0 the origin of the axis, the displacement is already considered in transform
             //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
 
-    // TODO let's put the limits hardcoded, to be retrieved from Creo
+            // TODO let's put the limits hardcoded, to be retrieved from Creo
             double min = 0.0;
             double max = M_PI;
             joint.enablePosLimits(true);
@@ -272,6 +272,8 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle)
 
     std::string stl_file_name = link_child_name + ".stl";
     
+    std::string renamed_link_child_name = config["rename"][link_child_name].Scalar();
+
     // Make all alphabetic characters lowercase
     std::transform(stl_file_name.begin(), stl_file_name.end(), stl_file_name.begin(),
         [](unsigned char c) { return std::tolower(c); });
@@ -281,7 +283,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle)
     // Replace the first 5 bytes of the binary file with a string different than "solid"
     // to avoid issues with stl parsers.
     // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
-    sanitizeSTL(string(link_child_name) + ".stl");
+    sanitizeSTL(stl_file_name);
 
     // Lets add the mesh to the link
     iDynTree::ExternalMesh visualMesh;
@@ -291,8 +293,18 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle)
     // Let's assign a gray as default color
     iDynTree::Vector4 color;
     iDynTree::Material material;
-    color(0) = color(1) = color(2) = 0.5;
-    color(3) = 1.0;
+
+    if(config["assignedColors"][renamed_link_child_name].IsDefined())
+    {
+        for (size_t i = 0; i < config["assignedColors"][renamed_link_child_name].size(); i++)
+            color(i) = config["assignedColors"][renamed_link_child_name][i].as<double>();
+    } 
+    else
+    {
+        color(0) = color(1) = color(2) = 0.5;
+        color(3) = 1;
+    }
+
     material.setColor(color);
     visualMesh.setMaterial(material);
     // Assign transform
@@ -302,12 +314,8 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle)
     // Assign name
     visualMesh.setFilename(stl_file_name);
     // TODO Right now let's consider visual and collision with the same mesh
-    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(config["rename"][link_child_name].Scalar())].push_back(visualMesh.clone());
-    idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(config["rename"][link_child_name].Scalar())].push_back(visualMesh.clone());
-
-    // idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
-    // idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(string(link_child_name))].push_back(visualMesh.clone());
-
+    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
+    idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
 
     return true;
 }
