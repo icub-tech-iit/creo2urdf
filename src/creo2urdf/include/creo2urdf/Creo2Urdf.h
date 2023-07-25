@@ -21,6 +21,15 @@ enum class JointType {
     None
 };
 
+enum class SensorType {
+    Accelerometer,
+    Gyroscope,
+    Camera,
+    Depth,
+    Ray,
+    None
+};
+
 struct JointInfo {
     std::string name{""};
     std::string parent_link_name{""};
@@ -32,6 +41,13 @@ struct LinkInfo {
     std::string name{""};
     pfcModel_ptr modelhdl{ nullptr };
     iDynTree::Transform root_H_link { iDynTree::Transform::Identity() };
+};
+
+struct SensorInfo {
+    std::string name{""};
+    bool exportFrameInURDF{false};
+    SensorType sensorType{SensorType::None};
+    std::vector<std::string> XMLBlobs;
 };
 
 class Creo2Urdf : public pfcUICommandActionListener {

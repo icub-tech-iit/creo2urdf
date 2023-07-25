@@ -359,7 +359,7 @@ std::string Creo2Urdf::renameElementFromConfig(const std::string& elem_name)
     }
     else
     {
-        printToMessageWindow("Joint " + elem_name + " is not present in the configuration file!", c2uLogLevel::WARN);
+        printToMessageWindow("Element " + elem_name + " is not present in the configuration file!", c2uLogLevel::WARN);
         return elem_name;
     }
 }
