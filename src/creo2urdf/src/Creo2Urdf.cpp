@@ -175,8 +175,10 @@ void Creo2Urdf::OnCommand() {
                 return;
             }
         }
-        //printToMessageWindow("Joint " + joint_name);
     }
+
+    readSensorsFromConfig();
+    readFTSensorsFromConfig();
 
     std::ofstream idyn_model_out("iDynTreeModel.txt");
     idyn_model_out << idyn_model.toString();
@@ -253,7 +255,7 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
         printToMessageWindow("There is no CSYS in the part " + link_name, c2uLogLevel::WARN);
     }
 
-    for (size_t i = 0; i < csys_list->getarraysize(); i++)
+    for (xint i = 0; i < csys_list->getarraysize(); i++)
     {
         auto csys_name = string(csys_list->get(i)->GetName());
         // We need to discard "general" csys, such as CSYS and ASM_CSYS
@@ -272,6 +274,59 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
             existing_joint_info.child_link_name = link_name;
         }
     }
+}
+
+void Creo2Urdf::readSensorsFromConfig()
+{
+    for (const auto& s : config["sensors"]) {
+
+        bool export_frame = false;
+
+        // This is the only key that is not uniformly defined
+        // in the config of sensors
+        if (s["exportFrameInURDF"].IsDefined())
+        {
+            export_frame = s["exportFrameInURDF"].as<bool>();
+        }
+
+        double update_rate = 100;
+        if (s["updateRate"].IsDefined())
+        {
+            update_rate = s["updateRate"].as<double>();
+        }
+
+        try
+        {
+            printToMessageWindow("Found sensor " + s["sensorName"].Scalar());
+
+            sensors.push_back({ s["sensorName"].Scalar(),
+                                s["frameName"].Scalar(),
+                                s["linkName"].Scalar(),
+                                export_frame,
+                                sensor_type_map.at(s["sensorType"].Scalar()),
+                                update_rate,
+                                s["sensorBlobs"].as<std::vector<std::string>>()});
+        }
+        catch (YAML::Exception & e)
+        {
+            printToMessageWindow(e.msg, c2uLogLevel::WARN);
+        }
+
+    }
+}
+
+void Creo2Urdf::readFTSensorsFromConfig()
+{
+    for (const auto& s : config["forceTorqueSensors"]) {
+        printToMessageWindow("Found sensor for " + s["jointName"].Scalar());
+
+        ft_sensors.push_back({ s["jointName"].Scalar(),
+                               s["directionChildToParent"].as<bool>(),
+                               s["frame"].Scalar(),
+                               s["frameName"].Scalar(),
+                               s["sensorBlobs"].as<std::vector<std::string>>() });
+    }
+
 }
 
 bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform)

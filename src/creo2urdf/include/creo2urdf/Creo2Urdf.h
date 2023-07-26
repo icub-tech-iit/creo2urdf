@@ -30,6 +30,14 @@ enum class SensorType {
     None
 };
 
+static const std::map<std::string, SensorType> sensor_type_map = {
+    {"accelerometer", SensorType::Accelerometer},
+    {"gyroscope", SensorType::Gyroscope},
+    {"camera", SensorType::Camera},
+    {"depth", SensorType::Depth},
+    {"ray", SensorType::Ray}
+};                       
+
 struct JointInfo {
     std::string name{""};
     std::string parent_link_name{""};
@@ -44,10 +52,21 @@ struct LinkInfo {
 };
 
 struct SensorInfo {
-    std::string name{""};
+    std::string sensorName{""};
+    std::string frameName{""};
+    std::string linkName{""};
     bool exportFrameInURDF{false};
-    SensorType sensorType{SensorType::None};
-    std::vector<std::string> XMLBlobs;
+    SensorType type{SensorType::None};
+    double updateRate{100};
+    std::vector<std::string> xmlBlobs;
+};
+
+struct FTSensorInfo {
+    std::string jointName{""};
+    bool directionChildToParent{ true };
+    std::string frame{"sensor"};
+    std::string frameName{""};
+    std::vector<std::string> xmlBlobs;
 };
 
 class Creo2Urdf : public pfcUICommandActionListener {
@@ -56,6 +75,8 @@ public:
 
     bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
     void populateJointInfoMap(pfcModel_ptr modelhdl);
+    void readSensorsFromConfig();
+    void readFTSensorsFromConfig();
     bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
     bool loadYamlConfig(const std::string& filename);
     std::string renameElementFromConfig(const std::string& elem_name);
@@ -65,6 +86,8 @@ private:
     std::map<std::string, JointInfo> joint_info_map;
     std::map<std::string, LinkInfo> link_info_map;
     YAML::Node config;
+    std::vector<SensorInfo> sensors;
+    std::vector<FTSensorInfo> ft_sensors;
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {
