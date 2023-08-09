@@ -49,6 +49,14 @@ struct LinkInfo {
     std::string name{""};
     pfcModel_ptr modelhdl{ nullptr };
     iDynTree::Transform root_H_link { iDynTree::Transform::Identity() };
+    std::string link_frame_name {""};
+};
+
+struct ExportedFrameInfo {
+    std::string frameReferenceLink {""};
+    std::string exportedFrameName {""};
+    iDynTree::Transform linkFrame_H_additionalFrame { iDynTree::Transform::Identity() };
+    iDynTree::Transform additionalTransformation { iDynTree::Transform::Identity() }; // additionalFrameOld_H_additionalFrame 
 };
 
 struct SensorInfo {
@@ -75,16 +83,19 @@ public:
 
     bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
     void populateJointInfoMap(pfcModel_ptr modelhdl);
+    void populateExportedFrameInfoMap(pfcModel_ptr modelhdl);
+    void readExportedFramesFromConfig();
     void readSensorsFromConfig();
     void readFTSensorsFromConfig();
     bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
     bool loadYamlConfig(const std::string& filename);
-    std::string renameElementFromConfig(const std::string& elem_name);
+    std::string getRenameElementFromConfig(const std::string& elem_name);
 
 private:
     iDynTree::Model idyn_model;
     std::map<std::string, JointInfo> joint_info_map;
     std::map<std::string, LinkInfo> link_info_map;
+    std::map<std::string, ExportedFrameInfo> exported_frame_info_map;
     YAML::Node config;
     std::vector<SensorInfo> sensors;
     std::vector<FTSensorInfo> ft_sensors;

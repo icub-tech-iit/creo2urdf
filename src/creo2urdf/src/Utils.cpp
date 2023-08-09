@@ -103,7 +103,7 @@ void sanitizeSTL(std::string stl)
     output.close();
 }
 
-std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& target_transform) {
+std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name) {
     
     iDynTree::Transform H_child = iDynTree::Transform::Identity();
 
@@ -111,7 +111,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
     iDynTree::Transform csys_H_child;
 
     bool ret = false;
-    std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, target_transform);
+    std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_frame_name);
     if (!ret)
     {
         printToMessageWindow("Unable to get the transform from to the root for " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
@@ -125,7 +125,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 }
 
 
-std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& transform) {
+std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name) {
 
     iDynTree::Transform H_child;
     auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
@@ -146,7 +146,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 
         auto csys = pfcCoordSystem::cast(csys_elem);
 
-        if (string(csys->GetName()) != transform)
+        if (string(csys->GetName()) != link_frame_name)
         {
             continue;
         }
