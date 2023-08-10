@@ -204,6 +204,9 @@ void Creo2Urdf::OnCommand() {
     iDynTree::ModelExporterOptions export_options;
     export_options.robotExportedName = config["robotName"].Scalar();
     export_options.baseLink = config["rename"]["SIM_ECUB_1-1_ROOT_LINK"].Scalar();
+    if (config["XMLBlobs"].IsDefined()) {
+        export_options.xmlBlobs = config["XMLBlobs"].as<std::vector<std::string>>();
+    }
 
     exportModelToUrdf(idyn_model, export_options);
 
