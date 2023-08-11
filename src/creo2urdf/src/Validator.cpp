@@ -9,6 +9,7 @@
 
 #include <creo2urdf/Validator.h>
 
+
 bool Validator::loadUrdfFromFile(const std::string& filename) {
     iDynTree::ModelLoader mdl_loader;
     if (!mdl_loader.loadModelFromFile(filename))

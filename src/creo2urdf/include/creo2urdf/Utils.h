@@ -34,8 +34,6 @@
 #include <iDynTree/KinDynComputations.h>
 #include <iDynTree/Model/Traversal.h>
 
-constexpr double mm_to_m = 1e-3;
-constexpr double mm2_to_m2 = 1e-6;
 constexpr double epsilon = 1e-12;
 constexpr double rad2deg = 180.0 / M_PI;
 constexpr double deg2rad = 1 / rad2deg;
@@ -136,7 +134,7 @@ public:
 
     iDynRedirectErrors() {
         old_buf = nullptr;
-    
+
     }
 
     ~iDynRedirectErrors() {
@@ -167,9 +165,9 @@ private:
 
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data);
 
-iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H);
+iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const array<double, 3>& scale = { 1.0,1.0,1.0 });
 
-iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf);
+iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale = { 1.0,1.0,1.0 });
 
 void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLevel::INFO);
 
@@ -179,9 +177,9 @@ void printRotationMatrix(pfcMatrix3D_ptr m);
 
 void sanitizeSTL(std::string stl);
 
-std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name);
+std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
-std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name);
+std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
 std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_child_name, iDynTree::Transform H_child);
 

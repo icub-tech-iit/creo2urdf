@@ -9,10 +9,13 @@
 #include <creo2urdf/Creo2Urdf.h>
 #include <creo2urdf/Utils.h>
 
+
+
 void Creo2Urdf::OnCommand() {
 
     pfcSession_ptr session_ptr = pfcGetProESession();
     pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
+
 
     // TODO Principal units probably to be changed from MM to M before getting the model properties
     // pfcSolid_ptr solid_ptr = pfcSolid::cast(session_ptr->GetCurrentModel());
@@ -43,6 +46,18 @@ void Creo2Urdf::OnCommand() {
         joint_info_map.clear();
         link_info_map.clear();
         exported_frame_info_map.clear();
+    }
+
+    if(config["scale"].IsDefined()) {
+        scale = config["scale"].as<std::array<double,3>>();
+    }
+
+    if (config["originXYZ"].IsDefined()) {
+        originXYZ = config["originXYZ"].as<std::array<double, 3>>();
+    }
+
+    if (config["originRPY"].IsDefined()) {
+        originRPY = config["originRPY"].as<std::array<double, 3>>();
     }
 
     readExportedFramesFromConfig();
@@ -84,7 +99,7 @@ void Creo2Urdf::OnCommand() {
             }
             link_frame_name = lf["frameName"].Scalar();
         }
-        std::tie(ret, root_H_link) = getTransformFromRootToChild(comp_path, component_handle, link_frame_name);
+        std::tie(ret, root_H_link) = getTransformFromRootToChild(comp_path, component_handle, link_frame_name, scale);
 
         if (!ret)
         {
@@ -94,7 +109,7 @@ void Creo2Urdf::OnCommand() {
         auto mass_prop = pfcSolid::cast(component_handle)->GetMassProperty();
         
         iDynTree::Link link;
-        link.setInertia(fromCreo(mass_prop, root_H_link));
+        link.setInertia(fromCreo(mass_prop, root_H_link, scale));
 
         if (!link.getInertia().isPhysicallyConsistent())
         {
@@ -153,8 +168,6 @@ void Creo2Urdf::OnCommand() {
             }
 
             iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
-            // Should be 0 the origin of the axis, the displacement is already considered in transform
-            //{ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m } });
 
             // TODO let's put the limits hardcoded, to be retrieved from Creo
             double min = 0.0;
@@ -206,6 +219,11 @@ void Creo2Urdf::OnCommand() {
     export_options.baseLink = config["rename"]["SIM_ECUB_1-1_ROOT_LINK"].Scalar();
     if (config["XMLBlobs"].IsDefined()) {
         export_options.xmlBlobs = config["XMLBlobs"].as<std::vector<std::string>>();
+        // Adding gazebo pose as xml blob at the end of the urdf.
+        std::string gazebo_pose_xml_str{""};
+        gazebo_pose_xml_str = to_string(originXYZ[0]) + " " + to_string(originXYZ[1]) + " " + to_string(originXYZ[2]) + " " + to_string(originRPY[0]) + " " + to_string(originRPY[1]) + " " + to_string(originRPY[2]);
+        gazebo_pose_xml_str = "<gazebo><pose>" + gazebo_pose_xml_str + "</pose></gazebo>";
+        export_options.xmlBlobs.push_back(gazebo_pose_xml_str);
     }
 
     exportModelToUrdf(idyn_model, export_options);
@@ -318,8 +336,8 @@ void Creo2Urdf::populateExportedFrameInfoMap(pfcModel_ptr modelhdl) {
             iDynTree::Transform csys_H_linkFrame {iDynTree::Transform::Identity()};
             iDynTree::Transform linkFrame_H_additionalFrame {iDynTree::Transform::Identity()};
 
-            std::tie(ret, csys_H_additionalFrame) = getTransformFromPart(modelhdl, csys_name);
-            std::tie(ret, csys_H_linkFrame) = getTransformFromPart(modelhdl, link_info.link_frame_name);
+            std::tie(ret, csys_H_additionalFrame) = getTransformFromPart(modelhdl, csys_name, scale);
+            std::tie(ret, csys_H_linkFrame) = getTransformFromPart(modelhdl, link_info.link_frame_name, scale);
 
             linkFrame_H_additionalFrame = csys_H_linkFrame.inverse() * csys_H_additionalFrame;
             exported_frame_info.linkFrame_H_additionalFrame = linkFrame_H_additionalFrame;
@@ -419,8 +437,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     // Lets add the mesh to the link
     iDynTree::ExternalMesh visualMesh;
     // Meshes are in millimeters, while iDynTree models are in meters
-    iDynTree::Vector3 scale; scale(0) = scale(1) = scale(2) = mm_to_m;
-    visualMesh.setScale(scale);
+    visualMesh.setScale({scale});
     // Let's assign a gray as default color
     iDynTree::Vector4 color;
     iDynTree::Material material;

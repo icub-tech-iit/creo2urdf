@@ -99,6 +99,9 @@ private:
     YAML::Node config;
     std::vector<SensorInfo> sensors;
     std::vector<FTSensorInfo> ft_sensors;
+    array<double, 3> scale{ 1.0, 1.0, 1.0 };
+    array<double, 3> originXYZ {0.0, 0.0, 0.0};
+    array<double, 3> originRPY {0.0, 0.0, 0.0};
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {
