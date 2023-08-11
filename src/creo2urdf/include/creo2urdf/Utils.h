@@ -165,8 +165,6 @@ private:
 
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data);
 
-iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const array<double, 3>& scale = { 1.0,1.0,1.0 });
-
 iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale = { 1.0,1.0,1.0 });
 
 void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLevel::INFO);

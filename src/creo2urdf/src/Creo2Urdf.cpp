@@ -63,6 +63,7 @@ void Creo2Urdf::OnCommand() {
     readExportedFramesFromConfig();
     readSensorsFromConfig();
     readFTSensorsFromConfig();
+    readAssignedInertiasFromConfig();
 
     // Let's traverse the model tree and get all links and axis properties
     for (int i = 0; i < asm_component_list->getarraysize(); i++)
@@ -109,7 +110,7 @@ void Creo2Urdf::OnCommand() {
         auto mass_prop = pfcSolid::cast(component_handle)->GetMassProperty();
         
         iDynTree::Link link;
-        link.setInertia(fromCreo(mass_prop, root_H_link, scale));
+        link.setInertia(computeSpatialInertiafromCreo(mass_prop, root_H_link, urdf_link_name));
 
         if (!link.getInertia().isPhysicallyConsistent())
         {
@@ -253,6 +254,38 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
     return true;
 }
 
+iDynTree::SpatialInertia Creo2Urdf::computeSpatialInertiafromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const std::string& link_name) {
+    auto com = mass_prop->GetGravityCenter();
+    auto inertia_tensor = mass_prop->GetCenterGravityInertiaTensor();
+    iDynTree::RotationalInertiaRaw idyn_inertia_tensor = iDynTree::RotationalInertiaRaw::Zero();
+    bool assigned_inertia_flag = assigned_inertias_map.find(link_name) != assigned_inertias_map.end();
+    for (int i_row = 0; i_row < idyn_inertia_tensor.rows(); i_row++) {
+        for (int j_col = 0; j_col < idyn_inertia_tensor.cols(); j_col++) {
+            if ((assigned_inertia_flag) && (i_row == j_col))
+            {
+                idyn_inertia_tensor.setVal(i_row, j_col, assigned_inertias_map.at(link_name)[i_row]);
+            }
+            else {
+                idyn_inertia_tensor.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col) * scale[i_row] * scale[j_col]);
+            }
+        }
+    }
+
+    iDynTree::Position com_child({ com->get(0) * scale[0] , com->get(1) * scale[1], com->get(2) * scale[2] });
+    com_child = H.inverse() * com_child;  // TODO verify
+    double mass{ 0.0 };
+    if (config["assignedMasses"][link_name].IsDefined()) {
+        mass = config["assignedMasses"][link_name].as<double>();
+    }
+    else {
+        mass = mass_prop->GetMass();
+    }
+    iDynTree::SpatialInertia sp_inertia(mass, com_child, idyn_inertia_tensor);
+    sp_inertia.fromRotationalInertiaWrtCenterOfMass(mass, com_child, idyn_inertia_tensor);
+
+    return sp_inertia;
+}
+
 void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
 
     // The revolute joints are defined by aligning along the
@@ -343,6 +376,13 @@ void Creo2Urdf::populateExportedFrameInfoMap(pfcModel_ptr modelhdl) {
             exported_frame_info.linkFrame_H_additionalFrame = linkFrame_H_additionalFrame;
 
         }
+    }
+}
+
+void Creo2Urdf::readAssignedInertiasFromConfig() {
+    for (const auto& ai : config["assignedInertias"]) {
+        std::array<double, 3> assignedInertia { ai["xx"].as<double>(), ai["yy"].as<double>(), ai["zz"].as<double>()};
+        assigned_inertias_map.insert(std::make_pair(ai["linkName"].Scalar(), assignedInertia));
     }
 }
 

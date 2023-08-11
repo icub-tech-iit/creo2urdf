@@ -76,14 +76,17 @@ struct FTSensorInfo {
     std::string frameName{""};
     std::vector<std::string> xmlBlobs;
 };
-
 class Creo2Urdf : public pfcUICommandActionListener {
 public:
     void OnCommand() override;
 
+private:
+
     bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
+    iDynTree::SpatialInertia computeSpatialInertiafromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const std::string& link_name);
     void populateJointInfoMap(pfcModel_ptr modelhdl);
     void populateExportedFrameInfoMap(pfcModel_ptr modelhdl);
+    void readAssignedInertiasFromConfig();
     void readExportedFramesFromConfig();
     void readSensorsFromConfig();
     void readFTSensorsFromConfig();
@@ -91,11 +94,11 @@ public:
     bool loadYamlConfig(const std::string& filename);
     std::string getRenameElementFromConfig(const std::string& elem_name);
 
-private:
     iDynTree::Model idyn_model;
     std::map<std::string, JointInfo> joint_info_map;
     std::map<std::string, LinkInfo> link_info_map;
     std::map<std::string, ExportedFrameInfo> exported_frame_info_map;
+    std::map<std::string, std::array<double,3>> assigned_inertias_map; // 0 -> xx, 1 -> yy, 2 -> zz
     YAML::Node config;
     std::vector<SensorInfo> sensors;
     std::vector<FTSensorInfo> ft_sensors;

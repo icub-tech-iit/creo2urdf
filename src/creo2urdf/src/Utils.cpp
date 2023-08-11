@@ -34,27 +34,6 @@ std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data
     return unit_vector;
 }
 
-iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const array<double, 3>& scale)
-{
-    auto com = mass_prop->GetGravityCenter();
-    auto inertia_tensor = mass_prop->GetCenterGravityInertiaTensor();
-    iDynTree::RotationalInertiaRaw idyn_inertia_tensor = iDynTree::RotationalInertiaRaw::Zero();
-
-    for (int i_row = 0; i_row < idyn_inertia_tensor.rows(); i_row++) {
-        for (int j_col = 0; j_col < idyn_inertia_tensor.cols(); j_col++) {
-            idyn_inertia_tensor.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col) * scale[i_row]*scale[j_col]);
-        }
-    }
-
-    iDynTree::Position com_child({ com->get(0) * scale[0] , com->get(1) * scale[1], com->get(2) * scale[2]});
-    com_child = H.inverse() * com_child;  // TODO verify
-
-    iDynTree::SpatialInertia sp_inertia(mass_prop->GetMass(), com_child, idyn_inertia_tensor);
-    sp_inertia.fromRotationalInertiaWrtCenterOfMass(mass_prop->GetMass(), com_child, idyn_inertia_tensor);
-
-    return sp_inertia;
-}
-
 iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale)
 {
     iDynTree::Transform idyn_trf;
