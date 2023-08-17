@@ -86,10 +86,12 @@ private:
     iDynTree::SpatialInertia computeSpatialInertiafromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const std::string& link_name);
     void populateJointInfoMap(pfcModel_ptr modelhdl);
     void populateExportedFrameInfoMap(pfcModel_ptr modelhdl);
+    void populateFTMap(pfcModel_ptr modelhdl);
     void readAssignedInertiasFromConfig();
     void readExportedFramesFromConfig();
     void readSensorsFromConfig();
     void readFTSensorsFromConfig();
+    void buildFTXMLBlobs();
     bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
     bool loadYamlConfig(const std::string& filename);
     std::string getRenameElementFromConfig(const std::string& elem_name);
@@ -99,6 +101,7 @@ private:
     std::map<std::string, LinkInfo> link_info_map;
     std::map<std::string, ExportedFrameInfo> exported_frame_info_map;
     std::map<std::string, std::array<double,3>> assigned_inertias_map; // 0 -> xx, 1 -> yy, 2 -> zz
+    std::map<std::string, iDynTree::Transform> forcetorque_transform_map;
     YAML::Node config;
     std::vector<SensorInfo> sensors;
     std::vector<FTSensorInfo> ft_sensors;

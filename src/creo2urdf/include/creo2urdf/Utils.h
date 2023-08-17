@@ -34,11 +34,14 @@
 #include <iDynTree/KinDynComputations.h>
 #include <iDynTree/Model/Traversal.h>
 
+#include <libxml2/libxml/parser.h>
+#include <libxml2/libxml/tree.h>
+#include <libxml/xmlwriter.h>
+
 constexpr double epsilon = 1e-12;
 constexpr double rad2deg = 180.0 / M_PI;
 constexpr double deg2rad = 1 / rad2deg;
 constexpr double gravity_z = -9.81;
-
 
 enum class c2uLogLevel
 {
