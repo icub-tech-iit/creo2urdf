@@ -214,8 +214,6 @@ void Creo2Urdf::OnCommand() {
     idyn_model_out << idyn_model.toString();
     idyn_model_out.close();
 
-    buildFTXMLBlobs();
-
     iDynTree::ModelExporterOptions export_options;
     export_options.robotExportedName = config["robotName"].Scalar();
     export_options.baseLink = config["rename"]["SIM_ECUB_1-1_ROOT_LINK"].Scalar();
@@ -227,6 +225,10 @@ void Creo2Urdf::OnCommand() {
         gazebo_pose_xml_str = "<gazebo><pose>" + gazebo_pose_xml_str + "</pose></gazebo>";
         export_options.xmlBlobs.push_back(gazebo_pose_xml_str);
     }
+
+    std::vector<std::string> ft_xml_blobs = buildFTXMLBlobs();
+
+    export_options.xmlBlobs.insert(export_options.xmlBlobs.end(), ft_xml_blobs.begin(), ft_xml_blobs.end());
 
     exportModelToUrdf(idyn_model, export_options);
 
@@ -513,10 +515,12 @@ void Creo2Urdf::readFTSensorsFromConfig()
 
 */
 
-void Creo2Urdf::buildFTXMLBlobs()
+std::vector<std::string> Creo2Urdf::buildFTXMLBlobs()
 {
     iDynTree::Traversal traversal;
     idyn_model.computeFullTreeTraversal(traversal);
+
+    std::vector<std::string> ft_xml_blobs;
 
     for (const auto& ft : ft_sensors)
     {
@@ -580,17 +584,50 @@ void Creo2Urdf::buildFTXMLBlobs()
                 xmlAddChild(node, node_xmlblob);
         }
 
-        /* used to dump to string TODO
         xmlOutputBufferPtr gazebo_doc_buffer = xmlAllocOutputBuffer(NULL);
         xmlNodeDumpOutput(gazebo_doc_buffer, doc, root_node, 0, 1, NULL);
+        ft_xml_blobs.push_back(string((char *)xmlBufContent(gazebo_doc_buffer->buffer)));
 
         xmlOutputBufferClose(gazebo_doc_buffer);
-        */
-        xmlSaveFormatFile(filename.c_str(), doc, 1);
+        
+        //xmlSaveFormatFile(filename.c_str(), doc, 1);
+
+        xmlFreeDoc(doc);
+        xmlCleanupParser();
+
+        doc = xmlNewDoc(BAD_CAST "1.0");
+        root_node = xmlNewNode(NULL, BAD_CAST "sensor");
+
+        xmlDocSetRootElement(doc, root_node);
+
+        xmlNewProp(root_node, BAD_CAST "name", BAD_CAST ft.jointName.c_str());
+        xmlNewProp(root_node, BAD_CAST "type", BAD_CAST "force_torque");
+        node = xmlNewChild(root_node, NULL, BAD_CAST "force_torque", NULL);
+        xmlNewChild(node, NULL, BAD_CAST "frame", BAD_CAST ft.frame.c_str());
+        if (ft.directionChildToParent)
+        {
+            xmlNewChild(node, NULL, BAD_CAST "measure_direction", BAD_CAST "child_to_parent");
+        }
+        else
+        {
+            //trf = trf.inverse();
+            xmlNewChild(node, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
+        }
+        node = xmlNewChild(root_node, NULL, BAD_CAST "pose", NULL);
+        xmlNewProp(node, BAD_CAST "rpy", BAD_CAST trf.getRotation().asRPY().toString().c_str());
+        xmlNewProp(node, BAD_CAST "xyz", BAD_CAST trf.getPosition().toString().c_str());
+
+        xmlOutputBufferPtr sensor_doc_buffer = xmlAllocOutputBuffer(NULL);
+        xmlNodeDumpOutput(sensor_doc_buffer, doc, root_node, 0, 1, NULL);
+        ft_xml_blobs.push_back(string((char*)xmlBufContent(sensor_doc_buffer->buffer)));
+
+        xmlOutputBufferClose(sensor_doc_buffer);
 
         xmlFreeDoc(doc);
         xmlCleanupParser();
     }
+
+    return ft_xml_blobs;
 }
 
 bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform)
