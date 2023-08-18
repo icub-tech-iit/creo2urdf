@@ -528,21 +528,18 @@ void Creo2Urdf::buildFTXMLBlobs()
         root_node = xmlNewNode(NULL, BAD_CAST "gazebo");
 
         xmlDocSetRootElement(doc, root_node);
+        
+        xmlNewProp(root_node, BAD_CAST "reference", BAD_CAST ft.jointName.c_str());
 
         node = xmlNewChild(root_node, NULL, BAD_CAST "sensor", NULL);
-        auto node_attributes = xmlNewProp(node, BAD_CAST "name", BAD_CAST ft.jointName.c_str());
-        node_attributes = xmlNewProp(node, BAD_CAST "type", BAD_CAST "force_torque");
+        xmlNewProp(node, BAD_CAST "name", BAD_CAST ft.jointName.c_str());
+        xmlNewProp(node, BAD_CAST "type", BAD_CAST "force_torque");
         
         auto node1 = xmlNewChild(node, NULL, BAD_CAST "always_on", BAD_CAST "1");
         node1 = xmlNewChild(node, NULL, BAD_CAST "update_rate", BAD_CAST "100");
         node1 = xmlNewChild(node, NULL, BAD_CAST "force_torque", NULL);
 
         auto node2 = xmlNewChild(node1, NULL, BAD_CAST "frame", BAD_CAST ft.frame.c_str());
-
-        if(ft.directionChildToParent)
-            node2 = xmlNewChild(node1, NULL, BAD_CAST "measure_direction", BAD_CAST "child_to_parent");
-        else
-            node2 = xmlNewChild(node1, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
 
         auto ft_joint_idx = idyn_model.getJointIndex(ft.jointName);
 
@@ -551,9 +548,17 @@ void Creo2Urdf::buildFTXMLBlobs()
 
         auto parent_child_H_ft = idyn_model.getJoint(ft_joint_idx)->getRestTransform(parent, child).inverse();
 
-        auto & trf = parent_child_H_ft * forcetorque_transform_map.at(ft.jointName);
+        auto& trf = parent_child_H_ft * forcetorque_transform_map.at(ft.jointName);
 
-        if (!ft.directionChildToParent) trf = trf.inverse();
+        if (ft.directionChildToParent)
+        {
+            node2 = xmlNewChild(node1, NULL, BAD_CAST "measure_direction", BAD_CAST "child_to_parent");
+        }
+        else
+        {
+            //trf = trf.inverse();
+            node2 = xmlNewChild(node1, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
+        }
 
         std::string pose_xyz_rpy = trf.getPosition().toString() + " " + trf.getRotation().asRPY().toString();
 
