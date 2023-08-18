@@ -60,7 +60,7 @@ void Creo2Urdf::OnCommand() {
     }
 
     readExportedFramesFromConfig();
-    //readSensorsFromConfig();
+    readSensorsFromConfig();
     readFTSensorsFromConfig();
     readAssignedInertiasFromConfig();
 
@@ -227,8 +227,10 @@ void Creo2Urdf::OnCommand() {
     }
 
     std::vector<std::string> ft_xml_blobs = buildFTXMLBlobs();
+    std::vector<std::string> sens_xml_blobs = buildSensorsXMLBlobs();
 
     export_options.xmlBlobs.insert(export_options.xmlBlobs.end(), ft_xml_blobs.begin(), ft_xml_blobs.end());
+    export_options.xmlBlobs.insert(export_options.xmlBlobs.end(), sens_xml_blobs.begin(), sens_xml_blobs.end());
 
     exportModelToUrdf(idyn_model, export_options);
 
@@ -458,13 +460,11 @@ void Creo2Urdf::readSensorsFromConfig()
 
         try
         {
-            printToMessageWindow("Found sensor " + s["sensorName"].Scalar());
-
             sensors.push_back({ s["sensorName"].Scalar(),
                                 s["frameName"].Scalar(),
                                 s["linkName"].Scalar(),
                                 export_frame,
-                                sensor_type_map.at(s["sensorType"].Scalar()),
+                                stringToEnum<SensorType>(sensor_type_map, s["sensorType"].Scalar()),
                                 update_rate,
                                 s["sensorBlobs"].as<std::vector<std::string>>()});
         }
@@ -488,33 +488,6 @@ void Creo2Urdf::readFTSensorsFromConfig()
     }
 }
 
-/*
-  <gazebo reference="l_foot_front_ft_sensor">
-    <sensor name="l_foot_front_ft_sensor" type="force_torque">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <force_torque>
-        <frame>sensor</frame>
-        <measure_direction>parent_to_child</measure_direction>
-      </force_torque>
-      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.0943952105869315</pose>
-      <plugin name="left_foot_front_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
-        <yarpConfigurationFile>model://ergoCub/conf/FT/gazebo_ergocub_left_foot_front_ft.ini</yarpConfigurationFile>
-    </plugin>
-    </sensor>
-  </gazebo>
-
-  <sensor name="l_foot_front_ft_sensor" type="force_torque">
-    <parent joint="l_foot_front_ft_sensor"/>
-    <force_torque>
-      <frame>sensor</frame>
-      <measure_direction>parent_to_child</measure_direction>
-    </force_torque>
-    <origin rpy="0.0 -0.0 -2.0943952105869315" xyz="0.0 0.0 0.022299999999999986"/>
-  </sensor>
-
-*/
-
 std::vector<std::string> Creo2Urdf::buildFTXMLBlobs()
 {
     iDynTree::Traversal traversal;
@@ -524,7 +497,7 @@ std::vector<std::string> Creo2Urdf::buildFTXMLBlobs()
 
     for (const auto& ft : ft_sensors)
     {
-        std::string filename = ft.jointName + ".xml";
+        //std::string filename = ft.jointName + ".xml";
 
         xmlDocPtr doc = NULL;
         xmlNodePtr root_node = NULL, node = NULL;
@@ -613,7 +586,7 @@ std::vector<std::string> Creo2Urdf::buildFTXMLBlobs()
             //trf = trf.inverse();
             xmlNewChild(node, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
         }
-        node = xmlNewChild(root_node, NULL, BAD_CAST "pose", NULL);
+        node = xmlNewChild(root_node, NULL, BAD_CAST "origin", NULL);
         xmlNewProp(node, BAD_CAST "rpy", BAD_CAST trf.getRotation().asRPY().toString().c_str());
         xmlNewProp(node, BAD_CAST "xyz", BAD_CAST trf.getPosition().toString().c_str());
 
@@ -628,6 +601,127 @@ std::vector<std::string> Creo2Urdf::buildFTXMLBlobs()
     }
 
     return ft_xml_blobs;
+}
+/*
+<gazebo reference="realsense">
+    <sensor name="realsense_head_depth" type="depth">
+      <always_on>1</always_on>
+      <update_rate>30</update_rate>
+      <pose>0.00751550026595621 0.010000000000000005 -4.911144457775407e-08 -1.5707962931078618 8.881784197001252e-16 -1.5707963267948954</pose>
+      <camera name="intel_realsense_depth_camera">
+  <pose>0 0 0 -1.57079 -1.57079 3.14159</pose>
+  <horizontal_fov>1.57079</horizontal_fov>
+  <distortion>
+    <k1>0</k1>
+    <k2>0</k2>
+    <k3>0</k3>
+    <p1>0</p1>
+    <p2>0</p2>
+    <center>319.5 239.5</center>
+  </distortion>
+  <image>
+    <width>640</width>
+    <height>480</height>
+    <format>R8G8B8</format>
+  </image>
+  <clip>
+    <near>0.175</near>
+    <far>3000</far>
+  </clip>
+</camera>
+      <visualize>false</visualize>
+      <plugin name="ergocub_yarp_gazebo_plugin_depthCamera" filename="libgazebo_yarp_depthCamera.so">
+    <yarpConfigurationFile>model://ergoCub/conf/sensors/gazebo_ergocub_rgbd_camera.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+
+  <sensor name="realsense_head_depth" type="depth">
+    <parent link="realsense"/>
+    <origin rpy="-1.5707962931078618 8.881784197001252e-16 -1.5707963267948954" xyz="0.00751550026595621 0.010000000000000005 -4.911144457775407e-08"/>
+  </sensor>
+
+*/
+std::vector<std::string> Creo2Urdf::buildSensorsXMLBlobs() 
+{
+    iDynTree::Traversal traversal;
+    idyn_model.computeFullTreeTraversal(traversal);
+
+    std::vector<std::string> xml_blobs;
+
+    for (const auto& s : sensors)
+    {
+        xmlDocPtr doc = NULL;
+        xmlNodePtr root_node = NULL, node = NULL;
+        doc = xmlNewDoc(BAD_CAST "1.0");
+        root_node = xmlNewNode(NULL, BAD_CAST "gazebo");
+
+        xmlDocSetRootElement(doc, root_node);
+
+        xmlNewProp(root_node, BAD_CAST "reference", BAD_CAST s.linkName.c_str());
+
+        node = xmlNewChild(root_node, NULL, BAD_CAST "sensor", NULL);
+        xmlNewProp(node, BAD_CAST "name", BAD_CAST s.sensorName.c_str());
+       
+        xmlNewProp(node, BAD_CAST "type", BAD_CAST sensor_type_map.at(s.type).c_str());
+
+        xmlNewChild(node, NULL, BAD_CAST "always_on", BAD_CAST "1");
+        xmlNewChild(node, NULL, BAD_CAST "update_rate", BAD_CAST to_string(s.updateRate).c_str());
+
+        iDynTree::Transform trf = exported_frame_info_map.at(s.frameName).linkFrame_H_additionalFrame;
+
+        string pose = trf.getPosition().toString() + " " + trf.getRotation().asRPY().toString();
+
+        xmlNewChild(node, NULL, BAD_CAST "pose", BAD_CAST pose.c_str());
+
+        for (auto blob : s.xmlBlobs)
+        {
+            blob.erase(std::remove_if(blob.begin(), blob.end(),
+                [](unsigned char c) {
+                    return !std::isprint(c);
+                }),
+                blob.end());
+
+            xmlNodePtr node_xmlblob = nullptr;
+
+            xmlParseInNodeContext(node, blob.c_str(), blob.size(), 0, &node_xmlblob);
+
+            if (node_xmlblob)
+                xmlAddChild(node, node_xmlblob);
+        }
+
+        xmlOutputBufferPtr doc_buffer = xmlAllocOutputBuffer(NULL);
+        xmlNodeDumpOutput(doc_buffer, doc, root_node, 0, 1, NULL);
+        xml_blobs.push_back(string((char*)xmlBufContent(doc_buffer->buffer)));
+
+        xmlOutputBufferClose(doc_buffer);
+
+        xmlFreeDoc(doc);
+        xmlCleanupParser();
+
+        doc = xmlNewDoc(BAD_CAST "1.0");
+        root_node = xmlNewNode(NULL, BAD_CAST "sensor");
+        xmlDocSetRootElement(doc, root_node);
+
+        xmlNewProp(root_node, BAD_CAST "name", BAD_CAST s.sensorName.c_str());
+        xmlNewProp(root_node, BAD_CAST "type", BAD_CAST sensor_type_map.at(s.type).c_str());
+        node = xmlNewChild(root_node, NULL,  BAD_CAST "parent", NULL);
+        xmlNewProp(node, BAD_CAST "link", BAD_CAST s.linkName.c_str());
+        node = xmlNewChild(root_node, NULL, BAD_CAST "origin", NULL);
+        xmlNewProp(node, BAD_CAST "rpy", BAD_CAST trf.getRotation().asRPY().toString().c_str());
+        xmlNewProp(node, BAD_CAST "xyz", BAD_CAST trf.getPosition().toString().c_str());
+
+        doc_buffer = xmlAllocOutputBuffer(NULL);
+        xmlNodeDumpOutput(doc_buffer, doc, root_node, 0, 1, NULL);
+        xml_blobs.push_back(string((char*)xmlBufContent(doc_buffer->buffer)));
+
+        xmlOutputBufferClose(doc_buffer);
+
+        xmlFreeDoc(doc);
+        xmlCleanupParser();
+    }
+
+    return xml_blobs;
 }
 
 bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform)

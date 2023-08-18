@@ -166,6 +166,16 @@ private:
     std::ofstream idyn_out;
 };
 
+
+template <class T>
+T stringToEnum(const std::map<T, std::string> & map, const std::string & s)
+{
+    for (auto& t : map)
+        if (t.second == s) return t.first;
+
+    return static_cast<T>(-1);
+}
+
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data);
 
 iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale = { 1.0,1.0,1.0 });

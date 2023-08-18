@@ -22,20 +22,20 @@ enum class JointType {
 };
 
 enum class SensorType {
+    None = -1,
     Accelerometer,
     Gyroscope,
     Camera,
     Depth,
     Ray,
-    None
 };
 
-static const std::map<std::string, SensorType> sensor_type_map = {
-    {"accelerometer", SensorType::Accelerometer},
-    {"gyroscope", SensorType::Gyroscope},
-    {"camera", SensorType::Camera},
-    {"depth", SensorType::Depth},
-    {"ray", SensorType::Ray}
+static const std::map<SensorType, std::string> sensor_type_map = {
+    {SensorType::Accelerometer, "accelerometer"},
+    {SensorType::Gyroscope, "gyroscope"},
+    {SensorType::Camera, "camera"},
+    {SensorType::Depth, "depth"},
+    {SensorType::Ray, "ray"}
 };                       
 
 struct JointInfo {
@@ -91,7 +91,8 @@ private:
     void readExportedFramesFromConfig();
     void readSensorsFromConfig();
     void readFTSensorsFromConfig();
-    void buildFTXMLBlobs();
+    std::vector<std::string> buildFTXMLBlobs();
+    std::vector<std::string> buildSensorsXMLBlobs();
     bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
     bool loadYamlConfig(const std::string& filename);
     std::string getRenameElementFromConfig(const std::string& elem_name);
