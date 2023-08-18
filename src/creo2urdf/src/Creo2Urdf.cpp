@@ -396,7 +396,6 @@ void Creo2Urdf::populateFTMap(pfcModel_ptr modelhdl)
 
             if (csys_name == f.frameName)
             {
-                printToMessageWindow(link_name);
                 auto& link_info = link_info_map.at(link_name);
                 auto root_H_ft = getTransformFromPart(modelhdl, csys_name, scale).second;
                 forcetorque_transform_map.insert(std::make_pair(f.jointName, link_info.root_H_link.inverse() * root_H_ft));
@@ -517,11 +516,7 @@ void Creo2Urdf::readFTSensorsFromConfig()
 void Creo2Urdf::buildFTXMLBlobs()
 {
     iDynTree::Traversal traversal;
-
     idyn_model.computeFullTreeTraversal(traversal);
-
-    iDynTree::KinDynComputations computer;
-
 
     for (const auto& ft : ft_sensors)
     {
@@ -549,13 +544,44 @@ void Creo2Urdf::buildFTXMLBlobs()
         else
             node2 = xmlNewChild(node1, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
 
-        auto & trf = forcetorque_transform_map.at(ft.jointName);
+        auto ft_joint_idx = idyn_model.getJointIndex(ft.jointName);
+
+        auto parent = traversal.getParentLinkIndexFromJointIndex(idyn_model, ft_joint_idx);
+        auto child = traversal.getChildLinkIndexFromJointIndex(idyn_model, ft_joint_idx);
+
+        auto parent_child_H_ft = idyn_model.getJoint(ft_joint_idx)->getRestTransform(parent, child).inverse();
+
+        auto & trf = parent_child_H_ft * forcetorque_transform_map.at(ft.jointName);
+
+        if (!ft.directionChildToParent) trf = trf.inverse();
 
         std::string pose_xyz_rpy = trf.getPosition().toString() + " " + trf.getRotation().asRPY().toString();
 
         node1 = xmlNewChild(node, NULL, BAD_CAST "pose", BAD_CAST pose_xyz_rpy.c_str());
 
-        xmlSaveFormatFileEnc(filename.c_str(), doc, "UTF-8", 1);
+        for (auto blob : ft.xmlBlobs)
+        {
+            blob.erase(std::remove_if(blob.begin(), blob.end(),
+                [](unsigned char c) {
+                    return !std::isprint(c);
+                }),
+                blob.end());
+
+            xmlNodePtr node_xmlblob = nullptr;
+
+            xmlParseInNodeContext(node, blob.c_str(), blob.size(), 0, &node_xmlblob);
+
+            if (node_xmlblob)
+                xmlAddChild(node, node_xmlblob);
+        }
+
+        /* used to dump to string TODO
+        xmlOutputBufferPtr gazebo_doc_buffer = xmlAllocOutputBuffer(NULL);
+        xmlNodeDumpOutput(gazebo_doc_buffer, doc, root_node, 0, 1, NULL);
+
+        xmlOutputBufferClose(gazebo_doc_buffer);
+        */
+        xmlSaveFormatFile(filename.c_str(), doc, 1);
 
         xmlFreeDoc(doc);
         xmlCleanupParser();
