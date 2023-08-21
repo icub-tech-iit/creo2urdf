@@ -84,7 +84,6 @@ void Creo2Urdf::OnCommand() {
         auto component_handle = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
         
         auto link_name = string(component_handle->GetFullName());
-        //printToMessageWindow(link_name);
 
         iDynTree::Transform root_H_link = iDynTree::Transform::Identity();
         
@@ -172,7 +171,7 @@ void Creo2Urdf::OnCommand() {
 
             // TODO let's put the limits hardcoded, to be retrieved from Creo
             double min = 0.0;
-            double max = M_PI;
+            double max = 2*M_PI;
             joint.enablePosLimits(true);
             joint.setPosLimits(0, min, max);
             // TODO we have to retrieve the rest transform from creo
@@ -216,7 +215,12 @@ void Creo2Urdf::OnCommand() {
 
     iDynTree::ModelExporterOptions export_options;
     export_options.robotExportedName = config["robotName"].Scalar();
-    export_options.baseLink = config["rename"]["SIM_ECUB_1-1_ROOT_LINK"].Scalar();
+
+    if (config["root"].IsDefined())
+        export_options.baseLink = config["root"].Scalar();
+    else
+        export_options.baseLink = config["rename"]["SIM_ECUB_1-1_ROOT_LINK"].Scalar();
+    
     if (config["XMLBlobs"].IsDefined()) {
         export_options.xmlBlobs = config["XMLBlobs"].as<std::vector<std::string>>();
         // Adding gazebo pose as xml blob at the end of the urdf.
@@ -226,6 +230,7 @@ void Creo2Urdf::OnCommand() {
         export_options.xmlBlobs.push_back(gazebo_pose_xml_str);
     }
 
+    // Add FTs and other sensors as XML blobs for now
     std::vector<std::string> ft_xml_blobs = buildFTXMLBlobs();
     std::vector<std::string> sens_xml_blobs = buildSensorsXMLBlobs();
 
@@ -728,13 +733,29 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
 {
     //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
 
+    std::string file_extension = ".stl";
     std::string link_child_name = component_handle->GetFullName();
-    std::string stl_file_name = link_child_name + ".stl";
-    std::string renamed_link_child_name = config["rename"][link_child_name].Scalar();
+    std::string renamed_link_child_name = link_child_name;
+ 
+    if (config["rename"][link_child_name].IsDefined())
+    {
+        renamed_link_child_name = config["rename"][link_child_name].Scalar();
+    }
+
+    if (config["stringToRemoveFromMeshFileName"].IsDefined())
+    {
+        link_child_name.erase(link_child_name.find(config["stringToRemoveFromMeshFileName"].Scalar()), 
+            config["stringToRemoveFromMeshFileName"].Scalar().length());
+    }
 
     // Make all alphabetic characters lowercase
-    std::transform(stl_file_name.begin(), stl_file_name.end(), stl_file_name.begin(),
-        [](unsigned char c) { return std::tolower(c); });
+    if (config["forcelowercase"].as<bool>())
+    {
+        std::transform(link_child_name.begin(), link_child_name.end(), link_child_name.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+    }
+
+    std::string stl_file_name = link_child_name + file_extension;
 
     component_handle->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(stl_transform.c_str())));
 
@@ -769,7 +790,14 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     // visualMesh.setLink_H_geometry(H_parent_to_child);
 
     // Assign name
-    visualMesh.setFilename(stl_file_name);
+    string file_format = config["filenameformatchangeext"].Scalar();
+    
+    // We assume there is only one of occurrence to replace
+    file_format.replace(file_format.find("%s"), file_format.length(), link_child_name);
+    file_format += file_extension;
+
+    visualMesh.setFilename(file_format);
+
     // TODO Right now let's consider visual and collision with the same mesh
     idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
     idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
