@@ -25,6 +25,13 @@
 
 #include <wfcGeometry.h>
 #include <wfcModelItem.h>
+#include <wfcFeature.h>
+#include <wfcModelItem.h>
+#include <wfcModel.h>
+#include <wfcGlobal.h>
+#include <wfcElemIds.h>
+
+#include <ProAsmcomp.h>
 
 #include <iDynTree/Model/Model.h>
 #include <iDynTree/ModelIO/ModelExporter.h>

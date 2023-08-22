@@ -46,6 +46,7 @@ target_sources(creo2urdf
 
 target_include_directories(creo2urdf PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+                                            ${RAPIDCSV_INCLUDE_DIRS}
                                             ${CREO9_INSTALL_PATH}/protoolkit/includes
                                             ${CREO9_INSTALL_PATH}/otk/otk_cpp/include/
                                             ${CREO9_INSTALL_PATH}/protoolkit/protk_appls/includes)

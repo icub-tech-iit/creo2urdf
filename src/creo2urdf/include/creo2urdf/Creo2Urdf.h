@@ -13,6 +13,8 @@
 #include <creo2urdf/Utils.h>
 #include <yaml-cpp/yaml.h>
 
+#include <rapidcsv.h>
+
 enum class JointType {
     Revolute,
     Fixed,
@@ -104,6 +106,7 @@ private:
     bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
     bool loadYamlConfig(const std::string& filename);
     std::string getRenameElementFromConfig(const std::string& elem_name);
+    std::pair<double, double> getLimitsFromElemTree(pfcFeature_ptr feat);
 
     iDynTree::Model idyn_model;
     std::map<std::string, JointInfo> joint_info_map;

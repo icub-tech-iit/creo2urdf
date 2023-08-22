@@ -16,6 +16,9 @@ find_package(Eigen3 REQUIRED)
 find_package(iDynTree REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(LibXml2 REQUIRED)
+
+find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Control where libraries and executables are placed during the build.

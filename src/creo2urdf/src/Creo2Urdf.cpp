@@ -28,6 +28,8 @@ void Creo2Urdf::OnCommand() {
         return;
     }
 
+    rapidcsv::Document joints_csv_table("ERGOCUB_joint_all_parameters.csv", rapidcsv::LabelParams(0, 0));
+
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
 
@@ -79,6 +81,10 @@ void Creo2Urdf::OnCommand() {
 
         xintsequence_ptr seq = xintsequence::create();
         seq->append(feat->GetId());
+
+        auto jlims = getLimitsFromElemTree(feat);
+
+        //printToMessageWindow(to_string(jlims.first) + " " + to_string(jlims.second));
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
@@ -171,8 +177,9 @@ void Creo2Urdf::OnCommand() {
             iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
 
             // TODO let's put the limits hardcoded, to be retrieved from Creo
-            double min = 0.0;
-            double max = 2*M_PI;
+            double min = joints_csv_table.GetCell<double>("lower_limit", joint_name) * deg2rad;
+            double max = joints_csv_table.GetCell<double>("upper_limit", joint_name) * deg2rad;
+
             joint.enablePosLimits(true);
             joint.setPosLimits(0, min, max);
             // TODO we have to retrieve the rest transform from creo
@@ -844,6 +851,46 @@ std::string Creo2Urdf::getRenameElementFromConfig(const std::string& elem_name)
         printToMessageWindow("Element " + elem_name + " is not present in the configuration file!", c2uLogLevel::WARN);
         return elem_name;
     }
+}
+
+std::pair<double, double> Creo2Urdf::getLimitsFromElemTree(pfcFeature_ptr feat)
+{
+    wfcWFeature_ptr wfeat = wfcWFeature::cast(feat);
+    wfcElementTree_ptr tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);
+
+    auto elements = tree->ListTreeElements();
+
+    bool min_found = false;
+    bool max_found = false;
+    double min = 0.0;
+    double max = 0.0;
+
+    for (xint i = 0; i < elements->getarraysize(); i++)
+    {
+        auto element = elements->get(i);
+        if (element->GetId() == wfcPRO_E_COMPONENT_SET_TYPE)
+        {
+            if (element->GetValue()->GetIntValue() != PRO_ASM_SET_TYPE_PIN) 
+            { 
+                //printToMessageWindow("Found constraint different from pin, skipping");
+                break;
+            }
+        }
+        else if (element->GetId() == wfcPRO_E_COMPONENT_JAS_MIN_LIMIT_VAL)
+        {
+            min_found = true;
+            min = element->GetValue()->GetDoubleValue();
+        }
+        else if (element->GetId() == wfcPRO_E_COMPONENT_JAS_MAX_LIMIT_VAL)
+        {
+            max_found = true;
+            max = element->GetValue()->GetDoubleValue();
+        }
+
+        if (min_found && max_found) break;
+    }
+
+    return std::make_pair(min, max);
 }
 
 pfcCommandAccess Creo2UrdfAccess::OnCommandAccess(xbool AllowErrorMessages)
