@@ -45,6 +45,7 @@ void Creo2Urdf::OnCommand() {
         link_info_map.clear();
         exported_frame_info_map.clear();
         ft_sensors.clear();
+        sensors.clear();
     }
 
     if(config["scale"].IsDefined()) {
