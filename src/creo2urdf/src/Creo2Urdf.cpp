@@ -232,6 +232,7 @@ void Creo2Urdf::OnCommand() {
     }
 
     // Add FTs and other sensors as XML blobs for now
+
     std::vector<std::string> ft_xml_blobs = buildFTXMLBlobs();
     std::vector<std::string> sens_xml_blobs = buildSensorsXMLBlobs();
 
@@ -581,6 +582,9 @@ std::vector<std::string> Creo2Urdf::buildFTXMLBlobs()
 
         xmlNewProp(root_node, BAD_CAST "name", BAD_CAST ft.jointName.c_str());
         xmlNewProp(root_node, BAD_CAST "type", BAD_CAST "force_torque");
+        node = xmlNewChild(root_node, NULL, BAD_CAST "parent", NULL);
+        xmlNewProp(node, BAD_CAST "joint", BAD_CAST ft.jointName.c_str());
+        
         node = xmlNewChild(root_node, NULL, BAD_CAST "force_torque", NULL);
         xmlNewChild(node, NULL, BAD_CAST "frame", BAD_CAST ft.frame.c_str());
         if (ft.directionChildToParent)
@@ -669,7 +673,7 @@ std::vector<std::string> Creo2Urdf::buildSensorsXMLBlobs()
         node = xmlNewChild(root_node, NULL, BAD_CAST "sensor", NULL);
         xmlNewProp(node, BAD_CAST "name", BAD_CAST s.sensorName.c_str());
        
-        xmlNewProp(node, BAD_CAST "type", BAD_CAST sensor_type_map.at(s.type).c_str());
+        xmlNewProp(node, BAD_CAST "type", BAD_CAST gazebo_sensor_type_map.at(s.type).c_str());
 
         xmlNewChild(node, NULL, BAD_CAST "always_on", BAD_CAST "1");
         xmlNewChild(node, NULL, BAD_CAST "update_rate", BAD_CAST to_string(s.updateRate).c_str());

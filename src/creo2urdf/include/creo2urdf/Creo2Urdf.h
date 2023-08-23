@@ -38,6 +38,14 @@ static const std::map<SensorType, std::string> sensor_type_map = {
     {SensorType::Ray, "ray"}
 };                       
 
+static const std::map<SensorType, std::string> gazebo_sensor_type_map = {
+    {SensorType::Accelerometer, "imu"},
+    {SensorType::Gyroscope, "gyroscope"},
+    {SensorType::Camera, "camera"},
+    {SensorType::Depth, "depth"},
+    {SensorType::Ray, "ray"}
+};
+
 struct JointInfo {
     std::string name{""};
     std::string parent_link_name{""};
