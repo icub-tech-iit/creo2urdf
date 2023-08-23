@@ -46,8 +46,6 @@ void Creo2Urdf::OnCommand() {
         joint_info_map.clear();
         link_info_map.clear();
         exported_frame_info_map.clear();
-        ft_sensors.clear();
-        sensors.clear();
     }
 
     if(config["scale"].IsDefined()) {
@@ -63,16 +61,19 @@ void Creo2Urdf::OnCommand() {
     }
 
     readExportedFramesFromConfig();
-    readSensorsFromConfig();
-    readFTSensorsFromConfig();
     readAssignedInertiasFromConfig();
+
+    Sensorizer sensorizer;
+
+    sensorizer.readFTSensorsFromConfig(config);
+    sensorizer.readSensorsFromConfig(config);
+
+    std::map<std::string, iDynTree::Transform> ft_transform_map;
 
     // Let's traverse the model tree and get all links and axis properties
     for (int i = 0; i < asm_component_list->getarraysize(); i++)
     {      
         auto feat = pfcFeature::cast(asm_component_list->get(i));
-        // auto feat_id = feat->GetId();
-
 
         if (feat->GetFeatType() != pfcFeatureType::pfcFEATTYPE_COMPONENT)
         {
@@ -81,10 +82,6 @@ void Creo2Urdf::OnCommand() {
 
         xintsequence_ptr seq = xintsequence::create();
         seq->append(feat->GetId());
-
-        auto jlims = getLimitsFromElemTree(feat);
-
-        //printToMessageWindow(to_string(jlims.first) + " " + to_string(jlims.second));
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
@@ -126,7 +123,10 @@ void Creo2Urdf::OnCommand() {
         link_info_map.insert(std::make_pair(link_name, l_info));
         populateJointInfoMap(component_handle);
         populateExportedFrameInfoMap(component_handle);
-        populateFTMap(component_handle);
+        
+        sensorizer.assignTransformToFTSensor(component_handle, root_H_link, scale);
+
+        sensorizer.assignTransformToSensors(exported_frame_info_map);
 
         idyn_model.addLink(urdf_link_name, link);
         addMeshAndExport(component_handle, link_frame_name);
@@ -135,7 +135,7 @@ void Creo2Urdf::OnCommand() {
     // Now we have to add joints to the iDynTree model
 
     //printToMessageWindow("Axis info map has size " + to_string(joint_info_map.size()));
-    for (auto joint_info : joint_info_map) {
+    for (auto & joint_info : joint_info_map) {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
         auto axis_name = joint_info.second.name;
@@ -170,13 +170,12 @@ void Creo2Urdf::OnCommand() {
 
             if (config["reverseRotationAxis"].Scalar().find(joint_name) != std::string::npos)
             {
-               // printToMessageWindow("Reversing axis of " + joint_name);
                 axis = axis.reverse();
             }
 
             iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
 
-            // TODO let's put the limits hardcoded, to be retrieved from Creo
+            // Read limits from CSV data, until it is possible to do so from Creo directly
             double min = joints_csv_table.GetCell<double>("lower_limit", joint_name) * deg2rad;
             double max = joints_csv_table.GetCell<double>("upper_limit", joint_name) * deg2rad;
 
@@ -203,7 +202,7 @@ void Creo2Urdf::OnCommand() {
     }
 
     // Let's add all the exported frames
-    for (auto exported_frame_info : exported_frame_info_map) {
+    for (auto & exported_frame_info : exported_frame_info_map) {
         std::string reference_link = exported_frame_info.second.frameReferenceLink;
         if (idyn_model.getLinkIndex(reference_link) == iDynTree::LINK_INVALID_INDEX) {
             // TODO FATAL?!
@@ -240,8 +239,8 @@ void Creo2Urdf::OnCommand() {
 
     // Add FTs and other sensors as XML blobs for now
 
-    std::vector<std::string> ft_xml_blobs = buildFTXMLBlobs();
-    std::vector<std::string> sens_xml_blobs = buildSensorsXMLBlobs();
+    std::vector<std::string> ft_xml_blobs = sensorizer.buildFTXMLBlobs();
+    std::vector<std::string> sens_xml_blobs = sensorizer.buildSensorsXMLBlobs();
 
     export_options.xmlBlobs.insert(export_options.xmlBlobs.end(), ft_xml_blobs.begin(), ft_xml_blobs.end());
     export_options.xmlBlobs.insert(export_options.xmlBlobs.end(), sens_xml_blobs.begin(), sens_xml_blobs.end());
@@ -398,31 +397,6 @@ void Creo2Urdf::populateExportedFrameInfoMap(pfcModel_ptr modelhdl) {
     }
 }
 
-void Creo2Urdf::populateFTMap(pfcModel_ptr modelhdl)
-{
-    // The revolute joints are defined by aligning along the
-    // rotational axis
-    auto link_name = string(modelhdl->GetFullName());
-    auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-
-    for (auto& f : ft_sensors)
-    {
-        // Now let's handle csys, they can form fixed links (FT sensors), or define exported frames
-        for (xint i = 0; i < csys_list->getarraysize(); i++)
-        {
-            auto csys_name = string(csys_list->get(i)->GetName());
-
-            if (csys_name == f.frameName)
-            {
-                auto& link_info = link_info_map.at(link_name);
-                auto root_H_ft = getTransformFromPart(modelhdl, csys_name, scale).second;
-                forcetorque_transform_map.insert(std::make_pair(f.jointName, link_info.root_H_link.inverse() * root_H_ft));
-            }
-        }
-
-    }
-}
-
 void Creo2Urdf::readAssignedInertiasFromConfig() {
     for (const auto& ai : config["assignedInertias"]) {
         std::array<double, 3> assignedInertia { ai["xx"].as<double>(), ai["yy"].as<double>(), ai["zz"].as<double>()};
@@ -450,301 +424,8 @@ void Creo2Urdf::readExportedFramesFromConfig() {
     }
 }
 
-void Creo2Urdf::readSensorsFromConfig()
-{
-    if (!config["sensors"].IsDefined())
-        return;
-
-    for (const auto& s : config["sensors"]) {
-
-        bool export_frame = false;
-
-        // This is the only key that is not uniformly defined
-        // in the config of sensors
-        if (s["exportFrameInURDF"].IsDefined())
-        {
-            export_frame = s["exportFrameInURDF"].as<bool>();
-        }
-
-        double update_rate = 100;
-        if (s["updateRate"].IsDefined())
-        {
-            update_rate = s["updateRate"].as<double>();
-        }
-
-        try
-        {
-            sensors.push_back({ s["sensorName"].Scalar(),
-                                s["frameName"].Scalar(),
-                                s["linkName"].Scalar(),
-                                export_frame,
-                                stringToEnum<SensorType>(sensor_type_map, s["sensorType"].Scalar()),
-                                update_rate,
-                                s["sensorBlobs"].as<std::vector<std::string>>()});
-        }
-        catch (YAML::Exception & e)
-        {
-            printToMessageWindow(e.msg, c2uLogLevel::WARN);
-        }
-
-    }
-}
-
-void Creo2Urdf::readFTSensorsFromConfig()
-{
-    for (const auto& s : config["forceTorqueSensors"]) {
-
-        ft_sensors.push_back({ s["jointName"].Scalar(),
-                               s["directionChildToParent"].as<bool>(),
-                               s["frame"].Scalar(),
-                               s["frameName"].Scalar(),
-                               s["sensorBlobs"].as<std::vector<std::string>>() });
-    }
-}
-
-std::vector<std::string> Creo2Urdf::buildFTXMLBlobs()
-{
-    iDynTree::Traversal traversal;
-    idyn_model.computeFullTreeTraversal(traversal);
-
-    std::vector<std::string> ft_xml_blobs;
-
-    for (const auto& ft : ft_sensors)
-    {
-        //std::string filename = ft.jointName + ".xml";
-
-        xmlDocPtr doc = NULL;
-        xmlNodePtr root_node = NULL, node = NULL;
-        doc = xmlNewDoc(BAD_CAST "1.0");
-        root_node = xmlNewNode(NULL, BAD_CAST "gazebo");
-
-        xmlDocSetRootElement(doc, root_node);
-        
-        xmlNewProp(root_node, BAD_CAST "reference", BAD_CAST ft.jointName.c_str());
-
-        node = xmlNewChild(root_node, NULL, BAD_CAST "sensor", NULL);
-        xmlNewProp(node, BAD_CAST "name", BAD_CAST ft.jointName.c_str());
-        xmlNewProp(node, BAD_CAST "type", BAD_CAST "force_torque");
-        
-        auto node1 = xmlNewChild(node, NULL, BAD_CAST "always_on", BAD_CAST "1");
-        node1 = xmlNewChild(node, NULL, BAD_CAST "update_rate", BAD_CAST "100");
-        node1 = xmlNewChild(node, NULL, BAD_CAST "force_torque", NULL);
-
-        auto node2 = xmlNewChild(node1, NULL, BAD_CAST "frame", BAD_CAST ft.frame.c_str());
-
-        auto ft_joint_idx = idyn_model.getJointIndex(ft.jointName);
-
-        auto parent = traversal.getParentLinkIndexFromJointIndex(idyn_model, ft_joint_idx);
-        auto child = traversal.getChildLinkIndexFromJointIndex(idyn_model, ft_joint_idx);
-
-        auto parent_child_H_ft = idyn_model.getJoint(ft_joint_idx)->getRestTransform(parent, child).inverse();
-
-        auto& trf = parent_child_H_ft * forcetorque_transform_map.at(ft.jointName);
-
-        if (ft.directionChildToParent)
-        {
-            node2 = xmlNewChild(node1, NULL, BAD_CAST "measure_direction", BAD_CAST "child_to_parent");
-        }
-        else
-        {
-            //trf = trf.inverse();
-            node2 = xmlNewChild(node1, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
-        }
-
-        std::string pose_xyz_rpy = trf.getPosition().toString() + " " + trf.getRotation().asRPY().toString();
-
-        node1 = xmlNewChild(node, NULL, BAD_CAST "pose", BAD_CAST pose_xyz_rpy.c_str());
-
-        for (auto blob : ft.xmlBlobs)
-        {
-            blob.erase(std::remove_if(blob.begin(), blob.end(),
-                [](unsigned char c) {
-                    return !std::isprint(c);
-                }),
-                blob.end());
-
-            xmlNodePtr node_xmlblob = nullptr;
-
-            xmlParseInNodeContext(node, blob.c_str(), blob.size(), 0, &node_xmlblob);
-
-            if (node_xmlblob)
-                xmlAddChild(node, node_xmlblob);
-        }
-
-        xmlOutputBufferPtr gazebo_doc_buffer = xmlAllocOutputBuffer(NULL);
-        xmlNodeDumpOutput(gazebo_doc_buffer, doc, root_node, 0, 1, NULL);
-        ft_xml_blobs.push_back(string((char *)xmlBufContent(gazebo_doc_buffer->buffer)));
-
-        xmlOutputBufferClose(gazebo_doc_buffer);
-        
-        //xmlSaveFormatFile(filename.c_str(), doc, 1);
-
-        xmlFreeDoc(doc);
-        xmlCleanupParser();
-
-        doc = xmlNewDoc(BAD_CAST "1.0");
-        root_node = xmlNewNode(NULL, BAD_CAST "sensor");
-
-        xmlDocSetRootElement(doc, root_node);
-
-        xmlNewProp(root_node, BAD_CAST "name", BAD_CAST ft.jointName.c_str());
-        xmlNewProp(root_node, BAD_CAST "type", BAD_CAST "force_torque");
-        node = xmlNewChild(root_node, NULL, BAD_CAST "parent", NULL);
-        xmlNewProp(node, BAD_CAST "joint", BAD_CAST ft.jointName.c_str());
-        
-        node = xmlNewChild(root_node, NULL, BAD_CAST "force_torque", NULL);
-        xmlNewChild(node, NULL, BAD_CAST "frame", BAD_CAST ft.frame.c_str());
-        if (ft.directionChildToParent)
-        {
-            xmlNewChild(node, NULL, BAD_CAST "measure_direction", BAD_CAST "child_to_parent");
-        }
-        else
-        {
-            //trf = trf.inverse();
-            xmlNewChild(node, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
-        }
-        node = xmlNewChild(root_node, NULL, BAD_CAST "origin", NULL);
-        xmlNewProp(node, BAD_CAST "rpy", BAD_CAST trf.getRotation().asRPY().toString().c_str());
-        xmlNewProp(node, BAD_CAST "xyz", BAD_CAST trf.getPosition().toString().c_str());
-
-        xmlOutputBufferPtr sensor_doc_buffer = xmlAllocOutputBuffer(NULL);
-        xmlNodeDumpOutput(sensor_doc_buffer, doc, root_node, 0, 1, NULL);
-        ft_xml_blobs.push_back(string((char*)xmlBufContent(sensor_doc_buffer->buffer)));
-
-        xmlOutputBufferClose(sensor_doc_buffer);
-
-        xmlFreeDoc(doc);
-        xmlCleanupParser();
-    }
-
-    return ft_xml_blobs;
-}
-/*
-<gazebo reference="realsense">
-    <sensor name="realsense_head_depth" type="depth">
-      <always_on>1</always_on>
-      <update_rate>30</update_rate>
-      <pose>0.00751550026595621 0.010000000000000005 -4.911144457775407e-08 -1.5707962931078618 8.881784197001252e-16 -1.5707963267948954</pose>
-      <camera name="intel_realsense_depth_camera">
-  <pose>0 0 0 -1.57079 -1.57079 3.14159</pose>
-  <horizontal_fov>1.57079</horizontal_fov>
-  <distortion>
-    <k1>0</k1>
-    <k2>0</k2>
-    <k3>0</k3>
-    <p1>0</p1>
-    <p2>0</p2>
-    <center>319.5 239.5</center>
-  </distortion>
-  <image>
-    <width>640</width>
-    <height>480</height>
-    <format>R8G8B8</format>
-  </image>
-  <clip>
-    <near>0.175</near>
-    <far>3000</far>
-  </clip>
-</camera>
-      <visualize>false</visualize>
-      <plugin name="ergocub_yarp_gazebo_plugin_depthCamera" filename="libgazebo_yarp_depthCamera.so">
-    <yarpConfigurationFile>model://ergoCub/conf/sensors/gazebo_ergocub_rgbd_camera.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
-
-  <sensor name="realsense_head_depth" type="depth">
-    <parent link="realsense"/>
-    <origin rpy="-1.5707962931078618 8.881784197001252e-16 -1.5707963267948954" xyz="0.00751550026595621 0.010000000000000005 -4.911144457775407e-08"/>
-  </sensor>
-
-*/
-std::vector<std::string> Creo2Urdf::buildSensorsXMLBlobs() 
-{
-    iDynTree::Traversal traversal;
-    idyn_model.computeFullTreeTraversal(traversal);
-
-    std::vector<std::string> xml_blobs;
-
-    for (const auto& s : sensors)
-    {
-        xmlDocPtr doc = NULL;
-        xmlNodePtr root_node = NULL, node = NULL;
-        doc = xmlNewDoc(BAD_CAST "1.0");
-        root_node = xmlNewNode(NULL, BAD_CAST "gazebo");
-
-        xmlDocSetRootElement(doc, root_node);
-
-        xmlNewProp(root_node, BAD_CAST "reference", BAD_CAST s.linkName.c_str());
-
-        node = xmlNewChild(root_node, NULL, BAD_CAST "sensor", NULL);
-        xmlNewProp(node, BAD_CAST "name", BAD_CAST s.sensorName.c_str());
-       
-        xmlNewProp(node, BAD_CAST "type", BAD_CAST gazebo_sensor_type_map.at(s.type).c_str());
-
-        xmlNewChild(node, NULL, BAD_CAST "always_on", BAD_CAST "1");
-        xmlNewChild(node, NULL, BAD_CAST "update_rate", BAD_CAST to_string(s.updateRate).c_str());
-
-        iDynTree::Transform trf = exported_frame_info_map.at(s.frameName).linkFrame_H_additionalFrame;
-
-        string pose = trf.getPosition().toString() + " " + trf.getRotation().asRPY().toString();
-
-        xmlNewChild(node, NULL, BAD_CAST "pose", BAD_CAST pose.c_str());
-
-        for (auto blob : s.xmlBlobs)
-        {
-            blob.erase(std::remove_if(blob.begin(), blob.end(),
-                [](unsigned char c) {
-                    return !std::isprint(c);
-                }),
-                blob.end());
-
-            xmlNodePtr node_xmlblob = nullptr;
-
-            xmlParseInNodeContext(node, blob.c_str(), blob.size(), 0, &node_xmlblob);
-
-            if (node_xmlblob)
-                xmlAddChild(node, node_xmlblob);
-        }
-
-        xmlOutputBufferPtr doc_buffer = xmlAllocOutputBuffer(NULL);
-        xmlNodeDumpOutput(doc_buffer, doc, root_node, 0, 1, NULL);
-        xml_blobs.push_back(string((char*)xmlBufContent(doc_buffer->buffer)));
-
-        xmlOutputBufferClose(doc_buffer);
-
-        xmlFreeDoc(doc);
-        xmlCleanupParser();
-
-        doc = xmlNewDoc(BAD_CAST "1.0");
-        root_node = xmlNewNode(NULL, BAD_CAST "sensor");
-        xmlDocSetRootElement(doc, root_node);
-
-        xmlNewProp(root_node, BAD_CAST "name", BAD_CAST s.sensorName.c_str());
-        xmlNewProp(root_node, BAD_CAST "type", BAD_CAST sensor_type_map.at(s.type).c_str());
-        node = xmlNewChild(root_node, NULL,  BAD_CAST "parent", NULL);
-        xmlNewProp(node, BAD_CAST "link", BAD_CAST s.linkName.c_str());
-        node = xmlNewChild(root_node, NULL, BAD_CAST "origin", NULL);
-        xmlNewProp(node, BAD_CAST "rpy", BAD_CAST trf.getRotation().asRPY().toString().c_str());
-        xmlNewProp(node, BAD_CAST "xyz", BAD_CAST trf.getPosition().toString().c_str());
-
-        doc_buffer = xmlAllocOutputBuffer(NULL);
-        xmlNodeDumpOutput(doc_buffer, doc, root_node, 0, 1, NULL);
-        xml_blobs.push_back(string((char*)xmlBufContent(doc_buffer->buffer)));
-
-        xmlOutputBufferClose(doc_buffer);
-
-        xmlFreeDoc(doc);
-        xmlCleanupParser();
-    }
-
-    return xml_blobs;
-}
-
 bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform)
 {
-    //printToMessageWindow("Using " + relevant_csys_names[component_counter] + " to make stl");
-
     std::string file_extension = ".stl";
     std::string link_child_name = component_handle->GetFullName();
     std::string renamed_link_child_name = link_child_name;
@@ -780,7 +461,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     iDynTree::ExternalMesh visualMesh;
     // Meshes are in millimeters, while iDynTree models are in meters
     visualMesh.setScale({scale});
-    // Let's assign a gray as default color
+
     iDynTree::Vector4 color;
     iDynTree::Material material;
 
@@ -853,7 +534,7 @@ std::string Creo2Urdf::getRenameElementFromConfig(const std::string& elem_name)
     }
 }
 
-std::pair<double, double> Creo2Urdf::getLimitsFromElemTree(pfcFeature_ptr feat)
+std::pair<double, double> Creo2Urdf::getLimitsFromElementTree(pfcFeature_ptr feat)
 {
     wfcWFeature_ptr wfeat = wfcWFeature::cast(feat);
     wfcElementTree_ptr tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);

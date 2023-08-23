@@ -45,6 +45,8 @@
 #include <libxml2/libxml/tree.h>
 #include <libxml/xmlwriter.h>
 
+#include <yaml-cpp/yaml.h>
+
 constexpr double epsilon = 1e-12;
 constexpr double rad2deg = 180.0 / M_PI;
 constexpr double deg2rad = 1 / rad2deg;
@@ -63,6 +65,57 @@ static const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::INFO, "c2uINFO"},
     {c2uLogLevel::WARN, "c2uWARN"},
     {c2uLogLevel::PROMPT, "c2uPROMPT"}
+};
+
+enum class SensorType {
+    None = -1,
+    Accelerometer,
+    Gyroscope,
+    Camera,
+    Depth,
+    Ray,
+};
+
+static const std::map<SensorType, std::string> sensor_type_map = {
+    {SensorType::Accelerometer, "accelerometer"},
+    {SensorType::Gyroscope, "gyroscope"},
+    {SensorType::Camera, "camera"},
+    {SensorType::Depth, "depth"},
+    {SensorType::Ray, "ray"}
+};
+
+static const std::map<SensorType, std::string> gazebo_sensor_type_map = {
+    {SensorType::Accelerometer, "imu"},
+    {SensorType::Gyroscope, "gyroscope"},
+    {SensorType::Camera, "camera"},
+    {SensorType::Depth, "depth"},
+    {SensorType::Ray, "ray"}
+};
+
+struct SensorInfo {
+    std::string sensorName{ "" };
+    std::string frameName{ "" };
+    std::string linkName{ "" };
+    iDynTree::Transform transform{ iDynTree::Transform::Identity() };
+    bool exportFrameInURDF{ false };
+    SensorType type{ SensorType::None };
+    double updateRate{ 100 };
+    std::vector<std::string> xmlBlobs;
+};
+
+struct FTSensorInfo {
+    bool directionChildToParent{ true };
+    std::string frame{ "sensor" };
+    std::string frameName{ "" };
+    iDynTree::Transform transform{ iDynTree::Transform::Identity() };
+    std::vector<std::string> xmlBlobs;
+};
+
+struct ExportedFrameInfo {
+    std::string frameReferenceLink{ "" };
+    std::string exportedFrameName{ "" };
+    iDynTree::Transform linkFrame_H_additionalFrame{ iDynTree::Transform::Identity() };
+    iDynTree::Transform additionalTransformation{ iDynTree::Transform::Identity() }; // additionalFrameOld_H_additionalFrame 
 };
 
 /*
