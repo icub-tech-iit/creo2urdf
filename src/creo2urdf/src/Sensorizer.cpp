@@ -103,8 +103,6 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
 
     for (const auto& ft : ft_sensors)
     {
-        //std::string filename = ft.jointName + ".xml";
-
         xmlDocPtr doc = NULL;
         xmlNodePtr root_node = NULL, node = NULL;
         doc = xmlNewDoc(NULL);
@@ -132,7 +130,6 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
         }
         else
         {
-            //trf = trf.inverse();
             node2 = xmlNewChild(node1, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
         }
 
@@ -161,10 +158,7 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
 
         xmlOutputBufferClose(gazebo_doc_buffer);
 
-        //xmlSaveFormatFile(filename.c_str(), doc, 1);
-
         xmlFreeDoc(doc);
-        xmlCleanupParser();
 
         doc = xmlNewDoc(BAD_CAST "1.0");
         root_node = xmlNewNode(NULL, BAD_CAST "sensor");
@@ -184,7 +178,6 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
         }
         else
         {
-            //trf = trf.inverse();
             xmlNewChild(node, NULL, BAD_CAST "measure_direction", BAD_CAST "parent_to_child");
         }
         node = xmlNewChild(root_node, NULL, BAD_CAST "origin", NULL);
@@ -272,7 +265,6 @@ std::vector<std::string> Sensorizer::buildSensorsXMLBlobs()
         xmlOutputBufferClose(doc_buffer);
 
         xmlFreeDoc(doc);
-        xmlCleanupParser();
 
         doc = xmlNewDoc(BAD_CAST "1.0");
         root_node = xmlNewNode(NULL, BAD_CAST "sensor");

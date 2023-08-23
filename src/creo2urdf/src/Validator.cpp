@@ -51,8 +51,6 @@ bool Validator::assignCreoTransformToLink() {
         auto modelhdl = creo_session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
         auto link_child_name = string(modelhdl->GetFullName());
 
-        //std::tie(ret, H_child) = getTransformFromRootToChild(comp_path, modelhdl);
-
         ret = true;
 
         if (!ret)
