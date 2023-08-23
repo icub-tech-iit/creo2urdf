@@ -68,8 +68,6 @@ void Creo2Urdf::OnCommand() {
     sensorizer.readFTSensorsFromConfig(config);
     sensorizer.readSensorsFromConfig(config);
 
-    std::map<std::string, iDynTree::Transform> ft_transform_map;
-
     // Let's traverse the model tree and get all links and axis properties
     for (int i = 0; i < asm_component_list->getarraysize(); i++)
     {      
