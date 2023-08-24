@@ -24,7 +24,7 @@ Generate URDF model from CREO mechanisms.
 Right now the `creo2urdf` plugin needs its dependencies to be compiled and linked **statically**:
 - Download [vcpkg](https://github.com/microsoft/vcpkg): `git clone https://github.com/microsoft/vcpkg`
 - Bootstrap vcpkg: `.\vcpkg\bootstrap-vcpkg.bat`
-- Run `[path to vcpkg]/vcpkg install --triplet x64-windows-static-md eigen3 libxml2 assimp idyntree[core,assimp]`
+- Run `[path to vcpkg]/vcpkg install --triplet x64-windows-static-md eigen3 yaml-cpp rapidcsv libxml2 assimp idyntree[core,assimp]`
 
 ### Build `creo2urdf`
 

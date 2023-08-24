@@ -34,33 +34,12 @@ std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data
     return unit_vector;
 }
 
-iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H)
-{
-    auto com = mass_prop->GetGravityCenter();
-    auto inertia_tensor = mass_prop->GetCenterGravityInertiaTensor();
-    iDynTree::RotationalInertiaRaw idyn_inertia_tensor = iDynTree::RotationalInertiaRaw::Zero();
-
-    for (int i_row = 0; i_row < idyn_inertia_tensor.rows(); i_row++) {
-        for (int j_col = 0; j_col < idyn_inertia_tensor.cols(); j_col++) {
-            idyn_inertia_tensor.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col) * mm2_to_m2);
-        }
-    }
-
-    iDynTree::Position com_child({ com->get(0) * mm_to_m , com->get(1) * mm_to_m, com->get(2) * mm_to_m });
-    com_child = H.inverse() * com_child;  // TODO verify
-
-    iDynTree::SpatialInertia sp_inertia(mass_prop->GetMass(), com_child, idyn_inertia_tensor);
-    sp_inertia.fromRotationalInertiaWrtCenterOfMass(mass_prop->GetMass(), com_child, idyn_inertia_tensor);
-
-    return sp_inertia;
-}
-
-iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf)
+iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale)
 {
     iDynTree::Transform idyn_trf;
     auto o = creo_trf->GetOrigin();
     auto m = creo_trf->GetMatrix();
-    idyn_trf.setPosition({ o->get(0) * mm_to_m, o->get(1) * mm_to_m, o->get(2) * mm_to_m });
+    idyn_trf.setPosition({ o->get(0) * scale[0], o->get(1) * scale[1], o->get(2) * scale[2]});
     idyn_trf.setRotation({ m->get(0,0), m->get(1,0), m->get(2,0),
                            m->get(0,1), m->get(1,1), m->get(2,1),
                            m->get(0,2), m->get(1,2), m->get(2,2) });
@@ -103,20 +82,18 @@ void sanitizeSTL(std::string stl)
     output.close();
 }
 
-std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl) {
+std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale) {
     
     iDynTree::Transform H_child = iDynTree::Transform::Identity();
 
-    auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xtrue));
-    auto link_child_name = string(modelhdl->GetFullName());
-
+    auto asm_csys_H_csys = fromCreo(comp_path->GetTransform(xtrue), scale);
     iDynTree::Transform csys_H_child;
 
     bool ret = false;
-    std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_child_name);
+    std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_frame_name, scale);
     if (!ret)
     {
-        printToMessageWindow("Unable to get the transform respect to the root for " + link_child_name, c2uLogLevel::WARN);
+        printToMessageWindow("Unable to get the transform from to the root for " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
         return make_pair(false, H_child);
     }
 
@@ -127,10 +104,13 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 }
 
 
-std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name) {
+std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale) {
 
     iDynTree::Transform H_child;
     auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+
+    auto link_child_name = string(modelhdl->GetFullName());
+    
     if (csys_list->getarraysize() == 0) {
         printToMessageWindow("There are no CSYS in the part " + link_child_name, c2uLogLevel::WARN);
 
@@ -145,7 +125,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 
         auto csys = pfcCoordSystem::cast(csys_elem);
 
-        if (string(csys->GetName()) != link_csys_map.at(link_child_name))
+        if (string(csys->GetName()) != link_frame_name)
         {
             continue;
         }
@@ -155,7 +135,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
         auto m = trf->GetMatrix();
         auto o = trf->GetOrigin();
 
-        H_child = fromCreo(trf);
+        H_child = fromCreo(trf, scale);
 
         /*
         printToMessageWindow("csys name " + string(csys->GetName()));

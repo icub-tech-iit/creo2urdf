@@ -9,8 +9,10 @@
 #ifndef CREO2URDF_H
 #define CREO2URDF_H
 
-#include <pfcGlobal.h>
 #include <creo2urdf/Utils.h>
+#include <creo2urdf/Sensorizer.h>
+
+#include <rapidcsv.h>
 
 enum class JointType {
     Revolute,
@@ -28,23 +30,39 @@ struct JointInfo {
 };
 
 struct LinkInfo {
-    std::string name{""};
+    std::string name{ "" };
     pfcModel_ptr modelhdl{ nullptr };
-    iDynTree::Transform root_H_link { iDynTree::Transform::Identity() };
+    iDynTree::Transform root_H_link{ iDynTree::Transform::Identity() };
+    std::string link_frame_name{ "" };
 };
 
 class Creo2Urdf : public pfcUICommandActionListener {
 public:
     void OnCommand() override;
 
-    bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
-    void populateJointInfoMap(pfcModel_ptr modelhdl);
-    bool addMeshAndExport(const std::string& link_child_name, const std::string& csys_name, pfcModel_ptr component_handle);
-
 private:
+
+    bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
+    iDynTree::SpatialInertia computeSpatialInertiafromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const std::string& link_name);
+    void populateJointInfoMap(pfcModel_ptr modelhdl);
+    void populateExportedFrameInfoMap(pfcModel_ptr modelhdl);
+    void readAssignedInertiasFromConfig();
+    void readExportedFramesFromConfig();
+    bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
+    bool loadYamlConfig(const std::string& filename);
+    std::string getRenameElementFromConfig(const std::string& elem_name);
+    std::pair<double, double> getLimitsFromElementTree(pfcFeature_ptr feat);
+
     iDynTree::Model idyn_model;
     std::map<std::string, JointInfo> joint_info_map;
     std::map<std::string, LinkInfo> link_info_map;
+    std::map<std::string, ExportedFrameInfo> exported_frame_info_map;
+    std::map<std::string, std::array<double,3>> assigned_inertias_map; // 0 -> xx, 1 -> yy, 2 -> zz
+    YAML::Node config;
+    
+    array<double, 3> scale{ 1.0, 1.0, 1.0 };
+    array<double, 3> originXYZ {0.0, 0.0, 0.0};
+    array<double, 3> originRPY {0.0, 0.0, 0.0};
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {

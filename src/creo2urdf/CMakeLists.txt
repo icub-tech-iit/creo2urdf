@@ -9,11 +9,13 @@ add_library(creo2urdf::creo2urdf ALIAS creo2urdf)
 
 set(CREO2URDF_HDRS include/creo2urdf/Creo2Urdf.h
                    include/creo2urdf/Validator.h
+                   include/creo2urdf/Sensorizer.h
                    include/creo2urdf/Utils.h
 )
 set(CREO2URDF_SRCS src/main.cpp
                    src/Creo2Urdf.cpp
                    src/Validator.cpp
+                   src/Sensorizer.cpp
                    src/Utils.cpp
 )
 
@@ -46,6 +48,7 @@ target_sources(creo2urdf
 
 target_include_directories(creo2urdf PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+                                            ${RAPIDCSV_INCLUDE_DIRS}
                                             ${CREO9_INSTALL_PATH}/protoolkit/includes
                                             ${CREO9_INSTALL_PATH}/otk/otk_cpp/include/
                                             ${CREO9_INSTALL_PATH}/protoolkit/protk_appls/includes)
@@ -63,7 +66,9 @@ add_compile_definitions(creo2urdf PUBLIC PRO_MACHINE=36
 
 # Link dependencies
 target_link_libraries(creo2urdf PRIVATE iDynTree::idyntree-modelio
-                                        iDynTree::idyntree-high-level 
+                                        iDynTree::idyntree-high-level
+                                        yaml-cpp
+                                        LibXml2::LibXml2
                                         protk_dllmd_NU
                                         otk_cpp_md
                                         otk_no222_md

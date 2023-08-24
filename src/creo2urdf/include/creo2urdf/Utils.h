@@ -25,7 +25,13 @@
 
 #include <wfcGeometry.h>
 #include <wfcModelItem.h>
+#include <wfcFeature.h>
+#include <wfcModelItem.h>
+#include <wfcModel.h>
+#include <wfcGlobal.h>
+#include <wfcElemIds.h>
 
+#include <ProAsmcomp.h>
 
 #include <iDynTree/Model/Model.h>
 #include <iDynTree/ModelIO/ModelExporter.h>
@@ -35,14 +41,16 @@
 #include <iDynTree/KinDynComputations.h>
 #include <iDynTree/Model/Traversal.h>
 
+#include <libxml2/libxml/parser.h>
+#include <libxml2/libxml/tree.h>
+#include <libxml/xmlwriter.h>
 
-constexpr double mm_to_m = 1e-3;
-constexpr double mm2_to_m2 = 1e-6;
+#include <yaml-cpp/yaml.h>
+
 constexpr double epsilon = 1e-12;
 constexpr double rad2deg = 180.0 / M_PI;
 constexpr double deg2rad = 1 / rad2deg;
 constexpr double gravity_z = -9.81;
-
 
 enum class c2uLogLevel
 {
@@ -59,7 +67,58 @@ static const std::map<c2uLogLevel, std::string> log_level_key = {
     {c2uLogLevel::PROMPT, "c2uPROMPT"}
 };
 
+enum class SensorType {
+    None = -1,
+    Accelerometer,
+    Gyroscope,
+    Camera,
+    Depth,
+    Ray,
+};
 
+static const std::map<SensorType, std::string> sensor_type_map = {
+    {SensorType::Accelerometer, "accelerometer"},
+    {SensorType::Gyroscope, "gyroscope"},
+    {SensorType::Camera, "camera"},
+    {SensorType::Depth, "depth"},
+    {SensorType::Ray, "ray"}
+};
+
+static const std::map<SensorType, std::string> gazebo_sensor_type_map = {
+    {SensorType::Accelerometer, "imu"},
+    {SensorType::Gyroscope, "gyroscope"},
+    {SensorType::Camera, "camera"},
+    {SensorType::Depth, "depth"},
+    {SensorType::Ray, "ray"}
+};
+
+struct SensorInfo {
+    std::string sensorName{ "" };
+    std::string frameName{ "" };
+    std::string linkName{ "" };
+    iDynTree::Transform transform{ iDynTree::Transform::Identity() };
+    bool exportFrameInURDF{ false };
+    SensorType type{ SensorType::None };
+    double updateRate{ 100 };
+    std::vector<std::string> xmlBlobs;
+};
+
+struct FTSensorInfo {
+    bool directionChildToParent{ true };
+    std::string frame{ "sensor" };
+    std::string frameName{ "" };
+    iDynTree::Transform transform{ iDynTree::Transform::Identity() };
+    std::vector<std::string> xmlBlobs;
+};
+
+struct ExportedFrameInfo {
+    std::string frameReferenceLink{ "" };
+    std::string exportedFrameName{ "" };
+    iDynTree::Transform linkFrame_H_additionalFrame{ iDynTree::Transform::Identity() };
+    iDynTree::Transform additionalTransformation{ iDynTree::Transform::Identity() }; // additionalFrameOld_H_additionalFrame 
+};
+
+/*
 static const std::map<std::string, std::string> link_csys_map = {
     {"SIM_ECUB_1-1_L_HIP_1","SCSYS_L_HIP_1"},
     {"SIM_ECUB_1-1_L_HIP_2","SCSYS_L_HIP_2"},
@@ -129,6 +188,7 @@ static const std::map<std::string, std::string> link_csys_map = {
     {"SIM_ECUB_1-1_HEAD", "SCSYS_HEAD"},
     {"SIM_ECUB_1-1_REALSENSE", "SCSYS_REALSENSE"}
 };
+*/
 
 
 
@@ -137,7 +197,7 @@ public:
 
     iDynRedirectErrors() {
         old_buf = nullptr;
-    
+
     }
 
     ~iDynRedirectErrors() {
@@ -166,11 +226,19 @@ private:
     std::ofstream idyn_out;
 };
 
+
+template <class T>
+T stringToEnum(const std::map<T, std::string> & map, const std::string & s)
+{
+    for (auto& t : map)
+        if (t.second == s) return t.first;
+
+    return static_cast<T>(-1);
+}
+
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data);
 
-iDynTree::SpatialInertia fromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H);
-
-iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf);
+iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale = { 1.0,1.0,1.0 });
 
 void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLevel::INFO);
 
@@ -180,12 +248,10 @@ void printRotationMatrix(pfcMatrix3D_ptr m);
 
 void sanitizeSTL(std::string stl);
 
-std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl);
+std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
-std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_child_name);
+std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
 std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_child_name, iDynTree::Transform H_child);
-
-bool addMeshAndExport(pfcModel_ptr modelhdl, const std::string& link_child_name, const std::string& csys_name, iDynTree::Model& idyn_model);
 
 #endif // !UTILS_H
