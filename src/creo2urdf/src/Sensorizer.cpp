@@ -73,11 +73,6 @@ void Sensorizer::readFTSensorsFromConfig(const YAML::Node& config)
 
 void Sensorizer::assignTransformToFTSensor(pfcModel_ptr modelhdl, const iDynTree::Transform & link_transform, const std::array<double, 3> scale)
 {
-    // The revolute joints are defined by aligning along the
-    // rotational axis
-    auto link_name = string(modelhdl->GetFullName());
-    auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-
     // Iterate over all sensors
     for (auto& f : ft_sensors)
     {
@@ -86,12 +81,7 @@ void Sensorizer::assignTransformToFTSensor(pfcModel_ptr modelhdl, const iDynTree
         // if the part contains the FT frame use it to assign the transform
         if (trf.first)
         {
-            // printToMessageWindow(f.first + " " + f.second.frameName);
-            // printToMessageWindow(link_transform.toString());
-            // printToMessageWindow(link_transform.inverse().toString());
             f.second.transform = link_transform.inverse() * trf.second;
-
-            // printToMessageWindow(f.second.transform.toString());
             break;
         }
     }
@@ -191,7 +181,6 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
         xmlOutputBufferClose(sensor_doc_buffer);
 
         xmlFreeDoc(doc);
-        xmlCleanupParser();
     }
 
     return ft_xml_blobs;
@@ -263,7 +252,6 @@ std::vector<std::string> Sensorizer::buildSensorsXMLBlobs()
         xml_blobs.push_back(string((char*)xmlBufContent(doc_buffer->buffer)));
 
         xmlOutputBufferClose(doc_buffer);
-
         xmlFreeDoc(doc);
 
         doc = xmlNewDoc(BAD_CAST "1.0");
@@ -283,9 +271,7 @@ std::vector<std::string> Sensorizer::buildSensorsXMLBlobs()
         xml_blobs.push_back(string((char*)xmlBufContent(doc_buffer->buffer)));
 
         xmlOutputBufferClose(doc_buffer);
-
         xmlFreeDoc(doc);
-        xmlCleanupParser();
     }
 
     return xml_blobs;
