@@ -122,10 +122,6 @@ void Creo2Urdf::OnCommand() {
         populateJointInfoMap(component_handle);
         populateExportedFrameInfoMap(component_handle);
         
-        sensorizer.assignTransformToFTSensor(component_handle, root_H_link, scale);
-
-        sensorizer.assignTransformToSensors(exported_frame_info_map);
-
         idyn_model.addLink(urdf_link_name, link);
         addMeshAndExport(component_handle, link_frame_name);
     }
@@ -147,6 +143,7 @@ void Creo2Urdf::OnCommand() {
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
         auto root_H_child_link = link_info_map.at(child_link_name).root_H_link;
         auto child_model = link_info_map.at(child_link_name).modelhdl;
+        auto parent_model = link_info_map.at(parent_link_name).modelhdl;
 
         //printToMessageWindow("Parent link H " + root_H_parent_link.toString());
         //printToMessageWindow("Child  link H " + root_H_child_link.toString());
@@ -159,7 +156,7 @@ void Creo2Urdf::OnCommand() {
 
         if (joint_info.second.type == JointType::Revolute) {
             iDynTree::Direction axis;
-            std::tie(ret, axis) = getRotationAxisFromPart(child_model, axis_name, child_link_name, root_H_child_link);
+            std::tie(ret, axis) = getRotationAxisFromPart(parent_model, axis_name, root_H_parent_link);
 
             if (!ret)
             {
@@ -197,6 +194,46 @@ void Creo2Urdf::OnCommand() {
                 return;
             }
         }
+    }
+
+    // Assign the transforms for the sensors
+    sensorizer.assignTransformToSensors(exported_frame_info_map);
+    // Assign the transforms for the ft sensors
+    sensorizer.assignTransformToFTSensor(link_info_map, joint_info_map, scale);
+
+
+    // Let's add sensors and ft sensors frames
+
+    for (auto& sensor : sensorizer.sensors) {
+        if (sensor.exportFrameInURDF) {
+            if (!idyn_model.addAdditionalFrameToLink(sensor.linkName, sensor.exportedFrameName,
+                sensor.transform)) {
+                printToMessageWindow("Failed to add additional frame  " + sensor.exportedFrameName, c2uLogLevel::WARN);
+                continue;
+            }
+        }
+
+    }
+
+    for (auto& ftsensor : sensorizer.ft_sensors) {
+        if (ftsensor.second.exportFrameInURDF) {
+            auto joint_idx = idyn_model.getJointIndex(ftsensor.first);
+            if (joint_idx == iDynTree::LINK_INVALID_INDEX) {
+                // TODO FATAL?!
+                printToMessageWindow("Failed to add additional frame, ftsensor: " + ftsensor.second.sensorName + " is not in the model", c2uLogLevel::WARN);
+                continue;
+            }
+
+            auto joint = idyn_model.getJoint(joint_idx);
+            auto link_name = idyn_model.getLinkName(joint->getFirstAttachedLink());
+
+            if (!idyn_model.addAdditionalFrameToLink(link_name, ftsensor.second.exportedFrameName,
+                ftsensor.second.parent_link_H_sensor)) {
+                printToMessageWindow("Failed to add additional frame  " + ftsensor.second.exportedFrameName, c2uLogLevel::WARN);
+                continue;
+            }
+        }
+
     }
 
     // Let's add all the exported frames

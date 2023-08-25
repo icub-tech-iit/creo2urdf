@@ -96,6 +96,7 @@ struct SensorInfo {
     std::string sensorName{ "" };
     std::string frameName{ "" };
     std::string linkName{ "" };
+    std::string exportedFrameName{ "" };
     iDynTree::Transform transform{ iDynTree::Transform::Identity() };
     bool exportFrameInURDF{ false };
     SensorType type{ SensorType::None };
@@ -106,8 +107,13 @@ struct SensorInfo {
 struct FTSensorInfo {
     bool directionChildToParent{ true };
     std::string frame{ "sensor" };
+    std::string sensorName{ "" };
     std::string frameName{ "" };
-    iDynTree::Transform transform{ iDynTree::Transform::Identity() };
+    std::string linkName { " " };
+    std::string exportedFrameName{ "" };
+    iDynTree::Transform parent_link_H_sensor{ iDynTree::Transform::Identity() };
+    iDynTree::Transform child_link_H_sensor{ iDynTree::Transform::Identity() };
+    bool exportFrameInURDF{ false };
     std::vector<std::string> xmlBlobs;
 };
 
@@ -116,6 +122,29 @@ struct ExportedFrameInfo {
     std::string exportedFrameName{ "" };
     iDynTree::Transform linkFrame_H_additionalFrame{ iDynTree::Transform::Identity() };
     iDynTree::Transform additionalTransformation{ iDynTree::Transform::Identity() }; // additionalFrameOld_H_additionalFrame 
+};
+
+
+enum class JointType {
+    Revolute,
+    Fixed,
+    Linear,
+    Spherical,
+    None
+};
+
+struct JointInfo {
+    std::string name{""};
+    std::string parent_link_name{""};
+    std::string child_link_name{""};
+    JointType type{ JointType::Revolute };
+};
+
+struct LinkInfo {
+    std::string name{ "" };
+    pfcModel_ptr modelhdl{ nullptr };
+    iDynTree::Transform root_H_link{ iDynTree::Transform::Identity() };
+    std::string link_frame_name{ "" };
 };
 
 /*
@@ -252,6 +281,6 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
-std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_child_name, iDynTree::Transform H_child);
+std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, iDynTree::Transform root_H_link);
 
 #endif // !UTILS_H

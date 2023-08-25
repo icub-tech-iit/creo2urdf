@@ -30,11 +30,21 @@ void Sensorizer::readSensorsFromConfig(const YAML::Node & config)
             update_rate = s["updateRate"].as<double>();
         }
 
+        std::string sensor_name = s["linkName"].Scalar() + "_" + s["frameName"].Scalar();
+        if (s["sensorName"].IsDefined()) {
+            sensor_name = s["sensorName"].Scalar();
+        }
+        std::string exported_frame_name = sensor_name;
+        if (s["exportedFrameName"].IsDefined()) {
+            exported_frame_name = s["exportedFrameName"].Scalar();
+        }
+
         try
         {
-            sensors.push_back({ s["sensorName"].Scalar(),
+            sensors.push_back({ sensor_name,
                                 s["frameName"].Scalar(),
                                 s["linkName"].Scalar(),
+                                exported_frame_name,
                                 iDynTree::Transform::Identity(),
                                 export_frame,
                                 stringToEnum<SensorType>(sensor_type_map, s["sensorType"].Scalar()),
@@ -55,14 +65,34 @@ void Sensorizer::readFTSensorsFromConfig(const YAML::Node& config)
     {
         for (const auto& s : config["forceTorqueSensors"])
         {
+            bool export_frame = false;
+
+            if (s["exportFrameInURDF"].IsDefined())
+            {
+                export_frame = s["exportFrameInURDF"].as<bool>();
+            }
+            std::string sensor_name = s["jointName"].Scalar();
+            if (s["sensorName"].IsDefined()) {
+                sensor_name = s["sensorName"].Scalar();
+            }
+
+            std::string exported_frame_name = sensor_name;
+            if (s["exportedFrameName"].IsDefined()) {
+                exported_frame_name = s["exportedFrameName"].Scalar();
+            }
             ft_sensors.insert(
                 {
                     s["jointName"].Scalar(),
                     {
                         s["directionChildToParent"].as<bool>(),
-                        s["frame"].Scalar(), 
+                        s["frame"].Scalar(),
+                        sensor_name,
                         s["frameName"].Scalar(),
+                        s["linkName"].Scalar(),
+                        exported_frame_name,
                         iDynTree::Transform::Identity(),
+                        iDynTree::Transform::Identity(),
+                        export_frame,
                         s["sensorBlobs"].as<std::vector<std::string>>()
                     }
                 });
@@ -71,19 +101,25 @@ void Sensorizer::readFTSensorsFromConfig(const YAML::Node& config)
 
 }
 
-void Sensorizer::assignTransformToFTSensor(pfcModel_ptr modelhdl, const iDynTree::Transform & link_transform, const std::array<double, 3> scale)
+void Sensorizer::assignTransformToFTSensor(const std::map<std::string, LinkInfo>& link_info_map, const std::map<std::string, JointInfo>& joint_info_map, const std::array<double, 3> scale)
 {
     // Iterate over all sensors
     for (auto& f : ft_sensors)
-    {
-        auto trf = getTransformFromPart(modelhdl, f.second.frameName, scale);
+    {   
+        JointInfo j_info = joint_info_map.at(f.second.frameName);
 
-        // if the part contains the FT frame use it to assign the transform
-        if (trf.first)
-        {
-            f.second.transform = link_transform.inverse() * trf.second;
-            break;
-        }
+        LinkInfo parent_l_info = link_info_map.at(j_info.parent_link_name);
+        LinkInfo child_l_info = link_info_map.at(j_info.child_link_name);
+
+        auto parent_csys_H_sensor      = (getTransformFromPart(parent_l_info.modelhdl, f.second.frameName, scale)).second;
+        auto parent_csys_H_parent_link = (getTransformFromPart(parent_l_info.modelhdl, parent_l_info.link_frame_name, scale)).second;
+        // This transform is used for exporting the ft frame
+        f.second.parent_link_H_sensor = parent_csys_H_parent_link.inverse() * parent_csys_H_sensor;
+
+        auto child_csys_H_sensor      = (getTransformFromPart(child_l_info.modelhdl, f.second.frameName, scale)).second;
+        auto child_csys_H_child_link  = (getTransformFromPart(child_l_info.modelhdl, child_l_info.link_frame_name, scale)).second;
+        // This transform is used for defining the pose of the ft sensor
+        f.second.child_link_H_sensor = child_csys_H_child_link.inverse() * child_csys_H_sensor;
     }
 }
 
@@ -103,7 +139,7 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
         xmlNewProp(root_node, BAD_CAST "reference", BAD_CAST ft.first.c_str());
 
         node = xmlNewChild(root_node, NULL, BAD_CAST "sensor", NULL);
-        xmlNewProp(node, BAD_CAST "name", BAD_CAST ft.first.c_str());
+        xmlNewProp(node, BAD_CAST "name", BAD_CAST ft.second.sensorName.c_str());
         xmlNewProp(node, BAD_CAST "type", BAD_CAST "force_torque");
 
         auto node1 = xmlNewChild(node, NULL, BAD_CAST "always_on", BAD_CAST "1");
@@ -112,7 +148,7 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
 
         auto node2 = xmlNewChild(node1, NULL, BAD_CAST "frame", BAD_CAST ft.second.frame.c_str());
 
-        auto& trf = ft.second.transform;
+        auto& trf = ft.second.child_link_H_sensor;
 
         if (ft.second.directionChildToParent)
         {
@@ -155,7 +191,7 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
 
         xmlDocSetRootElement(doc, root_node);
 
-        xmlNewProp(root_node, BAD_CAST "name", BAD_CAST ft.first.c_str());
+        xmlNewProp(root_node, BAD_CAST "name", BAD_CAST ft.second.sensorName.c_str());
         xmlNewProp(root_node, BAD_CAST "type", BAD_CAST "force_torque");
         node = xmlNewChild(root_node, NULL, BAD_CAST "parent", NULL);
         xmlNewProp(node, BAD_CAST "joint", BAD_CAST ft.first.c_str());
