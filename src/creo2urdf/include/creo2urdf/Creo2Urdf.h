@@ -14,27 +14,6 @@
 
 #include <rapidcsv.h>
 
-enum class JointType {
-    Revolute,
-    Fixed,
-    Linear,
-    Spherical,
-    None
-};
-
-struct JointInfo {
-    std::string name{""};
-    std::string parent_link_name{""};
-    std::string child_link_name{""};
-    JointType type {JointType::Revolute};
-};
-
-struct LinkInfo {
-    std::string name{ "" };
-    pfcModel_ptr modelhdl{ nullptr };
-    iDynTree::Transform root_H_link{ iDynTree::Transform::Identity() };
-    std::string link_frame_name{ "" };
-};
 
 class Creo2Urdf : public pfcUICommandActionListener {
 public:

@@ -153,14 +153,14 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
     return { false, H_child };
 }
 
-std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_child_name, iDynTree::Transform H_child) {
+std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, iDynTree::Transform root_H_link) {
 
     iDynTree::Direction axis_unit_vector;
 
     auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
     // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
     if (axes_list->getarraysize() == 0) {
-        printToMessageWindow("There is no AXIS in the part " + link_child_name, c2uLogLevel::WARN);
+        printToMessageWindow("There is no AXIS in the part " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
 
         axis_unit_vector.zero();
         return { false, axis_unit_vector };
@@ -188,7 +188,7 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
     axis_unit_vector.setVal(1, unit[1]);
     axis_unit_vector.setVal(2, unit[2]);
 
-    axis_unit_vector = H_child.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
+    axis_unit_vector = root_H_link.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
     axis_unit_vector.Normalize();
 
     /*
