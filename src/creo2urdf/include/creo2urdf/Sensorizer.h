@@ -15,7 +15,7 @@ struct Sensorizer {
 
     void readFTSensorsFromConfig(const YAML::Node& config);
 	void readSensorsFromConfig(const YAML::Node& config);
-	void assignTransformToFTSensor(const std::map<std::string, LinkInfo>& link_info_map, const std::array<double, 3> scale);
+	void assignTransformToFTSensor(const std::map<std::string, LinkInfo>& link_info_map, const std::map<std::string, JointInfo>& joint_info_map, const std::array<double, 3> scale);
 	void assignTransformToSensors(const std::map<std::string, ExportedFrameInfo>& exported_frame_info_map);
 	std::vector<std::string> buildFTXMLBlobs();
 	std::vector<std::string> buildSensorsXMLBlobs();

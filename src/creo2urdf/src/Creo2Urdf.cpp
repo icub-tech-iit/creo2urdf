@@ -199,7 +199,7 @@ void Creo2Urdf::OnCommand() {
     // Assign the transforms for the sensors
     sensorizer.assignTransformToSensors(exported_frame_info_map);
     // Assign the transforms for the ft sensors
-    sensorizer.assignTransformToFTSensor(link_info_map, scale);
+    sensorizer.assignTransformToFTSensor(link_info_map, joint_info_map, scale);
 
 
     // Let's add sensors and ft sensors frames
@@ -228,7 +228,7 @@ void Creo2Urdf::OnCommand() {
             auto link_name = idyn_model.getLinkName(joint->getFirstAttachedLink());
 
             if (!idyn_model.addAdditionalFrameToLink(link_name, ftsensor.second.exportedFrameName,
-                ftsensor.second.transform)) {
+                ftsensor.second.parent_link_H_sensor)) {
                 printToMessageWindow("Failed to add additional frame  " + ftsensor.second.exportedFrameName, c2uLogLevel::WARN);
                 continue;
             }

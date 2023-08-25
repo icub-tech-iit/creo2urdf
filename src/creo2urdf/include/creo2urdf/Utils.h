@@ -111,7 +111,8 @@ struct FTSensorInfo {
     std::string frameName{ "" };
     std::string linkName { " " };
     std::string exportedFrameName{ "" };
-    iDynTree::Transform transform{ iDynTree::Transform::Identity() };
+    iDynTree::Transform parent_link_H_sensor{ iDynTree::Transform::Identity() };
+    iDynTree::Transform child_link_H_sensor{ iDynTree::Transform::Identity() };
     bool exportFrameInURDF{ false };
     std::vector<std::string> xmlBlobs;
 };
