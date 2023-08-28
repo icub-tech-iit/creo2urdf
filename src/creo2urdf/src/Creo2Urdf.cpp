@@ -62,6 +62,10 @@ void Creo2Urdf::OnCommand() {
         originRPY = config["originRPY"].as<std::array<double, 3>>();
     }
 
+    if (config["exportAllUseradded"].IsDefined()) {
+        exportAllUseradded = config["exportAllUseradded"].as<bool>();
+    }
+
     readExportedFramesFromConfig();
     readAssignedInertiasFromConfig();
     readAssignedCollisionGeometryFromConfig();
@@ -417,6 +421,18 @@ void Creo2Urdf::populateExportedFrameInfoMap(pfcModel_ptr modelhdl) {
     for (xint i = 0; i < csys_list->getarraysize(); i++)
     {
         auto csys_name = string(csys_list->get(i)->GetName());
+        // If true the exported_frame_info_map is not populated w/ the data from yaml
+        if (exportAllUseradded) {
+            if (csys_name.find("SCSYS") == std::string::npos ||
+               (exported_frame_info_map.find(csys_name) != exported_frame_info_map.end())) {
+                continue;
+            }
+            ExportedFrameInfo ef_info;
+            ef_info.frameReferenceLink = getRenameElementFromConfig(link_name);
+            ef_info.exportedFrameName = csys_name + "_USERADDED";
+            exported_frame_info_map.insert(std::make_pair(csys_name, ef_info));
+        }
+        
         if (exported_frame_info_map.find(csys_name) != exported_frame_info_map.end()) {
             auto& exported_frame_info = exported_frame_info_map.at(csys_name);
             auto& link_info = link_info_map.at(link_name);
@@ -478,7 +494,7 @@ void Creo2Urdf::readAssignedCollisionGeometryFromConfig() {
 
 void Creo2Urdf::readExportedFramesFromConfig() {
 
-    if (!config["exportedFrames"].IsDefined())
+    if (!config["exportedFrames"].IsDefined() || exportAllUseradded)
         return;
 
     for (const auto& ef : config["exportedFrames"]) {

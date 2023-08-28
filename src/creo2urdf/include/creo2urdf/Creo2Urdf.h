@@ -40,6 +40,7 @@ private:
     std::map<std::string, std::array<double,3>> assigned_inertias_map; // 0 -> xx, 1 -> yy, 2 -> zz
     std::map<std::string, CollisionGeometryInfo> assigned_collision_geometry_map;
     YAML::Node config;
+    bool exportAllUseradded{ false };
     
     array<double, 3> scale{ 1.0, 1.0, 1.0 };
     array<double, 3> originXYZ {0.0, 0.0, 0.0};
