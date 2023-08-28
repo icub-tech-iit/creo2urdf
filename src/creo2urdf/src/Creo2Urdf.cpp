@@ -571,8 +571,11 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     // visualMesh.setLink_H_geometry(H_parent_to_child);
 
     // Assign name
-    string file_format = config["filenameformatchangeext"].Scalar();
-    
+    string file_format = "%s";
+    if (config["filenameformat"].IsDefined()) {
+        file_format = config["filenameformat"].Scalar();
+    }
+
     // We assume there is only one of occurrence to replace
     file_format.replace(file_format.find("%s"), file_format.length(), link_child_name);
     file_format += file_extension;
