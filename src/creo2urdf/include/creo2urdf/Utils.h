@@ -76,12 +76,26 @@ enum class SensorType {
     Ray,
 };
 
+enum class ShapeType {
+    Box,
+    Cylinder,
+    Sphere,
+    None
+};
+
 static const std::map<SensorType, std::string> sensor_type_map = {
     {SensorType::Accelerometer, "accelerometer"},
     {SensorType::Gyroscope, "gyroscope"},
     {SensorType::Camera, "camera"},
     {SensorType::Depth, "depth"},
     {SensorType::Ray, "ray"}
+};
+
+static const std::map<ShapeType, std::string> shape_type_map = {
+    { ShapeType::Box, "box" },
+    { ShapeType::Cylinder, "cylinder"},
+    { ShapeType::Sphere, "sphere"},
+    { ShapeType::None, "empty"},
 };
 
 static const std::map<SensorType, std::string> gazebo_sensor_type_map = {
@@ -122,6 +136,14 @@ struct ExportedFrameInfo {
     std::string exportedFrameName{ "" };
     iDynTree::Transform linkFrame_H_additionalFrame{ iDynTree::Transform::Identity() };
     iDynTree::Transform additionalTransformation{ iDynTree::Transform::Identity() }; // additionalFrameOld_H_additionalFrame 
+};
+
+struct CollisionGeometryInfo {
+    ShapeType shape{ ShapeType::None };
+    std::array<double, 3> size {1.0, 1.0, 1.0};
+    double radius{ 1.0 };
+    double length{ 1.0 };
+    iDynTree::Transform link_H_geometry{iDynTree::Transform::Identity()};
 };
 
 
