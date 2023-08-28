@@ -26,6 +26,7 @@ private:
     void populateJointInfoMap(pfcModel_ptr modelhdl);
     void populateExportedFrameInfoMap(pfcModel_ptr modelhdl);
     void readAssignedInertiasFromConfig();
+    void readAssignedCollisionGeometryFromConfig();
     void readExportedFramesFromConfig();
     bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
     bool loadYamlConfig(const std::string& filename);
@@ -37,6 +38,7 @@ private:
     std::map<std::string, LinkInfo> link_info_map;
     std::map<std::string, ExportedFrameInfo> exported_frame_info_map;
     std::map<std::string, std::array<double,3>> assigned_inertias_map; // 0 -> xx, 1 -> yy, 2 -> zz
+    std::map<std::string, CollisionGeometryInfo> assigned_collision_geometry_map;
     YAML::Node config;
     
     array<double, 3> scale{ 1.0, 1.0, 1.0 };

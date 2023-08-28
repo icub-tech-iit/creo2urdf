@@ -46,6 +46,8 @@ void Creo2Urdf::OnCommand() {
         joint_info_map.clear();
         link_info_map.clear();
         exported_frame_info_map.clear();
+        assigned_inertias_map.clear();
+        assigned_collision_geometry_map.clear();
     }
 
     if(config["scale"].IsDefined()) {
@@ -62,6 +64,7 @@ void Creo2Urdf::OnCommand() {
 
     readExportedFramesFromConfig();
     readAssignedInertiasFromConfig();
+    readAssignedCollisionGeometryFromConfig();
 
     Sensorizer sensorizer;
 
@@ -433,9 +436,43 @@ void Creo2Urdf::populateExportedFrameInfoMap(pfcModel_ptr modelhdl) {
 }
 
 void Creo2Urdf::readAssignedInertiasFromConfig() {
+    if (!config["assignedInertias"].IsDefined()) {
+        return;
+    }
     for (const auto& ai : config["assignedInertias"]) {
         std::array<double, 3> assignedInertia { ai["xx"].as<double>(), ai["yy"].as<double>(), ai["zz"].as<double>()};
         assigned_inertias_map.insert(std::make_pair(ai["linkName"].Scalar(), assignedInertia));
+    }
+}
+
+void Creo2Urdf::readAssignedCollisionGeometryFromConfig() {
+    if (!config["assignedCollisionGeometry"].IsDefined()) {
+        return;
+    }
+    for (const auto& cg : config["assignedCollisionGeometry"]) {
+        CollisionGeometryInfo cgi;
+        cgi.shape = stringToEnum<ShapeType>(shape_type_map, cg["geometricShape"]["shape"].Scalar());
+        switch (cgi.shape)
+        {
+        case ShapeType::Box:
+            cgi.size = cg["geometricShape"]["size"].as < array<double, 3>>();
+            break;
+        case ShapeType::Cylinder:
+            cgi.radius = cg["geometricShape"]["radius"].as<double>();
+            cgi.length = cg["geometricShape"]["lenght"].as<double>();
+            break;
+        case ShapeType::Sphere:
+            cgi.radius = cg["geometricShape"]["radius"].as<double>();
+            break;
+        case ShapeType::None:
+            break;
+        default:
+            break;
+        }
+        auto origin = cg["geometricShape"]["origin"].as < std::array<double, 6>>();
+        cgi.link_H_geometry.setPosition({ origin[0], origin[1], origin[2] });
+        cgi.link_H_geometry.setRotation(iDynTree::Rotation::RPY(origin[3], origin[4], origin[5]));
+        assigned_collision_geometry_map.insert(std::make_pair(cg["linkName"].Scalar(), cgi));
     }
 }
 
@@ -526,9 +563,44 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
 
     visualMesh.setFilename(file_format);
 
-    // TODO Right now let's consider visual and collision with the same mesh
+    if (assigned_collision_geometry_map.find(renamed_link_child_name) != assigned_collision_geometry_map.end()) {
+        auto geometry_info = assigned_collision_geometry_map.at(renamed_link_child_name);
+        switch (geometry_info.shape)
+        {
+        case ShapeType::Box: {
+            iDynTree::Box idyn_box;
+            idyn_box.setX(geometry_info.size[0]); idyn_box.setY(geometry_info.size[1]); idyn_box.setZ(geometry_info.size[2]);
+            idyn_box.setLink_H_geometry(geometry_info.link_H_geometry);
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(idyn_box.clone());
+        }
+            break;
+        case ShapeType::Cylinder: {
+            iDynTree::Cylinder idyn_cylinder;
+            idyn_cylinder.setLength(geometry_info.length);
+            idyn_cylinder.setRadius(geometry_info.radius);
+            idyn_cylinder.setLink_H_geometry(geometry_info.link_H_geometry);
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(idyn_cylinder.clone());
+        }
+            break;
+        case ShapeType::Sphere: {
+            iDynTree::Sphere idyn_sphere;
+            idyn_sphere.setRadius(geometry_info.radius);
+            idyn_sphere.setLink_H_geometry(geometry_info.link_H_geometry);
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(idyn_sphere.clone());
+        }
+            break;
+        case ShapeType::None:
+            break;
+        default:
+            break;
+        }
+
+    }
+    else {
+        idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
+    }
     idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
-    idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
+
 
     return true;
 }
