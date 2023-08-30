@@ -22,13 +22,21 @@ void Creo2Urdf::OnCommand() {
 
     idyn_model = iDynTree::Model::Model(); // no trivial way to clear the model
 
-    if (!loadYamlConfig("ERGOCUB_all_options.yaml"))
+    printToMessageWindow("Please select the .yaml configuration file");
+
+    auto yaml_path = session_ptr->UIOpenFile(pfcFileOpenOptions::Create("*.yml,*.yaml"));
+
+    if (!loadYamlConfig(string(yaml_path)))
     {
         printToMessageWindow("Failed to run Creo2Urdf!", c2uLogLevel::WARN);
         return;
     }
 
-    rapidcsv::Document joints_csv_table("ERGOCUB_joint_all_parameters.csv", rapidcsv::LabelParams(0, 0));
+    printToMessageWindow("Please select the .csv configuration file");
+
+    auto csv_path = session_ptr->UIOpenFile(pfcFileOpenOptions::Create("*.csv"));
+
+    rapidcsv::Document joints_csv_table(string(csv_path), rapidcsv::LabelParams(0, 0));
 
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
