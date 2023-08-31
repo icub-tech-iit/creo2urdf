@@ -194,6 +194,12 @@ void Creo2Urdf::OnCommand() {
             // TODO we have to retrieve the rest transform from creo
             //joint.setRestTransform();
 
+            min = joints_csv_table.GetCell<double>("damping", joint_name);
+            max = joints_csv_table.GetCell<double>("friction", joint_name);
+            joint.seJointDynamicsType(1);
+            joint.setDamping(0, min);
+            joint.setStaticFriciton(0, max);
+
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
@@ -215,7 +221,6 @@ void Creo2Urdf::OnCommand() {
     sensorizer.assignTransformToSensors(exported_frame_info_map);
     // Assign the transforms for the ft sensors
     sensorizer.assignTransformToFTSensor(link_info_map, joint_info_map, scale);
-
 
     // Let's add sensors and ft sensors frames
 

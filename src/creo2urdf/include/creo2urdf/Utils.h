@@ -160,6 +160,17 @@ struct JointInfo {
     std::string parent_link_name{""};
     std::string child_link_name{""};
     JointType type{ JointType::Revolute };
+    struct Limits {
+        double min = 0.0;
+        double max = 360.0;
+    };
+    Limits limits;
+    struct DynamicParams
+    {
+        double damping = 1.0;
+        double friction = 0.0;
+    };
+    DynamicParams dynamics;
 };
 
 struct LinkInfo {
