@@ -7,6 +7,9 @@ Generate URDF model from CREO Parametric mechanisms.
 
 **Since it is under development, we cannot guarantee that the user interface of `creo2urdf` will not implement breaking changes. Be aware of this if you start using the code contained in this repository**
 
+## CREO Parametric versions supported and tested
+- `9.0.2`
+
 ## Assumptions & limitations
 
 - In order to export the urdf of the robot, the relative CREO mechanism has to conform to [these guidelines](https://github.com/icub-tech-iit/cad-libraries/wiki/Prepare-PTC-Creo-Mechanism-for-URDF#generate-the-urdf).
