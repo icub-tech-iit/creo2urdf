@@ -196,9 +196,9 @@ void Creo2Urdf::OnCommand() {
 
             min = joints_csv_table.GetCell<double>("damping", joint_name);
             max = joints_csv_table.GetCell<double>("friction", joint_name);
-            joint.seJointDynamicsType(1);
+            joint.setJointDynamicsType(iDynTree::URDFJointDynamics);
             joint.setDamping(0, min);
-            joint.setStaticFriciton(0, max);
+            joint.setStaticFriction(0, max);
 
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
@@ -232,7 +232,6 @@ void Creo2Urdf::OnCommand() {
                 continue;
             }
         }
-
     }
 
     for (auto& ftsensor : sensorizer.ft_sensors) {
@@ -253,7 +252,6 @@ void Creo2Urdf::OnCommand() {
                 continue;
             }
         }
-
     }
 
     // Let's add all the exported frames
@@ -692,7 +690,6 @@ std::pair<double, double> Creo2Urdf::getLimitsFromElementTree(pfcFeature_ptr fea
         {
             if (element->GetValue()->GetIntValue() != PRO_ASM_SET_TYPE_PIN) 
             { 
-                //printToMessageWindow("Found constraint different from pin, skipping");
                 break;
             }
         }
