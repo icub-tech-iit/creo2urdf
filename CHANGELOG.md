@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.0] - 2023-09-01
+
+- `creo2urdf` can export the urdf of an entire generic robot
+
 ## [0.3.0] - 2023-07-20
 
 - `creo2urdf` can export the urdf of the entire ergocub 1.1 
