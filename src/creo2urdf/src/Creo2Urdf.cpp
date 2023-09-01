@@ -22,13 +22,21 @@ void Creo2Urdf::OnCommand() {
 
     idyn_model = iDynTree::Model::Model(); // no trivial way to clear the model
 
-    if (!loadYamlConfig("ERGOCUB_all_options.yaml"))
+    printToMessageWindow("Please select the .yaml configuration file");
+
+    auto yaml_path = session_ptr->UIOpenFile(pfcFileOpenOptions::Create("*.yml,*.yaml"));
+
+    if (!loadYamlConfig(string(yaml_path)))
     {
         printToMessageWindow("Failed to run Creo2Urdf!", c2uLogLevel::WARN);
         return;
     }
 
-    rapidcsv::Document joints_csv_table("ERGOCUB_joint_all_parameters.csv", rapidcsv::LabelParams(0, 0));
+    printToMessageWindow("Please select the .csv configuration file");
+
+    auto csv_path = session_ptr->UIOpenFile(pfcFileOpenOptions::Create("*.csv"));
+
+    rapidcsv::Document joints_csv_table(string(csv_path), rapidcsv::LabelParams(0, 0));
 
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
@@ -186,6 +194,12 @@ void Creo2Urdf::OnCommand() {
             // TODO we have to retrieve the rest transform from creo
             //joint.setRestTransform();
 
+            min = joints_csv_table.GetCell<double>("damping", joint_name);
+            max = joints_csv_table.GetCell<double>("friction", joint_name);
+            joint.setJointDynamicsType(iDynTree::URDFJointDynamics);
+            joint.setDamping(0, min);
+            joint.setStaticFriction(0, max);
+
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
@@ -208,7 +222,6 @@ void Creo2Urdf::OnCommand() {
     // Assign the transforms for the ft sensors
     sensorizer.assignTransformToFTSensor(link_info_map, joint_info_map, scale);
 
-
     // Let's add sensors and ft sensors frames
 
     for (auto& sensor : sensorizer.sensors) {
@@ -219,7 +232,6 @@ void Creo2Urdf::OnCommand() {
                 continue;
             }
         }
-
     }
 
     for (auto& ftsensor : sensorizer.ft_sensors) {
@@ -240,7 +252,6 @@ void Creo2Urdf::OnCommand() {
                 continue;
             }
         }
-
     }
 
     // Let's add all the exported frames
@@ -679,7 +690,6 @@ std::pair<double, double> Creo2Urdf::getLimitsFromElementTree(pfcFeature_ptr fea
         {
             if (element->GetValue()->GetIntValue() != PRO_ASM_SET_TYPE_PIN) 
             { 
-                //printToMessageWindow("Found constraint different from pin, skipping");
                 break;
             }
         }
