@@ -12,7 +12,7 @@ Generate URDF model from CREO Parametric mechanisms.
 
 ## Assumptions & limitations
 
-- In order to export the urdf of the robot, the relative CREO mechanism has to conform to [these guidelines](https://github.com/icub-tech-iit/cad-libraries/wiki/Prepare-PTC-Creo-Mechanism-for-URDF#generate-the-urdf).
+- In order to export the urdf of the robot, the relative CREO mechanism has to conform to [these guidelines](https://github.com/icub-tech-iit/cad-libraries/wiki/Prepare-PTC-Creo-Mechanism-for-URDF).
 - The joints are in 0.
 
 ## Installation
