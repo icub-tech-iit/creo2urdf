@@ -129,6 +129,7 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
 
     for (const auto& ft : ft_sensors)
     {
+        xmlKeepBlanksDefault(0);
         xmlDocPtr doc = NULL;
         xmlNodePtr root_node = NULL, node = NULL;
         doc = xmlNewDoc(NULL);
@@ -164,12 +165,6 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
 
         for (auto blob : ft.second.xmlBlobs)
         {
-            blob.erase(std::remove_if(blob.begin(), blob.end(),
-                [](unsigned char c) {
-                    return !std::isprint(c);
-                }),
-                blob.end());
-
             xmlNodePtr node_xmlblob = nullptr;
 
             xmlParseInNodeContext(node, blob.c_str(), blob.size(), 0, &node_xmlblob);
@@ -244,6 +239,7 @@ std::vector<std::string> Sensorizer::buildSensorsXMLBlobs()
 
     for (const auto& s : sensors)
     {
+        xmlKeepBlanksDefault(0);
         xmlDocPtr doc = NULL;
         xmlNodePtr root_node = NULL, node = NULL;
         doc = xmlNewDoc(BAD_CAST "1.0");
@@ -269,12 +265,6 @@ std::vector<std::string> Sensorizer::buildSensorsXMLBlobs()
 
         for (auto blob : s.xmlBlobs)
         {
-            blob.erase(std::remove_if(blob.begin(), blob.end(),
-                [](unsigned char c) {
-                    return !std::isprint(c);
-                }),
-                blob.end());
-
             xmlNodePtr node_xmlblob = nullptr;
 
             xmlParseInNodeContext(node, blob.c_str(), blob.size(), 0, &node_xmlblob);
@@ -301,7 +291,6 @@ std::vector<std::string> Sensorizer::buildSensorsXMLBlobs()
         node = xmlNewChild(root_node, NULL, BAD_CAST "origin", NULL);
         xmlNewProp(node, BAD_CAST "rpy", BAD_CAST trf.getRotation().asRPY().toString().c_str());
         xmlNewProp(node, BAD_CAST "xyz", BAD_CAST trf.getPosition().toString().c_str());
-
         doc_buffer = xmlAllocOutputBuffer(NULL);
         xmlNodeDumpOutput(doc_buffer, doc, root_node, 0, 1, NULL);
         xml_blobs.push_back(string((char*)xmlBufContent(doc_buffer->buffer)));
