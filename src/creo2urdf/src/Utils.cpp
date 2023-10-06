@@ -91,6 +91,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 
     bool ret = false;
     std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_frame_name, scale);
+
     if (!ret)
     {
         printToMessageWindow("Unable to get the transform from to the root for " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
@@ -174,7 +175,7 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
         if (string(axis_elem->GetName()) == axis_name)
         {
             axis = axis_elem;
-            // printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
+            //printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
         }
     }
 
