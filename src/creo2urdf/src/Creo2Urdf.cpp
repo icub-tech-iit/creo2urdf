@@ -115,6 +115,11 @@ void Creo2Urdf::OnCommand() {
             }
             link_frame_name = lf["frameName"].Scalar();
         }
+
+        if (link_frame_name.empty()) {
+            printToMessageWindow(link_name + " misses the frame in the linkFrames section, CSYS will be used instead", c2uLogLevel::WARN);
+            link_frame_name = "CSYS";
+        }
         std::tie(ret, root_H_link) = getTransformFromRootToChild(comp_path, component_handle, link_frame_name, scale);
 
         if (!ret)
@@ -148,30 +153,27 @@ void Creo2Urdf::OnCommand() {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
         auto axis_name = joint_info.second.name;
-        //printToMessageWindow("AXIS " + axis_name + " has parent link: " + parent_link_name + " has child link : " + child_link_name);
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
         if (child_link_name.empty()) {
             continue;
         }
+
 
         auto joint_name = getRenameElementFromConfig(parent_link_name + "--" + child_link_name);
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
         auto root_H_child_link = link_info_map.at(child_link_name).root_H_link;
         auto child_model = link_info_map.at(child_link_name).modelhdl;
         auto parent_model = link_info_map.at(parent_link_name).modelhdl;
+        auto parent_link_frame = link_info_map.at(parent_link_name).link_frame_name;
 
         //printToMessageWindow("Parent link H " + root_H_parent_link.toString());
         //printToMessageWindow("Child  link H " + root_H_child_link.toString());
         iDynTree::Transform parent_H_child = iDynTree::Transform::Identity();
         parent_H_child = root_H_parent_link.inverse() * root_H_child_link;
 
-        //printToMessageWindow("H_parent: " + H_parent.toString());
-        //printToMessageWindow("H_child: " + H_child.toString());
-        //printToMessageWindow("prev_link_H_link: " + H_parent_to_child.toString());
-
         if (joint_info.second.type == JointType::Revolute) {
             iDynTree::Direction axis;
-            std::tie(ret, axis) = getRotationAxisFromPart(parent_model, axis_name, root_H_parent_link);
+            std::tie(ret, axis) = getRotationAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
             if (!ret)
             {
@@ -186,24 +188,25 @@ void Creo2Urdf::OnCommand() {
             iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
 
             // Read limits from CSV data, until it is possible to do so from Creo directly
-            double min = joints_csv_table.GetCell<double>("lower_limit", joint_name) * deg2rad;
-            double max = joints_csv_table.GetCell<double>("upper_limit", joint_name) * deg2rad;
+            if (joints_csv_table.GetRowIdx(joint_name) >= 0) {
+                double min = joints_csv_table.GetCell<double>("lower_limit", joint_name) * deg2rad;
+                double max = joints_csv_table.GetCell<double>("upper_limit", joint_name) * deg2rad;
 
-            joint.enablePosLimits(true);
-            joint.setPosLimits(0, min, max);
-            // TODO we have to retrieve the rest transform from creo
-            //joint.setRestTransform();
+                joint.enablePosLimits(true);
+                joint.setPosLimits(0, min, max);
+                // TODO we have to retrieve the rest transform from creo
+                //joint.setRestTransform();
 
-            min = joints_csv_table.GetCell<double>("damping", joint_name);
-            max = joints_csv_table.GetCell<double>("friction", joint_name);
-            joint.setJointDynamicsType(iDynTree::URDFJointDynamics);
-            joint.setDamping(0, min);
-            joint.setStaticFriction(0, max);
+                min = joints_csv_table.GetCell<double>("damping", joint_name);
+                max = joints_csv_table.GetCell<double>("friction", joint_name);
+                joint.setJointDynamicsType(iDynTree::URDFJointDynamics);
+                joint.setDamping(0, min);
+                joint.setStaticFriction(0, max);
+            }
 
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
-
                 return;
             }
         }
@@ -269,6 +272,7 @@ void Creo2Urdf::OnCommand() {
         }
     }
 
+
     std::ofstream idyn_model_out("iDynTreeModel.txt");
     idyn_model_out << idyn_model.toString();
     idyn_model_out.close();
@@ -279,7 +283,8 @@ void Creo2Urdf::OnCommand() {
     if (config["root"].IsDefined())
         export_options.baseLink = config["root"].Scalar();
     else
-        export_options.baseLink = config["rename"]["SIM_ECUB_1-1_ROOT_LINK"].Scalar();
+        export_options.baseLink = "root_link";
+
     
     if (config["XMLBlobs"].IsDefined()) {
         export_options.xmlBlobs = config["XMLBlobs"].as<std::vector<std::string>>();
@@ -378,14 +383,20 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
         JointInfo joint_info;
         joint_info.name = axis_name_str;
         joint_info.type = JointType::Revolute;
-
         if (joint_info_map.find(axis_name_str) == joint_info_map.end()) {
             joint_info.parent_link_name = link_name;
             joint_info_map.insert(std::make_pair(axis_name_str, joint_info));
         }
         else {
             auto& existing_joint_info = joint_info_map.at(axis_name_str);
-            existing_joint_info.child_link_name = link_name;
+            // The child_link_name field should be empty, otherwise it means that we have clash of axis names, let's prevent it
+            if (existing_joint_info.child_link_name.empty()) {
+                existing_joint_info.child_link_name = link_name;
+            }
+            else
+            {
+                printToMessageWindow(axis_name_str + " defines already a revolute joint! Please check the cad.", c2uLogLevel::WARN);
+            }
         }
     }
 
@@ -533,6 +544,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     {
         renamed_link_child_name = config["rename"][link_child_name].Scalar();
     }
+
 
     if (config["stringToRemoveFromMeshFileName"].IsDefined())
     {

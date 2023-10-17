@@ -91,6 +91,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 
     bool ret = false;
     std::tie(ret, csys_H_child) = getTransformFromPart(modelhdl, link_frame_name, scale);
+
     if (!ret)
     {
         printToMessageWindow("Unable to get the transform from to the root for " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
@@ -153,7 +154,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
     return { false, H_child };
 }
 
-std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, iDynTree::Transform root_H_link) {
+std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const string& link_frame_name, const array<double, 3>& scale) {
 
     iDynTree::Direction axis_unit_vector;
 
@@ -174,7 +175,7 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
         if (string(axis_elem->GetName()) == axis_name)
         {
             axis = axis_elem;
-            // printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
+            //printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
         }
     }
 
@@ -188,13 +189,10 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
     axis_unit_vector.setVal(1, unit[1]);
     axis_unit_vector.setVal(2, unit[2]);
 
-    axis_unit_vector = root_H_link.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
-    axis_unit_vector.Normalize();
+    auto csys_H_child = getTransformFromPart(modelhdl, link_frame_name, scale).second;
 
-    /*
-    printToMessageWindow(string(axis->GetName()) + ": (" + std::to_string(axis_unit_vector[0]) + ", "
-                                                        + std::to_string(axis_unit_vector[1]) + ", "
-                                                        + std::to_string(axis_unit_vector[2]) + ")");
-    */
+    axis_unit_vector = csys_H_child.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
+    axis_unit_vector.Normalize();
+    
     return { true, axis_unit_vector };
 }
