@@ -59,8 +59,8 @@ void Creo2Urdf::OnCommand() {
     }
 
     if (config["warningsAreFatal"].IsDefined()) {
-		warningsAreFatal = config["warningsAreFatal"].as<bool>();
-	}
+        warningsAreFatal = config["warningsAreFatal"].as<bool>();
+    }
 
     if(config["scale"].IsDefined()) {
         scale = config["scale"].as<std::array<double,3>>();
