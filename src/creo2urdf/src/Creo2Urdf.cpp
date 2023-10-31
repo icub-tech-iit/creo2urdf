@@ -150,9 +150,11 @@ void Creo2Urdf::OnCommand() {
         populateExportedFrameInfoMap(component_handle);
         
         idyn_model.addLink(urdf_link_name, link);
-        if (!addMeshAndExport(component_handle, link_frame_name) && warningsAreFatal) {
+        if (!addMeshAndExport(component_handle, link_frame_name)) {
             printToMessageWindow("Failed to export mesh for " + link_name, c2uLogLevel::WARN);
-            return;
+            if (warningsAreFatal) {
+                return;
+            }
         }
     }
 
@@ -574,8 +576,17 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     }
 
     std::string stl_file_name = link_child_name + file_extension;
-
-    component_handle->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(stl_transform.c_str())));
+    try {
+        component_handle->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(stl_transform.c_str())));
+    }
+    xcatchbegin
+    xcatchcip(defaultEx)
+    {
+        // TODO: find a way to get the error message
+        printToMessageWindow(": exception caught: ");
+        return false;
+    }
+    xcatchend
 
     // Replace the first 5 bytes of the binary file with a string different than "solid"
     // to avoid issues with stl parsers.
