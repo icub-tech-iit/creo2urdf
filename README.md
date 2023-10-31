@@ -57,6 +57,10 @@ END
 The YAML format is used to pass parameters to the plugin to customized the conversion process.
 The parameter accepted by the plugin are documented in the following.
 
+##### Severity Parameters
+| Attribute name   | Type   | Default Value | Description  |
+|:----------------:|:---------:|:------------:|:-------------:|
+| `warningsAreFatal`     | Boolean     | true | Used for throwing fatal errors in case some steps in the exportation of the urdf are failing. |
 
 ##### Naming Parameters
 | Attribute name   | Type   | Default Value | Description  |

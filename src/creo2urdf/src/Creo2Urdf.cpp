@@ -58,6 +58,10 @@ void Creo2Urdf::OnCommand() {
         assigned_collision_geometry_map.clear();
     }
 
+    if (config["warningsAreFatal"].IsDefined()) {
+		warningsAreFatal = config["warningsAreFatal"].as<bool>();
+	}
+
     if(config["scale"].IsDefined()) {
         scale = config["scale"].as<std::array<double,3>>();
     }
@@ -122,7 +126,7 @@ void Creo2Urdf::OnCommand() {
         }
         std::tie(ret, root_H_link) = getTransformFromRootToChild(comp_path, component_handle, link_frame_name, scale);
 
-        if (!ret)
+        if (!ret && warningsAreFatal)
         {
             return;
         }
@@ -135,6 +139,9 @@ void Creo2Urdf::OnCommand() {
         if (!link.getInertia().isPhysicallyConsistent())
         {
             printToMessageWindow(link_name + " is NOT physically consistent!", c2uLogLevel::WARN);
+            if (warningsAreFatal) {
+                return;
+            }
         }
 
         LinkInfo l_info{urdf_link_name, component_handle, root_H_link, link_frame_name };
@@ -175,7 +182,7 @@ void Creo2Urdf::OnCommand() {
             iDynTree::Direction axis;
             std::tie(ret, axis) = getRotationAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
-            if (!ret)
+            if (!ret && warningsAreFatal)
             {
                 return;
             }
@@ -207,7 +214,9 @@ void Creo2Urdf::OnCommand() {
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
-                return;
+                if (warningsAreFatal) {
+                    return;
+                }
             }
         }
         else if (joint_info.second.type == JointType::Fixed) {
@@ -215,7 +224,9 @@ void Creo2Urdf::OnCommand() {
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
-                return;
+                if (warningsAreFatal) {
+                    return;
+                }
             }
         }
     }
