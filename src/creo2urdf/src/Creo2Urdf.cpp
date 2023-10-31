@@ -150,7 +150,10 @@ void Creo2Urdf::OnCommand() {
         populateExportedFrameInfoMap(component_handle);
         
         idyn_model.addLink(urdf_link_name, link);
-        addMeshAndExport(component_handle, link_frame_name);
+        if (!addMeshAndExport(component_handle, link_frame_name) && warningsAreFatal) {
+            printToMessageWindow("Failed to export mesh for " + link_name, c2uLogLevel::WARN);
+            return;
+        }
     }
 
     // Now we have to add joints to the iDynTree model
