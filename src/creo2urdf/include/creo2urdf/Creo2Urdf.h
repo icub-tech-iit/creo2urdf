@@ -45,6 +45,7 @@ private:
     array<double, 3> scale{ 1.0, 1.0, 1.0 };
     array<double, 3> originXYZ {0.0, 0.0, 0.0};
     array<double, 3> originRPY {0.0, 0.0, 0.0};
+    bool warningsAreFatal{ true };
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {

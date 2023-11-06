@@ -14,6 +14,9 @@ Generate URDF model from CREO Parametric mechanisms.
 
 - In order to export the urdf of the robot, the relative CREO mechanism has to conform to [these guidelines](https://github.com/icub-tech-iit/cad-libraries/wiki/Prepare-PTC-Creo-Mechanism-for-URDF).
 - The joints are in 0.
+- Right now it can handle only **REVOLUTE** and **FIXED** joints.
+- If two parts share an **AXIS** it means they are parent and child links of a **REVOLUTE** joint
+- If two parts share a **CSYS** it means they are parent and child links of a **FIXED** joint
 
 ## Installation
 
@@ -57,6 +60,10 @@ END
 The YAML format is used to pass parameters to the plugin to customized the conversion process.
 The parameter accepted by the plugin are documented in the following.
 
+##### Severity Parameters
+| Attribute name   | Type   | Default Value | Description  |
+|:----------------:|:---------:|:------------:|:-------------:|
+| `warningsAreFatal`     | Boolean     | true | Used for throwing fatal errors in case some steps in the exportation of the urdf are failing. |
 
 ##### Naming Parameters
 | Attribute name   | Type   | Default Value | Description  |
