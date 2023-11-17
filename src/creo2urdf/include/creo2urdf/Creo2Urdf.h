@@ -11,6 +11,7 @@
 
 #include <creo2urdf/Utils.h>
 #include <creo2urdf/Sensorizer.h>
+#include <creo2urdf/ElementTreeManager.h>
 
 #include <rapidcsv.h>
 

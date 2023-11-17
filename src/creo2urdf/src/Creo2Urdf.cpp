@@ -137,6 +137,8 @@ void Creo2Urdf::OnCommand() {
     sensorizer.readFTSensorsFromConfig(config);
     sensorizer.readSensorsFromConfig(config);
 
+    ElementTreeManager elem_tree;
+
     // Let's traverse the model tree and get all links and axis properties
     for (int i = 0; i < asm_component_list->getarraysize(); i++)
     {      
@@ -147,10 +149,14 @@ void Creo2Urdf::OnCommand() {
             continue;
         }
 
+
         xintsequence_ptr seq = xintsequence::create();
         seq->append(feat->GetId());
 
-        getLimits(feat);
+        elem_tree.buildElementTree(feat);
+
+        printToMessageWindow("constraint: " + to_string(elem_tree.getConstraintType()));
+       // printToMessageWindow("parent: " + (elem_tree.getParentPart()));
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
