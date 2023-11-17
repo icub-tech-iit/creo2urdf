@@ -9,8 +9,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <pfcGlobal.h>
-
 #include <cmath>
 #include <string>
 #include <array>
@@ -24,7 +22,6 @@
 #include <pfcComponentFeat.h>
 
 #include <wfcGeometry.h>
-#include <wfcModelItem.h>
 #include <wfcFeature.h>
 #include <wfcModelItem.h>
 #include <wfcModel.h>
