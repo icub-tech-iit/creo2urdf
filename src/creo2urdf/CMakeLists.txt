@@ -18,6 +18,7 @@ set(CREO2URDF_SRCS src/main.cpp
                    src/Validator.cpp
                    src/Sensorizer.cpp
                    src/Utils.cpp
+                   src/ElementTreeManager.cpp
 )
 
 set(CREO2URDF_IMPL_HDRS )

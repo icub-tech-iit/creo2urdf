@@ -149,20 +149,20 @@ void Creo2Urdf::OnCommand() {
             continue;
         }
 
-
         xintsequence_ptr seq = xintsequence::create();
         seq->append(feat->GetId());
 
         elem_tree.buildElementTree(feat);
 
         printToMessageWindow("constraint: " + to_string(elem_tree.getConstraintType()));
-       // printToMessageWindow("parent: " + (elem_tree.getParentPart()));
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
         auto component_handle = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
         
         auto link_name = string(component_handle->GetFullName());
+
+        printToMessageWindow(elem_tree.getParentName() + " --> " + link_name);
 
         iDynTree::Transform root_H_link = iDynTree::Transform::Identity();
         
