@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.1] - 2023-11-23
+
+- Added `warningsAreFatal` parameter
+- Added handling of exception when exporting stl files
 - Fixed urdf identation
 
 ## [0.4.0] - 2023-09-01
