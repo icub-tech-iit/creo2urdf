@@ -13,7 +13,10 @@ ElementTreeManager::ElementTreeManager()
 
 ElementTreeManager::ElementTreeManager(pfcFeature_ptr feat)
 {
-    buildElementTree(feat);
+    if (!buildElementTree(feat))
+    {
+        printToMessageWindow("Feature does not support element trees!", c2uLogLevel::WARN);
+    }
 }
 
 ElementTreeManager::~ElementTreeManager() {}
@@ -22,7 +25,16 @@ bool ElementTreeManager::buildElementTree(pfcFeature_ptr feat)
 {
     wfcWFeature_ptr wfeat = wfcWFeature::cast(feat);
 
-    tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);
+    try
+    {
+        tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);
+    }
+    xcatchbegin
+    xcatchcip(pfcXToolkitInvalidType)
+    {
+        return false;
+    }
+    xcatchend
 
     child_name = retrieveChildName();
 
@@ -79,7 +91,7 @@ int ElementTreeManager::getConstraintType()
     xcatchbegin
     xcatchcip(pfcXBadGetArgValue)
     {
-        printToMessageWindow("Invalid constraint type", c2uLogLevel::WARN);
+        printToMessageWindow("Invalid constraint data type in element tree!", c2uLogLevel::WARN);
         return -1;
     }
     xcatchend
@@ -113,7 +125,7 @@ std::string ElementTreeManager::retrieveChildName()
         return std::string(element->GetSpecialValueElem()->GetComponentModel()->GetFullName());
     }
     xcatchbegin
-        xcatchcip(defaultEx)
+    xcatchcip(defaultEx)
     {
         return "";
     }
