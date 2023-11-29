@@ -18,7 +18,13 @@ Generate URDF model from CREO Parametric mechanisms.
 - If two parts share an **AXIS** it means they are parent and child links of a **REVOLUTE** joint
 - If two parts share a **CSYS** it means they are parent and child links of a **FIXED** joint
 
-## Installation
+## Installation from binaries
+
+Download `creo2urdf.zip` from the assets of the [latest release](https://github.com/icub-tech-iit/creo2urdf/releases/latest), and extract it in the folder you like.<br>
+Follow the [`Usage`](https://github.com/icub-tech-iit/creo2urdf/tree/master#usage) section instructions for completing the installation. <br>
+This archive contains the dll of the plugin and the `text` folder for running it. <br>
+
+## Installation from sources
 
 ### Dependencies
 Right now the `creo2urdf` plugin needs its dependencies to be compiled and linked **statically**:
