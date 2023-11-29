@@ -153,7 +153,7 @@ enum class JointType {
 };
 
 struct JointInfo {
-    std::string name{""};
+    std::string datum_name{""}; // datum name can be the axis name for the revolute , and the csys for the fixed
     std::string parent_link_name{""};
     std::string child_link_name{""};
     JointType type{ JointType::Revolute };

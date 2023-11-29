@@ -152,9 +152,9 @@ void Creo2Urdf::OnCommand() {
         xintsequence_ptr seq = xintsequence::create();
         seq->append(feat->GetId());
 
-        elem_tree.buildElementTree(feat);
+        elem_tree.populateJointInfoFromElementTree(feat, joint_info_map);
 
-        printToMessageWindow("constraint: " + to_string(elem_tree.getConstraintType()));
+        // printToMessageWindow("constraint: " + to_string(elem_tree.getConstraintType()));
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
@@ -162,7 +162,7 @@ void Creo2Urdf::OnCommand() {
         
         auto link_name = string(component_handle->GetFullName());
 
-        printToMessageWindow(elem_tree.getParentName() + " --> " + link_name);
+        // printToMessageWindow(elem_tree.getParentName() + " --> " + link_name);
 
         iDynTree::Transform root_H_link = iDynTree::Transform::Identity();
         
@@ -204,7 +204,7 @@ void Creo2Urdf::OnCommand() {
 
         LinkInfo l_info{urdf_link_name, component_handle, root_H_link, link_frame_name };
         link_info_map.insert(std::make_pair(link_name, l_info));
-        populateJointInfoMap(component_handle);
+        // populateJointInfoMap(component_handle);
         populateExportedFrameInfoMap(component_handle);
         
         idyn_model.addLink(urdf_link_name, link);
@@ -222,7 +222,7 @@ void Creo2Urdf::OnCommand() {
     for (auto & joint_info : joint_info_map) {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
-        auto axis_name = joint_info.second.name;
+        auto axis_name = joint_info.second.datum_name;
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
         if (child_link_name.empty()) {
             continue;
@@ -455,7 +455,7 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
         auto axis_elem = pfcAxis::cast(axes_list->get(xint(i)));
         auto axis_name_str = string(axis_elem->GetName());
         JointInfo joint_info;
-        joint_info.name = axis_name_str;
+        joint_info.datum_name = axis_name_str;
         joint_info.type = JointType::Revolute;
         if (joint_info_map.find(axis_name_str) == joint_info_map.end()) {
             joint_info.parent_link_name = link_name;
@@ -490,7 +490,7 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
         }
 
         JointInfo joint_info;
-        joint_info.name = csys_name;
+        joint_info.datum_name = csys_name;
         joint_info.type = JointType::Fixed;
         if (joint_info_map.find(csys_name) == joint_info_map.end()) {
             joint_info.parent_link_name = link_name;

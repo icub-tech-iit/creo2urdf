@@ -11,9 +11,9 @@
 ElementTreeManager::ElementTreeManager()
 {}
 
-ElementTreeManager::ElementTreeManager(pfcFeature_ptr feat)
+ElementTreeManager::ElementTreeManager(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map)
 {
-    if (!buildElementTree(feat))
+    if (!populateJointInfoFromElementTree(feat, joint_info_map))
     {
         printToMessageWindow("Feature does not support element trees!", c2uLogLevel::WARN);
     }
@@ -21,9 +21,9 @@ ElementTreeManager::ElementTreeManager(pfcFeature_ptr feat)
 
 ElementTreeManager::~ElementTreeManager() {}
 
-bool ElementTreeManager::buildElementTree(pfcFeature_ptr feat)
+bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map)
 {
-    wfcWFeature_ptr wfeat = wfcWFeature::cast(feat);
+    wfeat = wfcWFeature::cast(feat);
 
     try
     {
@@ -35,37 +35,26 @@ bool ElementTreeManager::buildElementTree(pfcFeature_ptr feat)
         return false;
     }
     xcatchend
+    
+    JointInfo joint;
 
-    child_name = retrieveChildName();
+    if (!retrieveSolidReferences())
+        return false;
 
-    auto parents = wfeat->GetExternalParents(wfcExternalReferenceType::wfcALL_REF_TYPES);
+    joint.child_link_name = getChildName();
+    joint.parent_link_name = getParentName();
+    joint.type = proAsmCompSetType_to_JointType.at(static_cast<ProAsmcompSetType>(getConstraintType()));
 
-    if (parents == NULL) {
-
-        return true;
+    if (joint.type == JointType::Revolute)
+    {
+        joint.datum_name = string(retrieveJointAxis()->GetName());
+    }
+    else if (joint.type == JointType::Fixed)
+    {
+        joint.datum_name = string(retrieveFixedJointCsys()->GetName());
     }
 
-    for (int l = 0; l < parents->getarraysize(); l++) {
-
-        auto extrefs = parents->get(l)->GetExtRefs();
-
-        if (extrefs == NULL) {
-            printToMessageWindow(child_name + " has no parent links");
-            return true;
-        }
-
-        // each element in this array is given by a constraint and
-        // the number of parts that compose it
-        // e.g. 2 parts x 3 constraints = size(extrefs) = 6
-        // We assume there are only two parts and they are named differently
-        for (int m = 0; m < extrefs->getarraysize(); m++) {
-            auto extref_name = std::string(extrefs->get(m)->GetAsmcomponents()->GetPathToRef()->GetLeaf()->GetFullName());
-            if (extref_name != child_name)
-            {
-                parent_name = extref_name;
-            }
-        }
-    }
+    joint_info_map.insert({ joint.datum_name, joint });
 
     return true;
 }
@@ -97,17 +86,117 @@ int ElementTreeManager::getConstraintType()
     xcatchend
 }
 
+pfcAxis_ptr ElementTreeManager::retrieveJointAxis()
+{
+    pfcAxis_ptr axis = nullptr;
+    auto axes_list = child_solid->ListItems(pfcModelItemType::pfcITEM_AXIS);
+    if (axes_list->getarraysize() == 0) {
+        printToMessageWindow("There is no axis in " + getChildName(), c2uLogLevel::WARN);
+        return axis;
+    }
+
+    if (axes_list->getarraysize() > 1)
+        printToMessageWindow("Found more than one axis! Using the first one", c2uLogLevel::WARN);
+
+    return pfcAxis::cast(axes_list->get(0));
+}
+
+pfcCoordSystem_ptr ElementTreeManager::retrieveFixedJointCsys()
+{
+    pfcCoordSystem_ptr csys = nullptr;
+    auto list = child_solid->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+    if (list->getarraysize() == 0) {
+        printToMessageWindow("There is no csys in " + getChildName(), c2uLogLevel::WARN);
+        return csys;
+    }
+
+    //if (list->getarraysize() > 1)
+    //    printToMessageWindow("Found more than one csys! Using the first one", c2uLogLevel::WARN);
+
+    return pfcCoordSystem::cast(list->get(0));
+}
+
+
+
 std::string ElementTreeManager::getParentName()
 {
     if (tree == nullptr)
     {
         return "";
     }
-
-    return parent_name;
+    try{
+        return  std::string(parent_solid->GetFullName());
+    }
+    xcatchbegin
+    xcatchcip(defaultEx)
+    {
+        return "";
+    }
+    xcatchend
 }
 
-std::string ElementTreeManager::retrieveChildName()
+std::string ElementTreeManager::getChildName()
+{
+    if (tree == nullptr)
+    {
+        return "";
+    }
+    try {
+
+    return std::string(child_solid->GetFullName());
+    }
+    xcatchbegin
+    xcatchcip(defaultEx)
+    {
+        return "";
+    }
+    xcatchend
+}
+
+bool ElementTreeManager::retrieveSolidReferences()
+{
+    auto parents = wfeat->GetExternalParents(wfcExternalReferenceType::wfcALL_REF_TYPES);
+
+    if (parents == NULL) {
+
+        return false;
+    }
+
+    for (int l = 0; l < parents->getarraysize(); l++)
+    {
+        auto extrefs = parents->get(l)->GetExtRefs();
+
+        if (extrefs == NULL) {
+            return false;
+        }
+
+        // each element in this array is given by a constraint and
+        // the number of parts that compose it
+        // e.g. 2 parts x 3 constraints = size(extrefs) = 6
+        // We assume there are only two parts and they are named differently
+
+        if (extrefs->getarraysize() == 0)
+            return false;
+
+        for (int m = 0; m < extrefs->getarraysize(); m++) {
+            auto extref = extrefs->get(m)->GetAsmcomponents()->GetPathToRef()->GetLeaf();
+
+            if (std::string(extref->GetFullName()) != retrievePartName())
+            {
+                parent_solid = extref;
+            }
+            if (std::string(extref->GetFullName()) == retrievePartName())
+            {
+                printToMessageWindow(std::string(extref->GetFullName()));
+                child_solid = extref;
+            }
+        }
+    }
+
+    return true;
+}
+
+std::string ElementTreeManager::retrievePartName()
 {
     if (tree == nullptr)
     {
@@ -130,4 +219,51 @@ std::string ElementTreeManager::retrieveChildName()
         return "";
     }
     xcatchend
+}
+
+std::pair<double, double> ElementTreeManager::retrieveLimits(pfcFeature_ptr feat)
+{
+    wfcElemPathItems_ptr elemItems = wfcElemPathItems::create();
+    wfcElemPathItem_ptr Item;
+    wfcElement_ptr element;
+
+    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SETS);
+    elemItems->append(Item);
+    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SET);
+    elemItems->append(Item);
+    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_SETS);
+    elemItems->append(Item);
+    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_SET);
+    elemItems->append(Item);
+    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_MAX_LIMIT);
+    elemItems->append(Item);
+    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_MAX_LIMIT_VAL);
+    elemItems->append(Item);
+
+    wfcElementPath_ptr limitpath = wfcElementPath::Create(elemItems);
+    element = tree->GetElement(limitpath);
+
+    double max = element->GetValue()->GetDoubleValue();
+
+     elemItems->clear();
+
+     Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SETS);
+     elemItems->append(Item);
+     Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SET);
+     elemItems->append(Item);
+     Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_SETS);
+     elemItems->append(Item);
+     Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_SET);
+     elemItems->append(Item);
+     Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_MIN_LIMIT);
+     elemItems->append(Item);
+     Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_MIN_LIMIT_VAL);
+     elemItems->append(Item);
+
+     limitpath = wfcElementPath::Create(elemItems);
+     element = tree->GetElement(limitpath);
+
+     double min = element->GetValue()->GetDoubleValue();
+
+    return std::pair<double, double>(min, max);
 }

@@ -8,23 +8,38 @@
 
 #include <creo2urdf/Utils.h>
 
+static const std::map<ProAsmcompSetType, JointType> proAsmCompSetType_to_JointType
+{
+    {PRO_ASM_SET_TYPE_PIN, JointType::Revolute},
+    {PRO_ASM_SET_TYPE_SLIDER, JointType::Linear},
+    {PRO_ASM_SET_TYPE_BALL, JointType::Spherical},
+    {PRO_ASM_SET_TYPE_FIXED, JointType::Fixed},
+    {PRO_ASM_SET_TYPE_WELD, JointType::Fixed},
+    {PRO_ASM_SET_USER_DEFINED_TYPE, JointType::Fixed} /* WE ASSUME THAT A USER DEFINED IS FIXED */
+};
+
+
 class ElementTreeManager {
 
 public:
     ElementTreeManager();
-    ElementTreeManager(pfcFeature_ptr feat);
+    ElementTreeManager(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map);
 
     ~ElementTreeManager();
 
-    bool buildElementTree(pfcFeature_ptr feat);
+    bool populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map);
     int getConstraintType();
     std::string getParentName();
+    std::string getChildName();
 
 private:
     wfcElementTree_ptr tree = nullptr;
-    std::string parent_name;
-    std::string child_name;
-
-    std::string retrieveChildName();
-
+    wfcWFeature_ptr wfeat = nullptr;
+    pfcSolid_ptr parent_solid;
+    pfcSolid_ptr child_solid;
+    pfcAxis_ptr retrieveJointAxis();
+    pfcCoordSystem_ptr retrieveFixedJointCsys();
+    bool retrieveSolidReferences();
+    std::string retrievePartName();
+    std::pair<double, double> retrieveLimits(pfcFeature_ptr feat);
 };
