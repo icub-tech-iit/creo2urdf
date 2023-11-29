@@ -1,7 +1,7 @@
 # creo2urdf
 Generate URDF model from CREO Parametric mechanisms.
 
-> **Warning**
+> [!warning]
 >
 > ⚠️ LIBRARY UNDER DEVELOPMENT ⚠️
 
