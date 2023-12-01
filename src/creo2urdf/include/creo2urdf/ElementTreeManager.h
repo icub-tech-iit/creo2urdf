@@ -37,7 +37,8 @@ private:
     wfcWFeature_ptr wfeat = nullptr;
     pfcSolid_ptr parent_solid;
     pfcSolid_ptr child_solid;
-    std::string retrieveCommonDatumName(pfcModelItemType type);
+   /* std::string retrieveCommonDatumName(pfcModelItemType type);*/
+    string getConstraintDatum(pfcFeature_ptr feat, pfcComponentConstraintType constraint_type, pfcModelItemType datum_type);
     bool retrieveSolidReferences();
     std::string retrievePartName();
     std::pair<double, double> retrieveLimits(pfcFeature_ptr feat);

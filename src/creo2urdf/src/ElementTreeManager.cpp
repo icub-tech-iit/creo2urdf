@@ -47,11 +47,16 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
 
     if (joint.type == JointType::Revolute)
     {
-        joint.datum_name = retrieveCommonDatumName(pfcModelItemType::pfcITEM_AXIS);
+        // We assume that one axis is used to defined the revolute joint
+        joint.datum_name = getConstraintDatum(feat, 
+            pfcComponentConstraintType::pfcASM_CONSTRAINT_ALIGN,
+            pfcModelItemType::pfcITEM_AXIS);
     }
     else if (joint.type == JointType::Fixed)
     {
-        joint.datum_name = retrieveCommonDatumName(pfcModelItemType::pfcITEM_COORD_SYS);
+        joint.datum_name = getConstraintDatum(feat,
+            pfcComponentConstraintType::pfcASM_CONSTRAINT_CSYS,
+            pfcModelItemType::pfcITEM_COORD_SYS);
     }
 
     joint_info_map.insert({ joint.datum_name, joint });
@@ -86,6 +91,27 @@ int ElementTreeManager::getConstraintType()
     xcatchend
 }
 
+string ElementTreeManager::getConstraintDatum(pfcFeature_ptr feat, pfcComponentConstraintType constraint_type, pfcModelItemType datum_type)
+{
+    auto compfeat = pfcComponentFeat::cast(feat);
+    auto constr = compfeat->GetConstraints();
+
+    for (size_t i = 0; i < constr->getarraysize(); i++)
+    {
+        auto c = constr->get(i);
+
+        if (c->GetType() == constraint_type &&
+            c->GetAssemblyReference()->GetSelItem()->GetType() == datum_type)
+        {
+            auto s = string(c->GetAssemblyReference()->GetSelItem()->GetName());
+            return s;
+        }
+    }
+
+    return "";
+}
+
+/*
 std::string ElementTreeManager::retrieveCommonDatumName(pfcModelItemType type)
 {
     auto child_datums = getSolidDatumNames(child_solid, type);
@@ -121,6 +147,7 @@ std::string ElementTreeManager::retrieveCommonDatumName(pfcModelItemType type)
 
     return matched_datums[0];
 }
+*/
 
 std::string ElementTreeManager::getParentName()
 {

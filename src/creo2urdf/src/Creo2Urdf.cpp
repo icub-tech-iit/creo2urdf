@@ -154,15 +154,11 @@ void Creo2Urdf::OnCommand() {
 
         elem_tree.populateJointInfoFromElementTree(feat, joint_info_map);
 
-        // printToMessageWindow("constraint: " + to_string(elem_tree.getConstraintType()));
-
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
         auto component_handle = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
         
         auto link_name = string(component_handle->GetFullName());
-
-        // printToMessageWindow(elem_tree.getParentName() + " --> " + link_name);
 
         iDynTree::Transform root_H_link = iDynTree::Transform::Identity();
         
@@ -204,7 +200,6 @@ void Creo2Urdf::OnCommand() {
 
         LinkInfo l_info{urdf_link_name, component_handle, root_H_link, link_frame_name };
         link_info_map.insert(std::make_pair(link_name, l_info));
-        // populateJointInfoMap(component_handle);
         populateExportedFrameInfoMap(component_handle);
         
         idyn_model.addLink(urdf_link_name, link);
