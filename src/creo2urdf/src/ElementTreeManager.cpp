@@ -96,7 +96,7 @@ string ElementTreeManager::getConstraintDatum(pfcFeature_ptr feat, pfcComponentC
     auto compfeat = pfcComponentFeat::cast(feat);
     auto constr = compfeat->GetConstraints();
 
-    for (size_t i = 0; i < constr->getarraysize(); i++)
+    for (int i = 0; i < constr->getarraysize(); i++)
     {
         auto c = constr->get(i);
 

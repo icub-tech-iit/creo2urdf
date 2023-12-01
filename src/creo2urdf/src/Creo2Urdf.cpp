@@ -9,56 +9,6 @@
 #include <creo2urdf/Creo2Urdf.h>
 #include <creo2urdf/Utils.h>
 
-
-void getLimits(pfcFeature_ptr feat)
-{
-    wfcWFeature_ptr wfeat = wfcWFeature::cast(feat);
-    wfcElementTree_ptr tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);
-
-    wfcElemPathItems_ptr elemItems = wfcElemPathItems::create();
-    wfcElemPathItem_ptr Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SETS);
-    elemItems->append(Item);
-    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SET);
-    elemItems->append(Item);
-    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SET_TYPE);
-    elemItems->append(Item);
-
-    wfcElementPath_ptr constraintPath = wfcElementPath::Create(elemItems);
-
-    wfcElement_ptr element = tree->GetElement(constraintPath);
-
-    if (element->GetValue()->GetIntValue() != PRO_ASM_SET_TYPE_PIN)
-        printToMessageWindow("found something that is not pin");
-    else
-    {
-        printToMessageWindow("found pin");
-        elemItems->clear();
-
-        Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SETS);
-        elemItems->append(Item);
-        Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_SET);
-        elemItems->append(Item);
-        Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_SETS);
-        elemItems->append(Item);
-        Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_SET);
-        elemItems->append(Item);
-        Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_MAX_LIMIT);
-        elemItems->append(Item);
-        Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_JAS_MAX_LIMIT_VAL);
-        elemItems->append(Item);
-
-        wfcElementPath_ptr limitpath = wfcElementPath::Create(elemItems);
-
-        element = tree->GetElement(limitpath);
-
-        printToMessageWindow(to_string(element->GetValue()->GetDoubleValue()));
-    
-    }
-
-    return;
-}
-
-
 void Creo2Urdf::OnCommand() {
 
     pfcSession_ptr session_ptr = pfcGetProESession();
@@ -758,45 +708,6 @@ std::string Creo2Urdf::getRenameElementFromConfig(const std::string& elem_name)
         printToMessageWindow("Element " + elem_name + " is not present in the configuration file!", c2uLogLevel::WARN);
         return elem_name;
     }
-}
-
-std::pair<double, double> Creo2Urdf::getLimitsFromElementTree(pfcFeature_ptr feat)
-{
-    wfcWFeature_ptr wfeat = wfcWFeature::cast(feat);
-    wfcElementTree_ptr tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);
-
-    auto elements = tree->ListTreeElements();
-
-    bool min_found = false;
-    bool max_found = false;
-    double min = 0.0;
-    double max = 0.0;
-
-    for (xint i = 0; i < elements->getarraysize(); i++)
-    {
-        auto element = elements->get(i);
-        if (element->GetId() == wfcPRO_E_COMPONENT_SET_TYPE)
-        {
-            if (element->GetValue()->GetIntValue() != PRO_ASM_SET_TYPE_PIN) 
-            { 
-                break;
-            }
-        }
-        else if (element->GetId() == wfcPRO_E_COMPONENT_JAS_MIN_LIMIT_VAL)
-        {
-            min_found = true;
-            min = element->GetValue()->GetDoubleValue();
-        }
-        else if (element->GetId() == wfcPRO_E_COMPONENT_JAS_MAX_LIMIT_VAL)
-        {
-            max_found = true;
-            max = element->GetValue()->GetDoubleValue();
-        }
-
-        if (min_found && max_found) break;
-    }
-
-    return std::make_pair(min, max);
 }
 
 pfcCommandAccess Creo2UrdfAccess::OnCommandAccess(xbool AllowErrorMessages)
