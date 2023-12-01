@@ -111,44 +111,6 @@ string ElementTreeManager::getConstraintDatum(pfcFeature_ptr feat, pfcComponentC
     return "";
 }
 
-/*
-std::string ElementTreeManager::retrieveCommonDatumName(pfcModelItemType type)
-{
-    auto child_datums = getSolidDatumNames(child_solid, type);
-    auto parent_datums = getSolidDatumNames(parent_solid, type);
-
-    // sort to reduce search complexity
-    std::sort(child_datums.begin(), child_datums.end());
-    std::sort(parent_datums.begin(), parent_datums.end());
-
-    std::vector<std::string> matched_datums;
-
-    // Find the common elements using set_intersection
-    std::set_intersection(child_datums.begin(), child_datums.end(),
-        parent_datums.begin(), parent_datums.end(),
-        std::back_inserter(matched_datums));
-
-    matched_datums.erase(remove_if(matched_datums.begin(), matched_datums.end(),
-        [](string element) {return (element == "CSYS" || element == "ASM_CSYS" || element.empty()); }), matched_datums.end()
-    );
-
-    if (matched_datums.size() == 0)
-    {
-        printToMessageWindow(getParentName() + " and " + getChildName() +
-            " have no axes in common!", c2uLogLevel::WARN);
-        return "";
-    }
-
-    if (matched_datums.size() > 1)
-    {
-        printToMessageWindow(getParentName() + " and " + getChildName() +
-            " have " + to_string(matched_datums.size()) + " datums in common!", c2uLogLevel::WARN);
-    }
-
-    return matched_datums[0];
-}
-*/
-
 std::string ElementTreeManager::getParentName()
 {
     if (tree == nullptr)
@@ -205,7 +167,6 @@ bool ElementTreeManager::retrieveSolidReferences()
         // the number of parts that compose it
         // e.g. 2 parts x 3 constraints = size(extrefs) = 6
         // We assume there are only two parts and they are named differently
-
         if (extrefs->getarraysize() == 0)
             return false;
 
