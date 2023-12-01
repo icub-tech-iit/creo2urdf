@@ -47,6 +47,23 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>
     return idyn_trf;
 }
 
+std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type)
+{
+    std::vector<string> result;
+    auto items = solid->ListItems(type);
+    if (items->getarraysize() == 0) {
+        printToMessageWindow("There is no axis in " + string(solid->GetFullName()), c2uLogLevel::WARN);
+        return result;
+    }
+
+    for (int i = 0; i < items->getarraysize(); i++)
+    {
+        result.push_back(std::string(items->get(i)->GetName()));
+    }
+
+    return result;
+}
+
 void printToMessageWindow(std::string message, c2uLogLevel log_level)
 {
     pfcSession_ptr session_ptr = pfcGetProESession();
@@ -165,6 +182,9 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
 
         return { false, axis_unit_vector };
     }
+
+    if (axis_name.empty())
+        return { false, axis_unit_vector };
 
     pfcAxis* axis = nullptr;
 

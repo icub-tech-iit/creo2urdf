@@ -224,6 +224,8 @@ T stringToEnum(const std::map<T, std::string> & map, const std::string & s)
 
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data);
 
+std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type);
+
 iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale = { 1.0,1.0,1.0 });
 
 void printToMessageWindow(std::string message, c2uLogLevel log_level = c2uLogLevel::INFO);

@@ -47,11 +47,11 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
 
     if (joint.type == JointType::Revolute)
     {
-        joint.datum_name = string(retrieveJointAxis()->GetName());
+        joint.datum_name = retrieveCommonDatumName(pfcModelItemType::pfcITEM_AXIS);
     }
     else if (joint.type == JointType::Fixed)
     {
-        joint.datum_name = string(retrieveFixedJointCsys()->GetName());
+        joint.datum_name = retrieveCommonDatumName(pfcModelItemType::pfcITEM_COORD_SYS);
     }
 
     joint_info_map.insert({ joint.datum_name, joint });
@@ -86,37 +86,41 @@ int ElementTreeManager::getConstraintType()
     xcatchend
 }
 
-pfcAxis_ptr ElementTreeManager::retrieveJointAxis()
+std::string ElementTreeManager::retrieveCommonDatumName(pfcModelItemType type)
 {
-    pfcAxis_ptr axis = nullptr;
-    auto axes_list = child_solid->ListItems(pfcModelItemType::pfcITEM_AXIS);
-    if (axes_list->getarraysize() == 0) {
-        printToMessageWindow("There is no axis in " + getChildName(), c2uLogLevel::WARN);
-        return axis;
+    auto child_datums = getSolidDatumNames(child_solid, type);
+    auto parent_datums = getSolidDatumNames(parent_solid, type);
+
+    // sort to reduce search complexity
+    std::sort(child_datums.begin(), child_datums.end());
+    std::sort(parent_datums.begin(), parent_datums.end());
+
+    std::vector<std::string> matched_datums;
+
+    // Find the common elements using set_intersection
+    std::set_intersection(child_datums.begin(), child_datums.end(),
+        parent_datums.begin(), parent_datums.end(),
+        std::back_inserter(matched_datums));
+
+    matched_datums.erase(remove_if(matched_datums.begin(), matched_datums.end(),
+        [](string element) {return (element == "CSYS" || element == "ASM_CSYS" || element.empty()); }), matched_datums.end()
+    );
+
+    if (matched_datums.size() == 0)
+    {
+        printToMessageWindow(getParentName() + " and " + getChildName() +
+            " have no axes in common!", c2uLogLevel::WARN);
+        return "";
     }
 
-    if (axes_list->getarraysize() > 1)
-        printToMessageWindow("Found more than one axis! Using the first one", c2uLogLevel::WARN);
-
-    return pfcAxis::cast(axes_list->get(0));
-}
-
-pfcCoordSystem_ptr ElementTreeManager::retrieveFixedJointCsys()
-{
-    pfcCoordSystem_ptr csys = nullptr;
-    auto list = child_solid->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-    if (list->getarraysize() == 0) {
-        printToMessageWindow("There is no csys in " + getChildName(), c2uLogLevel::WARN);
-        return csys;
+    if (matched_datums.size() > 1)
+    {
+        printToMessageWindow(getParentName() + " and " + getChildName() +
+            " have " + to_string(matched_datums.size()) + " datums in common!", c2uLogLevel::WARN);
     }
 
-    //if (list->getarraysize() > 1)
-    //    printToMessageWindow("Found more than one csys! Using the first one", c2uLogLevel::WARN);
-
-    return pfcCoordSystem::cast(list->get(0));
+    return matched_datums[0];
 }
-
-
 
 std::string ElementTreeManager::getParentName()
 {
@@ -187,7 +191,6 @@ bool ElementTreeManager::retrieveSolidReferences()
             }
             if (std::string(extref->GetFullName()) == retrievePartName())
             {
-                printToMessageWindow(std::string(extref->GetFullName()));
                 child_solid = extref;
             }
         }

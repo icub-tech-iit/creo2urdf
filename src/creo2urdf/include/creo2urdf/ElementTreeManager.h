@@ -37,8 +37,7 @@ private:
     wfcWFeature_ptr wfeat = nullptr;
     pfcSolid_ptr parent_solid;
     pfcSolid_ptr child_solid;
-    pfcAxis_ptr retrieveJointAxis();
-    pfcCoordSystem_ptr retrieveFixedJointCsys();
+    std::string retrieveCommonDatumName(pfcModelItemType type);
     bool retrieveSolidReferences();
     std::string retrievePartName();
     std::pair<double, double> retrieveLimits(pfcFeature_ptr feat);

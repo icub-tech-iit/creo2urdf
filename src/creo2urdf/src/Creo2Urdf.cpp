@@ -228,7 +228,6 @@ void Creo2Urdf::OnCommand() {
             continue;
         }
 
-
         auto joint_name = getRenameElementFromConfig(parent_link_name + "--" + child_link_name);
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
         auto root_H_child_link = link_info_map.at(child_link_name).root_H_link;
