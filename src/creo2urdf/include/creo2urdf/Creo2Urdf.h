@@ -11,6 +11,7 @@
 
 #include <creo2urdf/Utils.h>
 #include <creo2urdf/Sensorizer.h>
+#include <creo2urdf/ElementTreeManager.h>
 
 #include <rapidcsv.h>
 
@@ -31,7 +32,6 @@ private:
     bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
     bool loadYamlConfig(const std::string& filename);
     std::string getRenameElementFromConfig(const std::string& elem_name);
-    std::pair<double, double> getLimitsFromElementTree(pfcFeature_ptr feat);
 
     iDynTree::Model idyn_model;
     std::map<std::string, JointInfo> joint_info_map;

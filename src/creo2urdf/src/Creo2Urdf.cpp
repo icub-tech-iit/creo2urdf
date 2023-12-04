@@ -87,6 +87,8 @@ void Creo2Urdf::OnCommand() {
     sensorizer.readFTSensorsFromConfig(config);
     sensorizer.readSensorsFromConfig(config);
 
+    ElementTreeManager elem_tree;
+
     // Let's traverse the model tree and get all links and axis properties
     for (int i = 0; i < asm_component_list->getarraysize(); i++)
     {      
@@ -99,6 +101,8 @@ void Creo2Urdf::OnCommand() {
 
         xintsequence_ptr seq = xintsequence::create();
         seq->append(feat->GetId());
+
+        elem_tree.populateJointInfoFromElementTree(feat, joint_info_map);
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
 
@@ -146,7 +150,6 @@ void Creo2Urdf::OnCommand() {
 
         LinkInfo l_info{urdf_link_name, component_handle, root_H_link, link_frame_name };
         link_info_map.insert(std::make_pair(link_name, l_info));
-        populateJointInfoMap(component_handle);
         populateExportedFrameInfoMap(component_handle);
         
         idyn_model.addLink(urdf_link_name, link);
@@ -164,12 +167,11 @@ void Creo2Urdf::OnCommand() {
     for (auto & joint_info : joint_info_map) {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
-        auto axis_name = joint_info.second.name;
+        auto axis_name = joint_info.second.datum_name;
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
         if (child_link_name.empty()) {
             continue;
         }
-
 
         auto joint_name = getRenameElementFromConfig(parent_link_name + "--" + child_link_name);
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
@@ -397,7 +399,7 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
         auto axis_elem = pfcAxis::cast(axes_list->get(xint(i)));
         auto axis_name_str = string(axis_elem->GetName());
         JointInfo joint_info;
-        joint_info.name = axis_name_str;
+        joint_info.datum_name = axis_name_str;
         joint_info.type = JointType::Revolute;
         if (joint_info_map.find(axis_name_str) == joint_info_map.end()) {
             joint_info.parent_link_name = link_name;
@@ -432,7 +434,7 @@ void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
         }
 
         JointInfo joint_info;
-        joint_info.name = csys_name;
+        joint_info.datum_name = csys_name;
         joint_info.type = JointType::Fixed;
         if (joint_info_map.find(csys_name) == joint_info_map.end()) {
             joint_info.parent_link_name = link_name;
@@ -706,45 +708,6 @@ std::string Creo2Urdf::getRenameElementFromConfig(const std::string& elem_name)
         printToMessageWindow("Element " + elem_name + " is not present in the configuration file!", c2uLogLevel::WARN);
         return elem_name;
     }
-}
-
-std::pair<double, double> Creo2Urdf::getLimitsFromElementTree(pfcFeature_ptr feat)
-{
-    wfcWFeature_ptr wfeat = wfcWFeature::cast(feat);
-    wfcElementTree_ptr tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);
-
-    auto elements = tree->ListTreeElements();
-
-    bool min_found = false;
-    bool max_found = false;
-    double min = 0.0;
-    double max = 0.0;
-
-    for (xint i = 0; i < elements->getarraysize(); i++)
-    {
-        auto element = elements->get(i);
-        if (element->GetId() == wfcPRO_E_COMPONENT_SET_TYPE)
-        {
-            if (element->GetValue()->GetIntValue() != PRO_ASM_SET_TYPE_PIN) 
-            { 
-                break;
-            }
-        }
-        else if (element->GetId() == wfcPRO_E_COMPONENT_JAS_MIN_LIMIT_VAL)
-        {
-            min_found = true;
-            min = element->GetValue()->GetDoubleValue();
-        }
-        else if (element->GetId() == wfcPRO_E_COMPONENT_JAS_MAX_LIMIT_VAL)
-        {
-            max_found = true;
-            max = element->GetValue()->GetDoubleValue();
-        }
-
-        if (min_found && max_found) break;
-    }
-
-    return std::make_pair(min, max);
 }
 
 pfcCommandAccess Creo2UrdfAccess::OnCommandAccess(xbool AllowErrorMessages)

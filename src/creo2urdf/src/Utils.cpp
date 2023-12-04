@@ -47,6 +47,23 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>
     return idyn_trf;
 }
 
+std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type)
+{
+    std::vector<string> result;
+    auto items = solid->ListItems(type);
+    if (items->getarraysize() == 0) {
+        printToMessageWindow("There is no axis in " + string(solid->GetFullName()), c2uLogLevel::WARN);
+        return result;
+    }
+
+    for (int i = 0; i < items->getarraysize(); i++)
+    {
+        result.push_back(std::string(items->get(i)->GetName()));
+    }
+
+    return result;
+}
+
 void printToMessageWindow(std::string message, c2uLogLevel log_level)
 {
     pfcSession_ptr session_ptr = pfcGetProESession();
@@ -157,15 +174,17 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
 std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const string& link_frame_name, const array<double, 3>& scale) {
 
     iDynTree::Direction axis_unit_vector;
+    axis_unit_vector.zero();
 
     auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
-    // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
     if (axes_list->getarraysize() == 0) {
         printToMessageWindow("There is no AXIS in the part " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
 
-        axis_unit_vector.zero();
         return { false, axis_unit_vector };
     }
+
+    if (axis_name.empty())
+        return { false, axis_unit_vector };
 
     pfcAxis* axis = nullptr;
 
@@ -175,7 +194,6 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
         if (string(axis_elem->GetName()) == axis_name)
         {
             axis = axis_elem;
-            //printToMessageWindow("The axis is called " + string(axis_elem->GetName()));
         }
     }
 
@@ -189,7 +207,7 @@ std::pair<bool, iDynTree::Direction> getRotationAxisFromPart(pfcModel_ptr modelh
     axis_unit_vector.setVal(1, unit[1]);
     axis_unit_vector.setVal(2, unit[2]);
 
-    auto csys_H_child = getTransformFromPart(modelhdl, link_frame_name, scale).second;
+    auto& csys_H_child = getTransformFromPart(modelhdl, link_frame_name, scale).second;
 
     axis_unit_vector = csys_H_child.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
     axis_unit_vector.Normalize();

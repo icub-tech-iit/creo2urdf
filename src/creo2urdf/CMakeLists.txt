@@ -11,12 +11,14 @@ set(CREO2URDF_HDRS include/creo2urdf/Creo2Urdf.h
                    include/creo2urdf/Validator.h
                    include/creo2urdf/Sensorizer.h
                    include/creo2urdf/Utils.h
+                   include/creo2urdf/ElementTreeManager.h
 )
 set(CREO2URDF_SRCS src/main.cpp
                    src/Creo2Urdf.cpp
                    src/Validator.cpp
                    src/Sensorizer.cpp
                    src/Utils.cpp
+                   src/ElementTreeManager.cpp
 )
 
 set(CREO2URDF_IMPL_HDRS )

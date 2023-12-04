@@ -9,8 +9,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <pfcGlobal.h>
-
 #include <cmath>
 #include <string>
 #include <array>
@@ -24,7 +22,6 @@
 #include <pfcComponentFeat.h>
 
 #include <wfcGeometry.h>
-#include <wfcModelItem.h>
 #include <wfcFeature.h>
 #include <wfcModelItem.h>
 #include <wfcModel.h>
@@ -156,7 +153,7 @@ enum class JointType {
 };
 
 struct JointInfo {
-    std::string name{""};
+    std::string datum_name{""}; // datum name can be the axis name for the revolute , and the csys for the fixed
     std::string parent_link_name{""};
     std::string child_link_name{""};
     JointType type{ JointType::Revolute };
@@ -226,6 +223,8 @@ T stringToEnum(const std::map<T, std::string> & map, const std::string & s)
 }
 
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data);
+
+std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type);
 
 iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale = { 1.0,1.0,1.0 });
 
