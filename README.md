@@ -13,7 +13,7 @@ Generate URDF model from CREO Parametric mechanisms.
 ## Assumptions & limitations
 
 - In order to export the urdf of the robot, the relative CREO mechanism has to conform to [these guidelines](https://github.com/icub-tech-iit/cad-libraries/wiki/Prepare-PTC-Creo-Mechanism-for-URDF).
-- The joints are in 0.
+- The joints are in position 0.
 - Right now it can handle only **REVOLUTE** and **FIXED** joints.
 
 ## Installation from binaries
@@ -219,7 +219,7 @@ to URDF limitations.
 | `sensorBlobs` | String | empty | Array of strings (possibly on multiple lines) represeting complex XML blobs that will be included as child of the `<sensor>` element |
 
 ##### XML Blobs options
-IF you use extensions of URDF, we frequently want to add non-standard tags as child of the `<robot>` root element.
+If you use extensions of URDF, we frequently want to add non-standard tags as child of the `<robot>` root element.
 Using the XMLBlobs option, you can pass an array of strings (event on multiple lines) represeting complex XML blobs that you
 want to include in the converted URDF file. This will be included without modifications in the converted URDF file.
 Note that every blob must have only one root element.
@@ -229,13 +229,11 @@ Note that every blob must have only one root element.
 | `XMLBlobs `         | Array of String  |  [] (empty array)   | List of XML Blobs to include in the URDF file as children of `<robot>` |
 
 #### CSV  Parameter File
-Using the `--csv-joints` options it is possible to load some joint-related information from a csv
-file. The rationale for using CSV over YAML for some information related to the model (for example joint limits) is to use a format that it is easier to modify  using common spreadsheet tools like Excel/LibreOffice Calc, that can be easily used also by people without a background in computer science.
+By using the a .csv file it is possible to load some joint-related information from a csv file. 
+The rationale for using CSV over YAML for some information related to the model (for example joint limits) is to use a format that it is easier to modify  using common spreadsheet tools like Excel/LibreOffice Calc, that can be easily used also by people without a background in computer science.
 
 ##### Format
-The CSV file is loaded by loaded by the python `csv` module, so every dialect supported
-by the [`csv.Sniffer()`](https://docs.python.org/library/csv.html#csv.Sniffer) is automatically
-supported by `simmechanics-to-urdf`.
+The CSV file is loaded and parsed using the [d99kris/rapidcsv](https://github.com/d99kris/rapidcsv) library. Please refer to its documentation for supported dialects of the format.
 
 The CSV file is formed by a header line followed by several content lines,
 as in this example:
@@ -251,8 +249,8 @@ are listed in the following:
 | Attribute name | Required | Unit of Measure |   Description  |
 |:--------------:|:--------:|:----------------:|:---------------:|
 | joint_name     |  **Yes**  |      -          | Name of the joint to which the content line is referring |
-| lower_limit    |  No      | Degrees         | `lower` attribute of the `limit` child element of the URDF `joint`. **Please note that we specify this limit here in Degrees, but in the urdf it is expressed in Radians, the script will take care of  internally converting this parameter.** |
-| upper_limit    |  No      | Degrees         | `upper` attribute of the `limit` child element of the URDF `joint`. **Please note that we specify this limit here in Degrees, but in the urdf it is expressed in Radians, the script will take care of  internally converting this parameter.** |
+| lower_limit    |  No      | Degrees         | `lower` attribute of the `limit` child element of the URDF `joint`. **Please note that we specify this limit here in Degrees, but in the urdf it is expressed in Radians, the plugin will take care of  internally converting this parameter.** |
+| upper_limit    |  No      | Degrees         | `upper` attribute of the `limit` child element of the URDF `joint`. **Please note that we specify this limit here in Degrees, but in the urdf it is expressed in Radians, the plugin will take care of  internally converting this parameter.** |
 | velocity_limit | No      | Radians/second    | `velocity` attribute of the `limit` child element of the URDF `joint`. |
 | effort_limit | No      |  Newton meters    | `effort` attribute of the `limit` child element of the URDF `joint`.
 | damping  | No      |  Newton meter seconds / radians    | `damping` of the `dynamics` child element of the URDF `joint`. |
