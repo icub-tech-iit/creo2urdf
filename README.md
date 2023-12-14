@@ -59,7 +59,7 @@ END
 - Press the button
  <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/19866e6c-8f52-4010-84ef-db458189b753" width=600 align=center >
  
-- Select a yaml and csv configuration files with a format explained in the following sections.
+- Select a yaml and csv configuration files with a format explained in the following sections, and the folder where the urdf and the meshes will be saved.
 
 ### YAML Parameter File
 The YAML format is used to pass parameters to the plugin to customized the conversion process.
