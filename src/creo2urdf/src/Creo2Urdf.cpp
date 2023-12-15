@@ -21,22 +21,28 @@ void Creo2Urdf::OnCommand() {
     // length_unit->Modify(pfcUnitConversionFactor::Create(0.001), length_unit->GetReferenceUnit()); // IT DOES NOT WORK
 
     idyn_model = iDynTree::Model::Model(); // no trivial way to clear the model
+    auto yaml_file_open_option = pfcFileOpenOptions::Create("*.yml,*.yaml");
+    yaml_file_open_option->SetDialogLabel("Select the yaml");
 
-    printToMessageWindow("Please select the .yaml configuration file");
-
-    auto yaml_path = session_ptr->UIOpenFile(pfcFileOpenOptions::Create("*.yml,*.yaml"));
+    auto yaml_path = session_ptr->UIOpenFile(yaml_file_open_option);
 
     if (!loadYamlConfig(string(yaml_path)))
     {
         printToMessageWindow("Failed to run Creo2Urdf!", c2uLogLevel::WARN);
         return;
     }
+    auto csv_file_open_option = pfcFileOpenOptions::Create("*.csv");
+    csv_file_open_option->SetDialogLabel("Select the csv");
 
-    printToMessageWindow("Please select the .csv configuration file");
-
-    auto csv_path = session_ptr->UIOpenFile(pfcFileOpenOptions::Create("*.csv"));
+    auto csv_path = session_ptr->UIOpenFile(csv_file_open_option);
 
     rapidcsv::Document joints_csv_table(string(csv_path), rapidcsv::LabelParams(0, 0));
+    auto output_folder_open_option = pfcDirectorySelectionOptions::Create();
+    output_folder_open_option->SetDialogLabel("Select the output dir");
+
+    m_output_path = string(session_ptr->UISelectDirectory(output_folder_open_option));
+    printToMessageWindow("Output path is: " + m_output_path);
+    
 
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
@@ -338,7 +344,7 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
         return false;
     }
 
-    if (!mdl_exporter.exportModelToFile("model.urdf"))
+    if (!mdl_exporter.exportModelToFile(m_output_path+ "\\" + "model.urdf"))
     {
         printToMessageWindow("Error exporting the urdf. See iDynTreeErrors.txt for details", c2uLogLevel::WARN);
         return false;
@@ -577,7 +583,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
             [](unsigned char c) { return std::tolower(c); });
     }
 
-    std::string stl_file_name = link_child_name + file_extension;
+    std::string stl_file_name = m_output_path + "\\" + link_child_name + file_extension;
     try {
         component_handle->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(stl_transform.c_str())));
     }

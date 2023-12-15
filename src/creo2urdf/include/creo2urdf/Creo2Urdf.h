@@ -46,6 +46,7 @@ private:
     array<double, 3> originXYZ {0.0, 0.0, 0.0};
     array<double, 3> originRPY {0.0, 0.0, 0.0};
     bool warningsAreFatal{ true };
+    std::string m_output_path{ "" };
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {
