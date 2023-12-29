@@ -8,6 +8,7 @@
 
 #include <creo2urdf/Creo2Urdf.h>
 #include <creo2urdf/Utils.h>
+#include <pfcExceptions.h>
 
 void Creo2Urdf::OnCommand() {
 
@@ -558,40 +559,70 @@ void Creo2Urdf::readExportedFramesFromConfig() {
     }
 }
 
-bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform)
+bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::string& mesh_transform)
 {
     std::string file_extension = ".stl";
-    std::string link_child_name = component_handle->GetFullName();
-    std::string renamed_link_child_name = link_child_name;
+    std::string link_name = component_handle->GetFullName();
+    std::string renamed_link_name = link_name;
  
-    if (config["rename"][link_child_name].IsDefined())
+    if (config["rename"][link_name].IsDefined())
     {
-        renamed_link_child_name = config["rename"][link_child_name].Scalar();
+        renamed_link_name = config["rename"][link_name].Scalar();
     }
 
 
     if (config["stringToRemoveFromMeshFileName"].IsDefined())
     {
-        link_child_name.erase(link_child_name.find(config["stringToRemoveFromMeshFileName"].Scalar()), 
+        link_name.erase(link_name.find(config["stringToRemoveFromMeshFileName"].Scalar()), 
             config["stringToRemoveFromMeshFileName"].Scalar().length());
+    }
+    std::string meshFormat = "stl_binary";
+    if (config["meshFormat"].IsDefined()) {
+
+        meshFormat = config["meshFormat"].Scalar();
+        if (mesh_types_supported_extension_map.find(meshFormat) != mesh_types_supported_extension_map.end()) {
+            file_extension = mesh_types_supported_extension_map.at(meshFormat);
+        }
+        else {
+            printToMessageWindow("Mesh format " + meshFormat + " is not supported", c2uLogLevel::WARN);
+            if (warningsAreFatal) {
+                return false;
+            }
+        }
     }
 
     // Make all alphabetic characters lowercase
     if (config["forcelowercase"].as<bool>())
     {
-        std::transform(link_child_name.begin(), link_child_name.end(), link_child_name.begin(),
+        std::transform(link_name.begin(), link_name.end(), link_name.begin(),
             [](unsigned char c) { return std::tolower(c); });
     }
 
-    std::string stl_file_name = m_output_path + "\\" + link_child_name + file_extension;
+    std::string mesh_file_name = m_output_path + "\\" + link_name;
+
+    if (meshFormat != "step") {
+        // We use ExportIntf3D for step format, applies the extension to the file name.
+        mesh_file_name += file_extension;
+    }
     try {
-        component_handle->Export(stl_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(stl_transform.c_str())));
+        if (meshFormat == "stl_binary") {
+            component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(mesh_transform.c_str())));
+        }
+        else if(meshFormat =="stl_ascii") {
+            component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLASCIIExportInstructions().Create(mesh_transform.c_str())));
+        }
+        else if (meshFormat == "step") {
+            component_handle->ExportIntf3D(mesh_file_name.c_str(), pfcExportType::pfcEXPORT_STEP);
+        }
+        else {
+            return false;
+        }
+
     }
     xcatchbegin
     xcatchcip(defaultEx)
     {
-        // TODO: find a way to get the error message
-        printToMessageWindow(": exception caught: ");
+        printToMessageWindow(": exception caught: " + string(pfcXPFC::cast(defaultEx)->GetMessage()));
         return false;
     }
     xcatchend
@@ -599,7 +630,9 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     // Replace the first 5 bytes of the binary file with a string different than "solid"
     // to avoid issues with stl parsers.
     // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
-    sanitizeSTL(stl_file_name);
+    if (meshFormat == "stl_binary") {
+        sanitizeSTL(mesh_file_name);
+    }
 
     // Lets add the mesh to the link
     iDynTree::ExternalMesh visualMesh;
@@ -609,10 +642,10 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     iDynTree::Vector4 color;
     iDynTree::Material material;
 
-    if(config["assignedColors"][renamed_link_child_name].IsDefined())
+    if(config["assignedColors"][renamed_link_name].IsDefined())
     {
-        for (size_t i = 0; i < config["assignedColors"][renamed_link_child_name].size(); i++)
-            color(i) = config["assignedColors"][renamed_link_child_name][i].as<double>();
+        for (size_t i = 0; i < config["assignedColors"][renamed_link_name].size(); i++)
+            color(i) = config["assignedColors"][renamed_link_name][i].as<double>();
     } 
     else
     {
@@ -633,20 +666,20 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     }
 
     // We assume there is only one of occurrence to replace
-    file_format.replace(file_format.find("%s"), file_format.length(), link_child_name);
+    file_format.replace(file_format.find("%s"), file_format.length(), link_name);
     file_format += file_extension;
 
     visualMesh.setFilename(file_format);
 
-    if (assigned_collision_geometry_map.find(renamed_link_child_name) != assigned_collision_geometry_map.end()) {
-        auto geometry_info = assigned_collision_geometry_map.at(renamed_link_child_name);
+    if (assigned_collision_geometry_map.find(renamed_link_name) != assigned_collision_geometry_map.end()) {
+        auto geometry_info = assigned_collision_geometry_map.at(renamed_link_name);
         switch (geometry_info.shape)
         {
         case ShapeType::Box: {
             iDynTree::Box idyn_box;
             idyn_box.setX(geometry_info.size[0]); idyn_box.setY(geometry_info.size[1]); idyn_box.setZ(geometry_info.size[2]);
             idyn_box.setLink_H_geometry(geometry_info.link_H_geometry);
-            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(idyn_box.clone());
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_name)].push_back(idyn_box.clone());
         }
             break;
         case ShapeType::Cylinder: {
@@ -654,14 +687,14 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
             idyn_cylinder.setLength(geometry_info.length);
             idyn_cylinder.setRadius(geometry_info.radius);
             idyn_cylinder.setLink_H_geometry(geometry_info.link_H_geometry);
-            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(idyn_cylinder.clone());
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_name)].push_back(idyn_cylinder.clone());
         }
             break;
         case ShapeType::Sphere: {
             iDynTree::Sphere idyn_sphere;
             idyn_sphere.setRadius(geometry_info.radius);
             idyn_sphere.setLink_H_geometry(geometry_info.link_H_geometry);
-            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(idyn_sphere.clone());
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_name)].push_back(idyn_sphere.clone());
         }
             break;
         case ShapeType::None:
@@ -672,9 +705,9 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
 
     }
     else {
-        idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
+        idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_name)].push_back(visualMesh.clone());
     }
-    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_child_name)].push_back(visualMesh.clone());
+    idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_name)].push_back(visualMesh.clone());
 
 
     return true;
