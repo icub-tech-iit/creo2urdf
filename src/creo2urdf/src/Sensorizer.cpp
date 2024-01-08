@@ -163,7 +163,7 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
         std::string pose_xyz_rpy = trf.getPosition().toString() + " " + trf.getRotation().asRPY().toString();
         node1 = xmlNewChild(node, NULL, BAD_CAST "pose", BAD_CAST pose_xyz_rpy.c_str());
 
-        for (auto blob : ft.second.xmlBlobs)
+        for (auto & blob : ft.second.xmlBlobs)
         {
             xmlNodePtr node_xmlblob = nullptr;
 
@@ -263,7 +263,7 @@ std::vector<std::string> Sensorizer::buildSensorsXMLBlobs()
 
         xmlNewChild(node, NULL, BAD_CAST "pose", BAD_CAST pose.c_str());
 
-        for (auto blob : s.xmlBlobs)
+        for (auto & blob : s.xmlBlobs)
         {
             xmlNodePtr node_xmlblob = nullptr;
 

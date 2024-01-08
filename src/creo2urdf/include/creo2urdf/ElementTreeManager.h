@@ -8,6 +8,12 @@
 
 #include <creo2urdf/Utils.h>
 
+#include <wfcFeature.h>
+#include <wfcElemIds.h>
+
+#include <ProAsmcomp.h>
+
+
 /**
  * @brief Mapping from ProAsmcompSetType to JointType.
  *

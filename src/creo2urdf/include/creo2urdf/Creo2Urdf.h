@@ -13,6 +13,14 @@
 #include <creo2urdf/Sensorizer.h>
 #include <creo2urdf/ElementTreeManager.h>
 
+#include <pfcShrinkwrap.h>
+#include <pfcAssembly.h>
+
+#include <iDynTree/ModelIO/ModelExporter.h>
+#include <iDynTree/ModelIO/ModelLoader.h>
+#include <iDynTree/KinDynComputations.h>
+#include <iDynTree/Model/Traversal.h>
+
 #include <rapidcsv.h>
 
 

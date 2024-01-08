@@ -18,32 +18,13 @@
 #include <pfcGlobal.h>
 #include <pfcModel.h>
 #include <pfcSolid.h>
-#include <pfcShrinkwrap.h>
-#include <pfcAssembly.h>
 #include <pfcComponentFeat.h>
 
 #include <wfcGeometry.h>
-#include <wfcFeature.h>
-#include <wfcModelItem.h>
-#include <wfcModel.h>
-#include <wfcGlobal.h>
-#include <wfcElemIds.h>
-
-#include <ProAsmcomp.h>
 
 #include <iDynTree/Model/Model.h>
-#include <iDynTree/ModelIO/ModelExporter.h>
-#include <iDynTree/ModelIO/ModelLoader.h>
 #include <iDynTree/Model/RevoluteJoint.h>
 #include <iDynTree/Model/FixedJoint.h>
-#include <iDynTree/KinDynComputations.h>
-#include <iDynTree/Model/Traversal.h>
-
-#include <libxml2/libxml/parser.h>
-#include <libxml2/libxml/tree.h>
-#include <libxml/xmlwriter.h>
-
-#include <yaml-cpp/yaml.h>
 
 /**
  * @brief Small positive value used for numerical precision comparisons.
@@ -394,6 +375,7 @@ void printTransformMatrix(pfcTransform3D_ptr m);
  * @param m The Creo 3D transform to print
  */
 void printRotationMatrix(pfcMatrix3D_ptr m);
+
 /**
  * @brief Replaces the first 5 bytes of a binary STL file with the string "robot".
  * This is necessary to avoid accidental parsing of the file as ASCII.
