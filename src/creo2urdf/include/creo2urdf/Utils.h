@@ -54,6 +54,7 @@ const std::unordered_map<std::string, std::string> mesh_types_supported_extensio
                                                                                       {"step",       ".stp"}
 };
 
+/*
  * @brief Enum representing the log levels of creo2urdf.
  * 
  * This enumeration defines different log levels that can be used to categorize log messages.
