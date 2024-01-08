@@ -109,20 +109,20 @@ private:
      */
     std::string getRenameElementFromConfig(const std::string& elem_name);
 
-    iDynTree::Model idyn_model;
-    std::map<std::string, JointInfo> joint_info_map;
-    std::map<std::string, LinkInfo> link_info_map;
-    std::map<std::string, ExportedFrameInfo> exported_frame_info_map;
-    std::map<std::string, std::array<double,3>> assigned_inertias_map; // 0 -> xx, 1 -> yy, 2 -> zz
-    std::map<std::string, CollisionGeometryInfo> assigned_collision_geometry_map;
-    YAML::Node config;
-    bool exportAllUseradded{ false };
+    iDynTree::Model idyn_model; /**< The iDynTree model representing the mechanism tree. */
+    std::map<std::string, JointInfo> joint_info_map; /**< Map storing information about joints. */
+    std::map<std::string, LinkInfo> link_info_map; /**< Map storing information about links. */
+    std::map<std::string, ExportedFrameInfo> exported_frame_info_map; /**< Map storing information about exported frames. */
+    std::map<std::string, std::array<double,3>> assigned_inertias_map; /**< Map storing assigned inertias. 0 -> xx, 1 -> yy, 2 -> zz. */
+    std::map<std::string, CollisionGeometryInfo> assigned_collision_geometry_map; /**< Map storing assigned collision geometries. */
+    YAML::Node config; /**< YAML configuration node, storing the content of the configuration file. */
+    bool exportAllUseradded{ false }; /**< Flag indicating whether to export all user-added frames. */
     
-    array<double, 3> scale{ 1.0, 1.0, 1.0 };
-    array<double, 3> originXYZ {0.0, 0.0, 0.0};
-    array<double, 3> originRPY {0.0, 0.0, 0.0};
-    bool warningsAreFatal{ true };
-    std::string m_output_path{ "" };
+    std::array<double, 3> scale{ 1.0, 1.0, 1.0 }; /**< Scale factor for the exported model. Useful for converting between m and mm and viceversa. */
+    std::array<double, 3> originXYZ {0.0, 0.0, 0.0}; /**< Origin offset in XYZ for the exported model. */
+    std::array<double, 3> originRPY {0.0, 0.0, 0.0}; /**< Origin offset in Roll-Pitch-Yaw for the exported model. */
+    bool warningsAreFatal{ true }; /**< Flag indicating whether warnings are treated as fatal errors. */
+    std::string m_output_path{ "" }; /**< Output path for the exported URDF file. */
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {
