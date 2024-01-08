@@ -18,7 +18,8 @@
 #include <yaml-cpp/yaml.h>
 
 /**
- * @brief Represents a Sensorizer with functions to read and assign sensor information.
+ * @brief Represents a Sensorizer class, used read sensors information from a YAML node, 
+ * and create the related XML blobs to feed to iDynTree Model Exporter.
  */
 struct Sensorizer {
 
