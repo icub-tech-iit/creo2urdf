@@ -29,7 +29,7 @@ private:
     void readAssignedInertiasFromConfig();
     void readAssignedCollisionGeometryFromConfig();
     void readExportedFramesFromConfig();
-    bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& stl_transform);
+    bool addMeshAndExport(pfcModel_ptr component_handle, const std::string& mesh_transform);
     bool loadYamlConfig(const std::string& filename);
     std::string getRenameElementFromConfig(const std::string& elem_name);
 

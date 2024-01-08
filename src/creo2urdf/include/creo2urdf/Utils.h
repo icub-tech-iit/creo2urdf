@@ -13,6 +13,7 @@
 #include <string>
 #include <array>
 #include <map>
+#include <unordered_map>
 
 #include <pfcGlobal.h>
 #include <pfcModel.h>
@@ -48,6 +49,11 @@ constexpr double epsilon = 1e-12;
 constexpr double rad2deg = 180.0 / M_PI;
 constexpr double deg2rad = 1 / rad2deg;
 constexpr double gravity_z = -9.81;
+
+const std::unordered_map<std::string, std::string> mesh_types_supported_extension_map{{"stl_binary", ".stl"},
+                                                                                      {"stl_ascii",  ".stl"},
+                                                                                      {"step",       ".stp"}
+};
 
 enum class c2uLogLevel
 {
