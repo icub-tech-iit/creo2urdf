@@ -404,34 +404,35 @@ void printRotationMatrix(pfcMatrix3D_ptr m);
 void sanitizeSTL(std::string stl);
 
 /**
- * @brief Get the Transform From Root To Child object
+ * @brief Get the 3D Transform From Root frame of the assembly (parent) to the frame of the selected model (child)
  * 
- * @param comp_path 
- * @param modelhdl 
- * @param link_frame_name 
- * @param scale 
- * @return std::pair<bool, iDynTree::Transform> 
+ * @param comp_path The component path of the assembly from the asm to the selected model
+ * @param modelhdl The model handle that contains link_frame_name
+ * @param link_frame_name The name of the frame belonging to modelhdl
+ * @param scale The scaling factor for the origin of the child frame
+ * @return std::pair<bool, iDynTree::Transform> Pair containing a success/failure flag, and a 3D transform in iDynTree format
  */
 std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
 /**
- * @brief Get the Transform From Part object
+ * @brief Get the 3D Transform From Root frame of the part (parent) to the frame of the selected model (child)
  * 
- * @param modelhdl 
- * @param link_frame_name 
- * @param scale 
- * @return std::pair<bool, iDynTree::Transform> 
+ * @param modelhdl The model handle that contains link_frame_name
+ * @param link_frame_name The name of the frame belonging to modelhdl
+ * @param scale The scaling factor for the origin of the child frame
+ * @return std::pair<bool, iDynTree::Transform> Pair containing a success/failure flag, and a 3D transform in iDynTree format
  */
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
 /**
- * @brief Get the Rotation Axis From Part object
+ * @brief Get the Rotation Axis From model for the addition of a revolute joint.
+ * The direction is expressed in the link_frame_name coordinate system.
  * 
- * @param modelhdl 
- * @param axis_name 
- * @param link_frame_name 
- * @param scale 
- * @return std::pair<bool, iDynTree::Direction> 
+ * @param modelhdl The model handle that contains link_frame_name
+ * @param axis_name The name of the desired axis of which to retrieve the direction
+ * @param link_frame_name The name of the frame belonging to modelhdl
+ * @param scale The scaling factor for the origin of the child frame
+ * @return std::pair<bool, iDynTree::Direction>  Pair containing a success/failure flag, and the axis direction
  */
 std::pair<bool, iDynTree::Direction> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_frame_name, const array<double, 3>& scale);
 
