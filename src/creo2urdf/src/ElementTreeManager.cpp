@@ -58,6 +58,16 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
             pfcComponentConstraintType::pfcASM_CONSTRAINT_CSYS,
             pfcModelItemType::pfcITEM_COORD_SYS);
     }
+    else if (joint.type == JointType::Linear) {
+        // We assume that one axis is used to defined the linear joint
+        joint.datum_name = getConstraintDatum(feat,
+                                              pfcComponentConstraintType::pfcASM_CONSTRAINT_ALIGN,
+                                              pfcModelItemType::pfcITEM_AXIS);
+    }
+    else {
+        printToMessageWindow("Joint type not supported!", c2uLogLevel::WARN);
+        return false;
+    }
 
     joint_info_map.insert({ joint.datum_name, joint });
 

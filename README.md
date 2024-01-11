@@ -14,7 +14,7 @@ Generate URDF model from CREO Parametric mechanisms.
 
 - In order to export the urdf of the robot, the relative CREO mechanism has to conform to [these guidelines](https://github.com/icub-tech-iit/cad-libraries/wiki/Prepare-PTC-Creo-Mechanism-for-URDF).
 - The joints are in position 0.
-- Right now it can handle only **REVOLUTE** and **FIXED** joints.
+- Right now it can handle only **REVOLUTE**, **PRISMATIC** and **FIXED** joints.
 
 ## Installation from binaries
 

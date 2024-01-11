@@ -9,6 +9,7 @@
 #include <creo2urdf/Creo2Urdf.h>
 #include <creo2urdf/Utils.h>
 #include <pfcExceptions.h>
+#include <iDynTree/PrismaticJoint.h>
 
 void Creo2Urdf::OnCommand() {
 
@@ -192,9 +193,9 @@ void Creo2Urdf::OnCommand() {
         iDynTree::Transform parent_H_child = iDynTree::Transform::Identity();
         parent_H_child = root_H_parent_link.inverse() * root_H_child_link;
 
-        if (joint_info.second.type == JointType::Revolute) {
+        if (joint_info.second.type == JointType::Revolute || joint_info.second.type == JointType::Linear) {
             iDynTree::Direction axis;
-            std::tie(ret, axis) = getRotationAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
+            std::tie(ret, axis) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
             if (!ret && warningsAreFatal)
             {
@@ -206,27 +207,38 @@ void Creo2Urdf::OnCommand() {
                 axis = axis.reverse();
             }
 
-            iDynTree::RevoluteJoint joint(parent_H_child, { axis, parent_H_child.getPosition() });
+            std::shared_ptr<iDynTree::IJoint> joint_sh_ptr;
+            if (joint_info.second.type == JointType::Revolute) {
+                joint_sh_ptr = std::make_shared<iDynTree::RevoluteJoint>();
+                dynamic_cast<iDynTree::RevoluteJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, parent_H_child.getPosition()));
+			}
+            else if (joint_info.second.type == JointType::Linear) {
+                joint_sh_ptr = std::make_shared<iDynTree::PrismaticJoint>();
+                dynamic_cast<iDynTree::PrismaticJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, parent_H_child.getPosition()));
+            }
+
+            joint_sh_ptr->setRestTransform(parent_H_child);
+            if (joint_info.second.type == JointType::Revolute)
 
             // Read limits from CSV data, until it is possible to do so from Creo directly
             if (joints_csv_table.GetRowIdx(joint_name) >= 0) {
                 double min = joints_csv_table.GetCell<double>("lower_limit", joint_name) * deg2rad;
                 double max = joints_csv_table.GetCell<double>("upper_limit", joint_name) * deg2rad;
 
-                joint.enablePosLimits(true);
-                joint.setPosLimits(0, min, max);
+                joint_sh_ptr->enablePosLimits(true);
+                joint_sh_ptr->setPosLimits(0, min, max);
                 // TODO we have to retrieve the rest transform from creo
                 //joint.setRestTransform();
 
                 min = joints_csv_table.GetCell<double>("damping", joint_name);
                 max = joints_csv_table.GetCell<double>("friction", joint_name);
-                joint.setJointDynamicsType(iDynTree::URDFJointDynamics);
-                joint.setDamping(0, min);
-                joint.setStaticFriction(0, max);
+                joint_sh_ptr->setJointDynamicsType(iDynTree::URDFJointDynamics);
+                joint_sh_ptr->setDamping(0, min);
+                joint_sh_ptr->setStaticFriction(0, max);
             }
 
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
-                getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+                getRenameElementFromConfig(child_link_name), joint_name, joint_sh_ptr.get()) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
                 if (warningsAreFatal) {
                     return;
