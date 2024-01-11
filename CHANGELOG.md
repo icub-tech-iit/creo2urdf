@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the assumptions on the matching of axis and csys for defining joints.
 - Added the possibility to chose the output folder.
 - Added the possibility to chose the mesh format.
+- Added the possibility to export prismatic joints.
 
 ## [0.4.1] - 2023-11-23
 
