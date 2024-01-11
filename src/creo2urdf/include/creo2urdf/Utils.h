@@ -208,7 +208,7 @@ struct CollisionGeometryInfo {
 enum class JointType {
     Revolute,   ///< Revolute joint allows rotation around a single axis.
     Fixed,      ///< Fixed joint restricts all motion, providing no degree of freedom.
-    Linear,     ///< UNAVAILABLE - Linear joint allows translational motion along a single axis.
+    Linear,     ///< Linear (or prismatic) joint allows translational motion along a single axis.
     Spherical,  ///< UNAVAILABLE - Spherical joint allows rotation in all directions.
     None        ///< No specific joint type, used as a default or invalid option.
 };

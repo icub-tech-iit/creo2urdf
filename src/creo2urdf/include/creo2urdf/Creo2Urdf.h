@@ -35,16 +35,32 @@ class Creo2Urdf : public pfcUICommandActionListener {
 public:
     /**
      * @brief Callback function triggered when the button is clicked.
-     * The function contains the main loop of the plugin.
      * 
-     * TODO: Describe in detail the order of operations
-     * 
+     * This function is ran when the user clicks on the Creo2Urdf button, and
+     * contains the main loop of the plugin. 
+     * By reading the kinematic and dynamic information of the assembly, it creates an iDynTree model. 
+     * The ModelExporter class of iDynTree is then used to create the URDF file.  
+     * The order of operations is the following:
+     *  - Prompt the user to select a .yaml file containing the export config
+     *  - Prompt the user to select a .csv file containing joint info
+     *  - Populates the data members of creo2urdf from the config
+     *  - For each element in the assembly
+     *      -# Create the elementTree and store the joint info between part and parent
+     *      -# Get the mass properties of the current part
+     *      -# Instantiate an iDynTree link from the current part
+     *      -# Add mesh to the link
+     *  - For each element in the joint info map
+     *      -# Create a iDynTree joint between parts
+     *  - Add the sensors to the iDynTree Model
+     *  - Add the exported frames to the links
+     *  - Add the export options to the iDynTree model exporter
+     *  - Export the iDynTree model to urdf file
      */
     void OnCommand() override;
 
 private:
     /**
-     * @brief Export the Creo model to URDF format.
+     * @brief Export the iDynTree model to URDF format if it is valid.
      * @param mdl The iDynTree model to be exported.
      * @param options The exporter options for configuring the export process.
      * @return True if the export is successful, false otherwise.
@@ -119,8 +135,8 @@ private:
     bool exportAllUseradded{ false }; /**< Flag indicating whether to export all user-added frames. */
     
     std::array<double, 3> scale{ 1.0, 1.0, 1.0 }; /**< Scale factor for the exported model. Useful for converting between m and mm and viceversa. */
-    std::array<double, 3> originXYZ {0.0, 0.0, 0.0}; /**< Origin offset in XYZ for the exported model. */
-    std::array<double, 3> originRPY {0.0, 0.0, 0.0}; /**< Origin offset in Roll-Pitch-Yaw for the exported model. */
+    std::array<double, 3> originXYZ {0.0, 0.0, 0.0}; /**< Offset of the root link in XYZ (meters) wrt the world frame. */
+    std::array<double, 3> originRPY {0.0, 0.0, 0.0}; /**< Orientation of the root link in Roll-Pitch-Yaw wrt the world frame. */
     bool warningsAreFatal{ true }; /**< Flag indicating whether warnings are treated as fatal errors. */
     std::string m_output_path{ "" }; /**< Output path for the exported URDF file. */
 };
