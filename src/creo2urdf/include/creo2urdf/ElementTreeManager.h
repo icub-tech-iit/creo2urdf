@@ -83,7 +83,7 @@ private:
     pfcSolid_ptr parent_solid;         ///< Pointer to the parent solid.
     pfcSolid_ptr child_solid;          ///< Pointer to the child solid.
 
-    /**
+    /*
      * @brief Retrieves the name of a common datum for the given model item type.
      * @param type The model item type.
      * @return The name of the common datum.

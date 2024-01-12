@@ -333,21 +333,21 @@ T stringToEnum(const std::map<T, std::string> & map, const std::string & s)
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data);
 
 /**
+ * @brief Get the datums defined in a Solid depending on the selected type
+ * 
+ * @param solid The solid in which to query the datums
+ * @param type The type of datums to extract as model items
+ * @return std::vector<string> A vector of datum names
+ */
+std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type);
+
+/**
  * @brief Converts a 3D Creo transform into iDynTree transform. The position is defined as a 3-elements vector in m, 
  * and rotation is represented as a SO(3) matrix for both representations.
  * 
  * @param creo_trf The 3D transform to convert
  * @param scale The factor used to scale the position vector (e.g. from m to mm)
  * @return iDynTree::Transform 
- */
-std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type);
-
-/**
- * @brief Get the datums defined in a Solid depending on the selected type
- * 
- * @param solid The solid in which to query the datums
- * @param type The type of datums to extract as model items
- * @return std::vector<string> A vector of datum names
  */
 iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale = { 1.0,1.0,1.0 });
 
@@ -408,8 +408,8 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
 /**
- * @brief Get the Rotation Axis From model for the addition of a revolute joint.
- * The direction is expressed in the link_frame_name coordinate system.
+ * @brief Gets the desired axis the from the model.
+ * The direction is expressed in the coordinate system defined by link_frame_name.
  * 
  * @param modelhdl The model handle that contains link_frame_name
  * @param axis_name The name of the desired axis of which to retrieve the direction
