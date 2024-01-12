@@ -218,12 +218,15 @@ void Creo2Urdf::OnCommand() {
             }
 
             joint_sh_ptr->setRestTransform(parent_H_child);
-            if (joint_info.second.type == JointType::Revolute)
+            double conversion_factor = 1.0;
+            if (joint_info.second.type == JointType::Revolute) {
+                conversion_factor = deg2rad;
+            }
 
             // Read limits from CSV data, until it is possible to do so from Creo directly
             if (joints_csv_table.GetRowIdx(joint_name) >= 0) {
-                double min = joints_csv_table.GetCell<double>("lower_limit", joint_name) * deg2rad;
-                double max = joints_csv_table.GetCell<double>("upper_limit", joint_name) * deg2rad;
+                double min = joints_csv_table.GetCell<double>("lower_limit", joint_name) * conversion_factor;
+                double max = joints_csv_table.GetCell<double>("upper_limit", joint_name) * conversion_factor;
 
                 joint_sh_ptr->enablePosLimits(true);
                 joint_sh_ptr->setPosLimits(0, min, max);
