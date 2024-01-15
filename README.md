@@ -93,7 +93,7 @@ The parameter accepted by the plugin are documented in the following.
 | Attribute name   | Type   | Default Value | Description  |
 |:----------------:|:---------:|:------------:|:-------------:|
 | `linkFrames`       | Array | empty | Structure mapping the link names to the displayName of their desired frame. Unfortunatly in URDF the link frame origin placement is not free, but it is constrained to be placed on the parent joint axis, hence this option is for now reserved to the root link and to links connected to their parent by a fixed joint |
-| `exportAllUseradded` |  Boolean | False | If true, export all SimMechanics frame tagged with `USERADDED` in the output URDF as fake links i.e. fake link with zero mass connected to a link with a fixed joint..  |
+| `exportAllUseradded` |  Boolean | False | If true, export all frames starting w/ `SCSYS` in the output URDF as fake links i.e. fake link with zero mass connected to a link with a fixed joint.  |
 | `exportedFrames` | Array | empty | Array of `displayName` of UserAdded frames to export. This are exported as fixed URDF frames, i.e. fake link with zero mass connected to a link with a fixed joint. |
 
 ###### Link Frames Parameters  (keys of elements of `linkFrames`)
