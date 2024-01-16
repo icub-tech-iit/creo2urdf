@@ -1,9 +1,12 @@
-/*
- * Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
+/**
+ * @file ElementTreeManager.cpp
+ * @brief Contains definitions for the ElementTreeManager class.
+ * 
+ * @copyright (C) 2006-2024 Istituto Italiano di Tecnologia (IIT)
  * All rights reserved.
- *
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
+ * 
  */
 
 #include <creo2urdf/ElementTreeManager.h>

@@ -1,7 +1,9 @@
-/*
- * Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
+/**
+ * @file Utils.cpp
+ * @brief Contains definitions for utility functions used in the plugin.
+ * 
+* @copyright (C) 2006-2024 Istituto Italiano di Tecnologia (IIT)
  * All rights reserved.
- *
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */

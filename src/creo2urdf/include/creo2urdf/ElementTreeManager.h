@@ -1,7 +1,14 @@
-/*
- * Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
+/** @file ElementTreeManager.h
+ *  @brief Contains declarations for the ElementTreeManager class.
+ * 
+ * This file contains the declarations for the ElementTreeManager class,
+ * which is used to extract the ElementTree object of an assembly part, to
+ * get information about the joints and datums between parts.
+ * 
+ *  @bug No known bugs.
+ * 
+ * @copyright (C) 2006-2024 Istituto Italiano di Tecnologia (IIT)
  * All rights reserved.
- *
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
@@ -40,9 +47,9 @@ public:
     ElementTreeManager();
 
     /**
-     * @brief Constructor for ElementTreeManager with specific parameters.
-     * @param feat A pointer to a part casted as feature.
-     * @param joint_info_map A map containing joint information.
+     * @brief Constructor for ElementTreeManager that extracts the element tree from the part and builds the joint info map.
+     * @param[in] feat A pointer to a part casted as feature.
+     * @param[out] joint_info_map A map containing joint information.
      */
     ElementTreeManager(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map);
 
@@ -53,8 +60,8 @@ public:
 
     /**
      * @brief Populates joint information from the given ElementTree.
-     * @param feat A pointer to a part casted as feature.
-     * @param joint_info_map A map containing joint information.
+     * @param[in] feat A pointer to a part casted as feature.
+     * @param[out] joint_info_map A map containing joint information.
      * @return True if successful, false otherwise.
      */
     bool populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map);
@@ -102,7 +109,7 @@ private:
     std::string getConstraintDatum(pfcFeature_ptr feat, pfcComponentConstraintType constraint_type, pfcModelItemType datum_type);
 
     /**
-     * @brief Retrieves references to the parent and child solids.
+     * @brief Retrieves references to the parent and child solids. We assume there are only two parts and they are named differently.
      * @return True if successful, false otherwise.
      */
     bool retrieveSolidReferences();

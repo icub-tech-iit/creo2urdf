@@ -1,7 +1,10 @@
-/*
- * Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
- * All rights reserved.
+/** @file Creo2Urdf.h
+ *  @brief Contains declarations for the Creo2Urdf class, the main component of the plugin.
  *
+ *  @bug No known bugs.
+ * 
+ * @copyright (C) 2006-2024 Istituto Italiano di Tecnologia (IIT)
+ * All rights reserved.
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
@@ -36,7 +39,7 @@ public:
     /**
      * @brief Callback function triggered when the button is clicked.
      * 
-     * This function is ran when the user clicks on the Creo2Urdf button, and
+     * @details This function is ran when the user clicks on the Creo2Urdf button, and
      * contains the main loop of the plugin. 
      * By reading the kinematic and dynamic information of the assembly, it creates an iDynTree model. 
      * The ModelExporter class of iDynTree is then used to create the URDF file.  

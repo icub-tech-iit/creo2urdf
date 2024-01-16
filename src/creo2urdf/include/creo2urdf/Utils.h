@@ -1,9 +1,16 @@
-/*
- * Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
- * All rights reserved.
+/** @file Utils.h
+ *  @brief Utility functions amd data shared by classes.
  *
+ * This file contains utilities shared by classes of the plugin.
+ * These utilities are functions, and data such constants, enums, maps.
+ *
+ *  @bug No known bugs.
+ * 
+ * @copyright (C) 2006-2024 Istituto Italiano di Tecnologia (IIT)
+ * All rights reserved.
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
+ * 
  */
 
 #ifndef UTILS_H
@@ -49,6 +56,9 @@ constexpr double deg2rad = 1 / rad2deg;
  */
 constexpr double gravity_z = -9.81;
 
+/**
+ * @brief Map containing the supported mesh types and their corresponding file extensions.
+ */
 const std::unordered_map<std::string, std::string> mesh_types_supported_extension_map{{"stl_binary", ".stl"},
                                                                                       {"stl_ascii",  ".stl"},
                                                                                       {"step",       ".stp"}
@@ -77,10 +87,10 @@ enum class c2uLogLevel
  * text/usascii/creo2urdf.txt. The prefixes %CI, %CW %CP define the type of message displayed, using a specific icon.
  */
 static const std::map<c2uLogLevel, std::string> log_level_key = {
-    {c2uLogLevel::NONE, "c2uNONE"},
-    {c2uLogLevel::INFO, "c2uINFO"},
-    {c2uLogLevel::WARN, "c2uWARN"},
-    {c2uLogLevel::PROMPT, "c2uPROMPT"}
+    {c2uLogLevel::NONE, "c2uNONE"}, /// < Default log level. Does not show an icon.
+    {c2uLogLevel::INFO, "c2uINFO"}, /// < Informational log level.
+    {c2uLogLevel::WARN, "c2uWARN"}, /// < Warning log level. Can exit the plugin if `warningsAreFatal` is set to true.
+    {c2uLogLevel::PROMPT, "c2uPROMPT"} /// < Prompt level: opens a user input form.
 };
 
 /**
@@ -116,21 +126,23 @@ enum class ShapeType {
  * @brief Mapping of SensorType to string representations for use within the URDF specification.
  */
 static const std::map<SensorType, std::string> sensor_type_map = {
-    {SensorType::Accelerometer, "accelerometer"},
-    {SensorType::Gyroscope, "gyroscope"},
-    {SensorType::Camera, "camera"},
-    {SensorType::Depth, "depth"},
-    {SensorType::Ray, "ray"}
+    {SensorType::Accelerometer, "accelerometer"}, /// < Accelerometer sensor type.
+    {SensorType::Gyroscope, "gyroscope"}, /// < Gyroscope sensor type.
+    {SensorType::Camera, "camera"},  /// < Camera sensor type.
+    {SensorType::Depth, "depth"}, /// < Depth sensor type.
+    {SensorType::Ray, "ray"} /// < Lidar sensor type.
 };
 
 /**
  * @brief Mapping of ShapeType to string representations for use within the URDF specification.
  */
 static const std::map<ShapeType, std::string> shape_type_map = {
-    { ShapeType::Box, "box" },
-    { ShapeType::Cylinder, "cylinder"},
-    { ShapeType::Sphere, "sphere"},
-    { ShapeType::None, "empty"},
+    { ShapeType::Box, "box" }, /// < Box shape type.
+    { ShapeType::Cylinder, "cylinder" }, /// < Cylinder shape type.
+    { ShapeType::Sphere, "sphere" } /// < Sphere shape type.
+    { ShapeType::Cylinder, "cylinder"}, /// < Cylinder shape type.
+    { ShapeType::Sphere, "sphere"}, /// < Sphere shape type.
+    { ShapeType::None, "empty"}, /// < Default or invalid shape type.
 };
 
 /**
@@ -140,11 +152,11 @@ static const std::map<ShapeType, std::string> shape_type_map = {
  * and their corresponding string representations specifically tailored for Gazebo URDF format.
  */
 static const std::map<SensorType, std::string> gazebo_sensor_type_map = {
-    {SensorType::Accelerometer, "imu"},
-    {SensorType::Gyroscope, "gyroscope"},
-    {SensorType::Camera, "camera"},
-    {SensorType::Depth, "depth"},
-    {SensorType::Ray, "ray"}
+    {SensorType::Accelerometer, "imu"}, /// < Accelerometer sensor type.
+    {SensorType::Gyroscope, "gyroscope"}, /// < Gyroscope sensor type.
+    {SensorType::Camera, "camera"}, /// < Camera sensor type.
+    {SensorType::Depth, "depth"}, /// < Depth sensor type.
+    {SensorType::Ray, "ray"} /// < Lidar sensor type.
 };
 
 /**
