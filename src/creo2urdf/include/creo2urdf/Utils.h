@@ -139,10 +139,10 @@ static const std::map<SensorType, std::string> sensor_type_map = {
 static const std::map<ShapeType, std::string> shape_type_map = {
     { ShapeType::Box, "box" }, /// < Box shape type.
     { ShapeType::Cylinder, "cylinder" }, /// < Cylinder shape type.
-    { ShapeType::Sphere, "sphere" } /// < Sphere shape type.
+    { ShapeType::Sphere, "sphere" }, /// < Sphere shape type.
     { ShapeType::Cylinder, "cylinder"}, /// < Cylinder shape type.
     { ShapeType::Sphere, "sphere"}, /// < Sphere shape type.
-    { ShapeType::None, "empty"}, /// < Default or invalid shape type.
+    { ShapeType::None, "empty"} /// < Default or invalid shape type.
 };
 
 /**
