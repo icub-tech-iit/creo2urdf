@@ -491,7 +491,7 @@ void Creo2Urdf::populateExportedFrameInfoMap(pfcModel_ptr modelhdl) {
             }
             ExportedFrameInfo ef_info;
             ef_info.frameReferenceLink = getRenameElementFromConfig(link_name);
-            ef_info.exportedFrameName = csys_name + "_USERADDED";
+            ef_info.exportedFrameName = csys_name;
             exported_frame_info_map.insert(std::make_pair(csys_name, ef_info));
         }
         
