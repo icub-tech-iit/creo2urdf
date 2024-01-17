@@ -1,6 +1,6 @@
 site_name: Creo2Urdf
 site_url: https://icub-tech-iit.github.io/creo2urdf/
-site_description: All the software running on ergoCub
+site_description: Generate URDF models from CREO mechanisms
 site_author: iCub-Tech
 copyright: BSD 3-Clause License
 
