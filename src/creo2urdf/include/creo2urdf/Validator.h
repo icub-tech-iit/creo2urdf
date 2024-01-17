@@ -12,6 +12,9 @@
 #include <pfcGlobal.h>
 #include <creo2urdf/Utils.h>
 
+#include <iDynTree/ModelIO/ModelLoader.h>
+#include <iDynTree/KinDynComputations.h>
+
 class Validator : public pfcUICommandActionListener {
 public:
     void OnCommand() override;

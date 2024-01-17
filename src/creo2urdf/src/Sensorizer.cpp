@@ -1,7 +1,8 @@
-/*
- * Copyright (C) 2006-2023 Istituto Italiano di Tecnologia (IIT)
+/**
+ * @file Sensorizer.cpp
+ * @brief Contains definitions for the Sensorizer class.
+ * @copyright (C) 2006-2024 Istituto Italiano di Tecnologia (IIT)
  * All rights reserved.
- *
  * This software may be modified and distributed under the terms of the
  * BSD-3-Clause license. See the accompanying LICENSE file for details.
  */
@@ -163,7 +164,7 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
         std::string pose_xyz_rpy = trf.getPosition().toString() + " " + trf.getRotation().asRPY().toString();
         node1 = xmlNewChild(node, NULL, BAD_CAST "pose", BAD_CAST pose_xyz_rpy.c_str());
 
-        for (auto blob : ft.second.xmlBlobs)
+        for (auto & blob : ft.second.xmlBlobs)
         {
             xmlNodePtr node_xmlblob = nullptr;
 
@@ -263,7 +264,7 @@ std::vector<std::string> Sensorizer::buildSensorsXMLBlobs()
 
         xmlNewChild(node, NULL, BAD_CAST "pose", BAD_CAST pose.c_str());
 
-        for (auto blob : s.xmlBlobs)
+        for (auto & blob : s.xmlBlobs)
         {
             xmlNodePtr node_xmlblob = nullptr;
 

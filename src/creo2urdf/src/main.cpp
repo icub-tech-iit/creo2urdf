@@ -9,10 +9,11 @@
 #include <creo2urdf/Creo2Urdf.h>
 #include <creo2urdf/Validator.h>
 
-/*====================================================================*\
-FUNCTION : user_initialize()
-PURPOSE  :
-\*====================================================================*/
+/**
+ * @brief Initializes the buttons by associating them with the corresponding functions
+ * Additionally, it loads the ribbon definition file.
+ * 
+ */
 extern "C" int user_initialize(
     int argc,
     char* argv[],
@@ -35,10 +36,10 @@ extern "C" int user_initialize(
     return (0);
 }
 
-/*====================================================================*\
-FUNCTION : user_terminate()
-PURPOSE  : To handle any termination actions
-\*====================================================================*/
+/**
+ * @brief Handles termination actions.
+ * 
+ */
 extern "C" void user_terminate()
 {
 }

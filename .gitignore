@@ -5,3 +5,4 @@ Debug/
 Release/
 *vcxproj.user
 CMakeSettings.json
+src/creo2urdf/doc/*
