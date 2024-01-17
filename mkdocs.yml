@@ -96,3 +96,4 @@ theme:
 nav:
     - Home: 'index.md'
     - Documentation: https://icub-tech-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html
+    - Changelog: 'CHANGELOG.md'
