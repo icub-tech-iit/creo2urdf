@@ -1,0 +1,98 @@
+site_name: Creo2Urdf
+site_url: https://icub-tech-iit.github.io/creo2urdf/
+site_description: All the software running on ergoCub
+site_author: iCub-Tech
+copyright: BSD 3-Clause License
+
+repo_name: icub-tech-iit/creo2urdf
+repo_url: https://github.com/icub-tech-iit/creo2urdf/
+edit_uri: 'edit/master/doc/mkdocs/docs'
+docs_dir: 'doc/mkdocs/docs'
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.snippets
+  - pymdownx.inlinehilite
+  - pymdownx.highlight
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      user: robotology
+      repo: assistive-rehab
+      repo_url_shortener: true
+      repo_url_shorthand: true
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist
+  - pymdownx.tilde
+  - markdown.extensions.toc:
+      permalink: true
+
+plugins:
+  - mkdocs-video:
+      is_video: True
+      video_muted: True
+      video_controls: True
+      css_style:
+        width: "100%"
+
+theme:
+  name: material
+  features:
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.tooltips
+    - tabs
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+  favicon: assets/head-solid.png
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  icon:
+    logo: material/robot
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+
+
+nav:
+    - Home: 'index.md'
+    - Documentation: https://icub-tech-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html
