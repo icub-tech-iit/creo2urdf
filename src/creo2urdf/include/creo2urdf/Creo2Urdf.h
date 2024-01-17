@@ -71,9 +71,11 @@ private:
     bool exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options);
 
     /**
-     * @brief Compute spatial inertia from Creo mass properties.
+     * @brief Compute spatial inertia from Creo mass properties. 
+     * The mass properties are overridden by the YAML configuration if present in the file.
+     * 
      * @param mass_prop The Creo mass properties.
-     * @param H The transformation matrix.
+     * @param H The 3D transform matrix to express the center of mass in the link frame.
      * @param link_name The name of the link.
      * @return The computed spatial inertia.
      */
