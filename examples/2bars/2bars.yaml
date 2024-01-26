@@ -1,0 +1,14 @@
+# Robot name
+robotName: 2bars
+
+originXYZ: [0.0,0.0,0.0]
+originRPY: [0.0,0.0,0.0]
+scale: [0.001,0.001,0.001]
+filenameformat: "package://ergoCub/meshes/simmechanics/%s.stl"
+epsilon: 2e-4
+forcelowercase: Yes
+
+rename:
+    BAR: bar
+    BARLONGER: barlonger
+    BAR--BARLONGER: rev_joint
