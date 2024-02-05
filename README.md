@@ -25,7 +25,9 @@ This archive contains the dll of the plugin and the `text` folder for running it
 ## Installation from sources
 
 ### Dependencies
+
 Right now the `creo2urdf` plugin needs its dependencies to be compiled and linked **statically**:
+
 - Download [vcpkg](https://github.com/microsoft/vcpkg): `git clone https://github.com/microsoft/vcpkg`
 - Bootstrap vcpkg: `.\vcpkg\bootstrap-vcpkg.bat`
 - Run `[path to vcpkg]/vcpkg install --triplet x64-windows-static-md eigen3 yaml-cpp rapidcsv libxml2 assimp`
