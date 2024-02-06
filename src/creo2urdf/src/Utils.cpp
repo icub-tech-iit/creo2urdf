@@ -10,13 +10,6 @@
 
 #include <creo2urdf/Utils.h>
 
-/**
- * @brief Computes the unit vector of a Creo Axis. 
- * The axis is defined by start and end point, and the magnitude is normalized. 
- * 
- * @param axis_data The axis datum as a CurveDescriptor
- * @return std::array<double, 3> The resulting normalized unit vector
- */
 std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data)
 {
     auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
@@ -43,14 +36,6 @@ std::array<double, 3> computeUnitVectorFromAxis(pfcCurveDescriptor_ptr axis_data
     return unit_vector;
 }
 
-/**
- * @brief Converts a 3D Creo transform into iDynTree transform. The position is defined as a 3-elements vector in m, 
- * and rotation is represented as a SO(3) matrix for both representations.
- * 
- * @param creo_trf The 3D transform to convert
- * @param scale The factor used to scale the position vector (e.g. from m to mm)
- * @return iDynTree::Transform 
- */
 iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>& scale)
 {
     iDynTree::Transform idyn_trf;
@@ -64,13 +49,6 @@ iDynTree::Transform fromCreo(pfcTransform3D_ptr creo_trf, const array<double, 3>
     return idyn_trf;
 }
 
-/**
- * @brief Get the datums defined in a Solid depending on the selected type
- * 
- * @param solid The solid in which to query the datums
- * @param type The type of datums to extract as model items
- * @return std::vector<string> A vector of datum names
- */
 std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type)
 {
     std::vector<string> result;
@@ -88,15 +66,6 @@ std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type
     return result;
 }
 
-/**
- * @brief Prints a string to the message window on the bottom part of the Creo Parametric UI.
- * The message can have different log levels, represented by an icon on its left side.
- * The available log levels are defined in text/usascii/creo2urdf.txt. 
- * 
- * @param message The desired message to be printed
- * @param log_level The desired log level. Can be NONE, INFO, WARN, PROMPT. 
- * The PROMPT enum requires user input to proceed. The user input is not processed yet. 
- */
 void printToMessageWindow(std::string message, c2uLogLevel log_level)
 {
     pfcSession_ptr session_ptr = pfcGetProESession();
@@ -106,22 +75,11 @@ void printToMessageWindow(std::string message, c2uLogLevel log_level)
     session_ptr->UIDisplayMessage("creo2urdf.txt", log_level_key.at(log_level).c_str(), msg_sequence);
 }
 
-/**
- * @brief Prints to the message window a Creo 3D transform in both origin and orientation 
- * using the iDynTree representation
- * 
- * @param m The Creo 3D transform to print
- */
 void printTransformMatrix(pfcTransform3D_ptr m)
 {
     printToMessageWindow(fromCreo(m).toString());
 }
 
-/**
- * @brief Prints to the message window a Creo 3D rotation matrix in SO(3)
- * 
- * @param m The Creo 3D transform to print
- */
 void printRotationMatrix(pfcMatrix3D_ptr m)
 {
     printToMessageWindow(to_string(m->get(0, 0)) + " " + to_string(m->get(0, 1)) + " " + to_string(m->get(0, 2)));
@@ -129,13 +87,6 @@ void printRotationMatrix(pfcMatrix3D_ptr m)
     printToMessageWindow(to_string(m->get(2, 0)) + " " + to_string(m->get(2, 1)) + " " + to_string(m->get(2, 2)));
 }
 
-/**
- * @brief Replaces the first 5 bytes of a binary STL file with the string "robot".
- * This is necessary to avoid accidental parsing of the file as ASCII.
- * For details, see https://github.com/icub-tech-iit/creo2urdf/issues/16
- * 
- * @param stl Path of the STL file to edit
- */
 void sanitizeSTL(std::string stl)
 {
     size_t n_bytes = 5;
@@ -172,14 +123,6 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 
 }
 
-/**
- * @brief Get the Transform From Part object
- * 
- * @param modelhdl 
- * @param link_frame_name 
- * @param scale 
- * @return std::pair<bool, iDynTree::Transform> 
- */
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale) {
 
     iDynTree::Transform H_child;
@@ -229,15 +172,6 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
     return { false, H_child };
 }
 
-/**
- * @brief Get the Rotation Axis From Part object
- * 
- * @param modelhdl 
- * @param axis_name 
- * @param link_frame_name 
- * @param scale 
- * @return std::pair<bool, iDynTree::Direction> 
- */
 std::pair<bool, iDynTree::Direction> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const string& link_frame_name, const array<double, 3>& scale) {
 
     iDynTree::Direction axis_unit_vector;

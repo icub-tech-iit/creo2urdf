@@ -82,12 +82,6 @@ private:
     iDynTree::SpatialInertia computeSpatialInertiafromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const std::string& link_name);
 
     /**
-     * @brief Populate the joint information map from the Creo model handle.
-     * @param modelhdl The Creo model handle.
-     */
-    void populateJointInfoMap(pfcModel_ptr modelhdl);
-
-    /**
      * @brief Populate the exported frame information map from the Creo model handle.
      * @param modelhdl The Creo model handle.
      */

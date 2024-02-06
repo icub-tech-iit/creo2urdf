@@ -399,23 +399,31 @@ void printRotationMatrix(pfcMatrix3D_ptr m);
 void sanitizeSTL(std::string stl);
 
 /**
- * @brief Get the 3D Transform From Root frame of the assembly (parent) to the frame of the selected model (child)
- * 
- * @param comp_path The component path of the assembly from the asm to the selected model
- * @param modelhdl The model handle that contains link_frame_name
- * @param link_frame_name The name of the frame belonging to modelhdl
- * @param scale The scaling factor for the origin of the child frame
- * @return std::pair<bool, iDynTree::Transform> Pair containing a success/failure flag, and a 3D transform in iDynTree format
+ * @brief Retrieves the transformation from the root to a specified link frame in the context of a component path.
+ *
+ * @param comp_path component path that represents the assembly hierarchy.
+ * @param modelhdl The part model in which the link frame is defined.
+ * @param link_frame_name The name of the link frame for which the transformation is requested.
+ * @param scale scaling factor for expressing the position of the transform.
+ *
+ * @return A std::pair<bool, iDynTree::Transform> containing the result of the operation:
+ *         - The first element is a boolean indicating success (true) or failure (false).
+ *         - The second element is an iDynTree::Transform representing the transformation from the root to the specified link frame.
+ *           If the operation fails, this transformation will be an identity transformation.
  */
 std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
 /**
- * @brief Get the 3D Transform From Root frame of the part (parent) to the frame of the selected model (child)
- * 
- * @param modelhdl The model handle that contains link_frame_name
- * @param link_frame_name The name of the frame belonging to modelhdl
- * @param scale The scaling factor for the origin of the child frame
- * @return std::pair<bool, iDynTree::Transform> Pair containing a success/failure flag, and a 3D transform in iDynTree format
+ * @brief Retrieves the transformation matrix representing the coordinate system of a specified link frame in the given part.
+ *
+ * @param modelhdl The part model.
+ * @param link_frame_name The name of the link frame for which the transformation matrix is requested.
+ * @param scale scaling factor for expressing the position of the transform.
+ *
+ * @return A std::pair<bool, iDynTree::Transform> containing the result of the operation:
+ *         - The first element is a boolean indicating success (true) or failure (false).
+ *         - The second element is an iDynTree::Transform representing the transformation matrix of the specified link frame.
+ *           If the operation fails, this transformation matrix will be an identity matrix.
  */
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 

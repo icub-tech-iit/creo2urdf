@@ -25,7 +25,9 @@ This archive contains the dll of the plugin and the `text` folder for running it
 ## Installation from sources
 
 ### Dependencies
+
 Right now the `creo2urdf` plugin needs its dependencies to be compiled and linked **statically**:
+
 - Download [vcpkg](https://github.com/microsoft/vcpkg): `git clone https://github.com/microsoft/vcpkg`
 - Bootstrap vcpkg: `.\vcpkg\bootstrap-vcpkg.bat`
 - Run `[path to vcpkg]/vcpkg install --triplet x64-windows-static-md eigen3 yaml-cpp rapidcsv libxml2 assimp`
@@ -60,6 +62,14 @@ END
  <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/19866e6c-8f52-4010-84ef-db458189b753" width=600 align=center >
  
 - Select a yaml and csv configuration files with a format explained in the following sections, and the folder where the urdf and the meshes will be saved.
+
+
+### Test your installation
+The folder `examples` contains a simple assembly with two links, called 2BARS.asm. 
+You can open the assembly in Creo and then test the installation by clicking on the Creo2Urdf button.
+The plugin will ask you to select the related .yaml and .csv files, which are provided in the folder.
+
+If the export process was successful, you should see three files": "bar.stl", "barlonger.stl" and "model.urdf".
 
 ### YAML Parameter File
 The YAML format is used to pass parameters to the plugin to customized the conversion process.

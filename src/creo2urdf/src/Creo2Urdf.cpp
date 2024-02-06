@@ -172,7 +172,6 @@ void Creo2Urdf::OnCommand() {
 
     // Now we have to add joints to the iDynTree model
 
-    //printToMessageWindow("Axis info map has size " + to_string(joint_info_map.size()));
     for (auto & joint_info : joint_info_map) {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
@@ -195,6 +194,7 @@ void Creo2Urdf::OnCommand() {
         parent_H_child = root_H_parent_link.inverse() * root_H_child_link;
 
         if (joint_info.second.type == JointType::Revolute || joint_info.second.type == JointType::Linear) {
+
             iDynTree::Direction axis;
             std::tie(ret, axis) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
@@ -203,7 +203,8 @@ void Creo2Urdf::OnCommand() {
                 return;
             }
 
-            if (config["reverseRotationAxis"].Scalar().find(joint_name) != std::string::npos)
+            if (config["reverseRotationAxis"].IsDefined() && 
+                config["reverseRotationAxis"].Scalar().find(joint_name) != std::string::npos)
             {
                 axis = axis.reverse();
             }
@@ -403,73 +404,6 @@ iDynTree::SpatialInertia Creo2Urdf::computeSpatialInertiafromCreo(pfcMassPropert
     return sp_inertia;
 }
 
-void Creo2Urdf::populateJointInfoMap(pfcModel_ptr modelhdl) {
-
-    // The revolute joints are defined by aligning along the
-    // rotational axis
-
-    auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
-    auto link_name = string(modelhdl->GetFullName());
-    // printToMessageWindow("There are " + to_string(axes_list->getarraysize()) + " axes");
-    if (axes_list->getarraysize() == 0) {
-        printToMessageWindow("There is no AXIS in the part " + link_name, c2uLogLevel::WARN);
-    }
-
-    pfcAxis* axis = nullptr;
-
-    for (size_t i = 0; i < axes_list->getarraysize(); i++)
-    {
-        auto axis_elem = pfcAxis::cast(axes_list->get(xint(i)));
-        auto axis_name_str = string(axis_elem->GetName());
-        JointInfo joint_info;
-        joint_info.datum_name = axis_name_str;
-        joint_info.type = JointType::Revolute;
-        if (joint_info_map.find(axis_name_str) == joint_info_map.end()) {
-            joint_info.parent_link_name = link_name;
-            joint_info_map.insert(std::make_pair(axis_name_str, joint_info));
-        }
-        else {
-            auto& existing_joint_info = joint_info_map.at(axis_name_str);
-            // The child_link_name field should be empty, otherwise it means that we have clash of axis names, let's prevent it
-            if (existing_joint_info.child_link_name.empty()) {
-                existing_joint_info.child_link_name = link_name;
-            }
-            else
-            {
-                printToMessageWindow(axis_name_str + " defines already a revolute joint! Please check the cad.", c2uLogLevel::WARN);
-            }
-        }
-    }
-
-    // The fixed joint right now is defined making coincident the csys.
-    auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
-
-    if (csys_list->getarraysize() == 0) {
-        printToMessageWindow("There is no CSYS in the part " + link_name, c2uLogLevel::WARN);
-    }
-
-    for (xint i = 0; i < csys_list->getarraysize(); i++)
-    {
-        auto csys_name = string(csys_list->get(i)->GetName());
-        // We need to discard "general" csys, such as CSYS and ASM_CSYS
-        if (csys_name.find("SCSYS") == std::string::npos) {
-            continue;
-        }
-
-        JointInfo joint_info;
-        joint_info.datum_name = csys_name;
-        joint_info.type = JointType::Fixed;
-        if (joint_info_map.find(csys_name) == joint_info_map.end()) {
-            joint_info.parent_link_name = link_name;
-            joint_info_map.insert(std::make_pair(csys_name, joint_info));
-        }
-        else {
-            auto& existing_joint_info = joint_info_map.at(csys_name);
-            existing_joint_info.child_link_name = link_name;
-        }
-    }
-}
-
 void Creo2Urdf::populateExportedFrameInfoMap(pfcModel_ptr modelhdl) {
 
     // The revolute joints are defined by aligning along the
@@ -608,7 +542,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     }
 
     // Make all alphabetic characters lowercase
-    if (config["forcelowercase"].as<bool>())
+    if (config["forcelowercase"].IsDefined() && config["forcelowercase"].as<bool>())
     {
         std::transform(link_name.begin(), link_name.end(), link_name.begin(),
             [](unsigned char c) { return std::tolower(c); });
