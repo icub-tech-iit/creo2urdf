@@ -63,6 +63,14 @@ END
  
 - Select a yaml and csv configuration files with a format explained in the following sections, and the folder where the urdf and the meshes will be saved.
 
+
+### Test your installation
+The folder `examples` contains a simple assembly with two links, called 2BARS.asm. 
+You can open the assembly in Creo and then test the installation by clicking on the Creo2Urdf button.
+The plugin will ask you to select the related .yaml and .csv files, which are provided in the folder.
+
+If the export process was successful, you should see three files": "bar.stl", "barlonger.stl" and "model.urdf".
+
 ### YAML Parameter File
 The YAML format is used to pass parameters to the plugin to customized the conversion process.
 The parameter accepted by the plugin are documented in the following.
