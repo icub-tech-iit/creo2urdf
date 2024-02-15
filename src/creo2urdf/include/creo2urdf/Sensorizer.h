@@ -43,19 +43,25 @@ struct Sensorizer {
 
     /**
      * @brief Assigns a 3D transform to a force/torque sensor based on provided information.
+     * @param exported_frame_info_map A map of exported frame information.
      * @param link_info_map A map of link information.
      * @param joint_info_map A map of joint information.
      * @param scale The scale for the position part of the 3D transform.
      */
-    void assignTransformToFTSensor(const std::map<std::string, LinkInfo>& link_info_map,
+    void assignTransformToFTSensor(const std::map<std::string, ExportedFrameInfo>& exported_frame_info_map,
+                                   const std::map<std::string, LinkInfo>& link_info_map,
                                    const std::map<std::string, JointInfo>& joint_info_map,
                                    const std::array<double, 3> scale);
 
     /**
      * @brief Assigns a 3D transform to all sensors based on provided information.
      * @param exported_frame_info_map A map of exported frame information.
+     * @param link_info_map A map of link information.
+     * @param scale The scale for the position part of the 3D transform.
      */
-    void assignTransformToSensors(const std::map<std::string, ExportedFrameInfo>& exported_frame_info_map);
+    void assignTransformToSensors(const std::map<std::string, ExportedFrameInfo>& exported_frame_info_map,
+                                  const std::map<std::string, LinkInfo>& link_info_map,
+                                  const std::array<double, 3> scale);
 
     /**
      * @brief Builds a vector of XML trees as strings for force/torque sensors, 
@@ -84,6 +90,12 @@ struct Sensorizer {
      * @brief Vector containing information about general sensors.
      */
     std::vector<SensorInfo> sensors;
+
+    /**
+     * @brief YAML node containing sensor configuration.
+     */
+    YAML::Node m_config;
+
 };
 
 
