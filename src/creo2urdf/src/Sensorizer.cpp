@@ -11,6 +11,7 @@
 
 void Sensorizer::readSensorsFromConfig(const YAML::Node & config)
 {
+    m_config = config;
     if (!config["sensors"].IsDefined())
         return;
 
@@ -102,25 +103,32 @@ void Sensorizer::readFTSensorsFromConfig(const YAML::Node& config)
 
 }
 
-void Sensorizer::assignTransformToFTSensor(const std::map<std::string, LinkInfo>& link_info_map, const std::map<std::string, JointInfo>& joint_info_map, const std::array<double, 3> scale)
+void Sensorizer::assignTransformToFTSensor(const std::map<std::string, ExportedFrameInfo>& exported_frame_info_map,const std::map<std::string, LinkInfo>& link_info_map, const std::map<std::string, JointInfo>& joint_info_map, const std::array<double, 3> scale)
 {
     // Iterate over all sensors
     for (auto& f : ft_sensors)
     {   
-        JointInfo j_info = joint_info_map.at(f.second.frameName);
+        if (exported_frame_info_map.find(f.second.frameName) != exported_frame_info_map.end())
+        {
+            // If the frame used is in the exported frames map, use the transform from there
+            f.second.child_link_H_sensor = exported_frame_info_map.at(f.second.frameName).linkFrame_H_additionalFrame * exported_frame_info_map.at(f.second.frameName).additionalTransformation;
+        }
+        else {
+            JointInfo j_info = joint_info_map.at(f.second.frameName);
 
-        LinkInfo parent_l_info = link_info_map.at(j_info.parent_link_name);
-        LinkInfo child_l_info = link_info_map.at(j_info.child_link_name);
+            LinkInfo parent_l_info = link_info_map.at(j_info.parent_link_name);
+            LinkInfo child_l_info = link_info_map.at(j_info.child_link_name);
 
-        auto parent_csys_H_sensor      = (getTransformFromPart(parent_l_info.modelhdl, f.second.frameName, scale)).second;
-        auto parent_csys_H_parent_link = (getTransformFromPart(parent_l_info.modelhdl, parent_l_info.link_frame_name, scale)).second;
-        // This transform is used for exporting the ft frame
-        f.second.parent_link_H_sensor = parent_csys_H_parent_link.inverse() * parent_csys_H_sensor;
+            auto parent_csys_H_sensor = (getTransformFromPart(parent_l_info.modelhdl, f.second.frameName, scale)).second;
+            auto parent_csys_H_parent_link = (getTransformFromPart(parent_l_info.modelhdl, parent_l_info.link_frame_name, scale)).second;
+            // This transform is used for exporting the ft frame
+            f.second.parent_link_H_sensor = parent_csys_H_parent_link.inverse() * parent_csys_H_sensor;
 
-        auto child_csys_H_sensor      = (getTransformFromPart(child_l_info.modelhdl, f.second.frameName, scale)).second;
-        auto child_csys_H_child_link  = (getTransformFromPart(child_l_info.modelhdl, child_l_info.link_frame_name, scale)).second;
-        // This transform is used for defining the pose of the ft sensor
-        f.second.child_link_H_sensor = child_csys_H_child_link.inverse() * child_csys_H_sensor;
+            auto child_csys_H_sensor = (getTransformFromPart(child_l_info.modelhdl, f.second.frameName, scale)).second;
+            auto child_csys_H_child_link = (getTransformFromPart(child_l_info.modelhdl, child_l_info.link_frame_name, scale)).second;
+            // This transform is used for defining the pose of the ft sensor
+            f.second.child_link_H_sensor = child_csys_H_child_link.inverse() * child_csys_H_sensor;
+        }
     }
 }
 
@@ -218,18 +226,46 @@ std::vector<std::string> Sensorizer::buildFTXMLBlobs()
     return ft_xml_blobs;
 }
 
-void Sensorizer::assignTransformToSensors(const std::map<std::string, ExportedFrameInfo>& exported_frame_info_map)
+void Sensorizer::assignTransformToSensors(const std::map<std::string, ExportedFrameInfo>& exported_frame_info_map, const std::map<std::string, LinkInfo>& link_info_map, const std::array<double, 3> scale)
 {
     for (auto& s : sensors)
     {
-
         if (exported_frame_info_map.find(s.frameName) != exported_frame_info_map.end())
         {
-            s.transform = exported_frame_info_map.at(s.frameName).linkFrame_H_additionalFrame;
+            // If the frame used is in the exported frames map, use the transform from there
+            s.transform = exported_frame_info_map.at(s.frameName).linkFrame_H_additionalFrame * exported_frame_info_map.at(s.frameName).additionalTransformation;
         }
         else
         {
-            printToMessageWindow(s.sensorName + ": " + s.frameName + " was not found", c2uLogLevel::WARN);
+            // Otherwise let's try to compute the transform
+            bool ret = false;
+            iDynTree::Transform csys_H_additionalFrame{ iDynTree::Transform::Identity() };
+            iDynTree::Transform csys_H_linkFrame{ iDynTree::Transform::Identity() };
+            iDynTree::Transform linkFrame_H_additionalFrame{ iDynTree::Transform::Identity() };
+            std::string cad_link_name = "";
+            for (auto& rename : m_config["rename"])
+            {
+                if (rename.second.Scalar() == s.linkName)
+                {
+                    cad_link_name = rename.first.Scalar();
+                    break;
+                }
+            }
+            auto link_info = link_info_map.at(cad_link_name);
+            std::tie(ret, csys_H_additionalFrame) = getTransformFromPart(link_info.modelhdl, s.frameName, scale);
+            if (!ret)
+            {
+                printToMessageWindow("Unable to get the transform for " + s.frameName, c2uLogLevel::WARN);
+                continue;
+            }
+            std::tie(ret, csys_H_linkFrame) = getTransformFromPart(link_info.modelhdl, link_info.link_frame_name, scale);
+            if (!ret)
+            {
+                printToMessageWindow("Unable to get the transform for " + link_info.link_frame_name, c2uLogLevel::WARN);
+                continue;
+            }
+            linkFrame_H_additionalFrame = csys_H_linkFrame.inverse() * csys_H_additionalFrame;
+            s.transform = linkFrame_H_additionalFrame;
         }
     }
 }

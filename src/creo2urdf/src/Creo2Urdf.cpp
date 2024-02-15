@@ -263,9 +263,9 @@ void Creo2Urdf::OnCommand() {
     }
 
     // Assign the transforms for the sensors
-    sensorizer.assignTransformToSensors(exported_frame_info_map);
+    sensorizer.assignTransformToSensors(exported_frame_info_map, link_info_map, scale);
     // Assign the transforms for the ft sensors
-    sensorizer.assignTransformToFTSensor(link_info_map, joint_info_map, scale);
+    sensorizer.assignTransformToFTSensor(exported_frame_info_map, link_info_map, joint_info_map, scale);
 
     // Let's add sensors and ft sensors frames
 
