@@ -30,9 +30,7 @@ Right now the `creo2urdf` plugin needs its dependencies to be compiled and linke
 
 - Download [vcpkg](https://github.com/microsoft/vcpkg): `git clone https://github.com/microsoft/vcpkg`
 - Bootstrap vcpkg: `.\vcpkg\bootstrap-vcpkg.bat`
-- Run `[path to vcpkg]/vcpkg install --triplet x64-windows-static-md eigen3 yaml-cpp rapidcsv libxml2 assimp`
-- Install [iDynTree@devel](https://github.com/robotology/idyntree/tree/devel) from sources.
-  - It has to be compiled passing these CMake variables `-DBUILD_SHARED_LIBS=OFF -DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static-md` 
+- Run `[path to vcpkg]/vcpkg install --triplet x64-windows-static-md eigen3 yaml-cpp rapidcsv libxml2 assimp idyntree`
 
 ### Build `creo2urdf`
 
