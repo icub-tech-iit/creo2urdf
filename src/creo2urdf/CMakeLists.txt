@@ -71,6 +71,7 @@ target_link_libraries(creo2urdf PRIVATE iDynTree::idyntree-modelio
                                         iDynTree::idyntree-high-level
                                         yaml-cpp
                                         LibXml2::LibXml2
+                                        Eigen3::Eigen
                                         protk_dllmd_NU
                                         otk_cpp_md
                                         otk_no222_md

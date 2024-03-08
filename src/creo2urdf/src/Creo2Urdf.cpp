@@ -10,7 +10,11 @@
 #include <creo2urdf/Creo2Urdf.h>
 #include <creo2urdf/Utils.h>
 #include <pfcExceptions.h>
+
 #include <iDynTree/PrismaticJoint.h>
+#include <iDynTree/EigenHelpers.h>
+
+#include <Eigen/Core>
 
 void Creo2Urdf::OnCommand() {
 
@@ -375,16 +379,19 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
 iDynTree::SpatialInertia Creo2Urdf::computeSpatialInertiafromCreo(pfcMassProperty_ptr mass_prop, iDynTree::Transform H, const std::string& link_name) {
     auto com = mass_prop->GetGravityCenter();
     auto inertia_tensor = mass_prop->GetCenterGravityInertiaTensor();
-    iDynTree::RotationalInertiaRaw idyn_inertia_tensor = iDynTree::RotationalInertiaRaw::Zero();
+
+    iDynTree::RotationalInertiaRaw idyn_inertia_tensor_root_orientation = iDynTree::RotationalInertiaRaw::Zero();
+    iDynTree::RotationalInertiaRaw idyn_inertia_tensor_link_orientation = iDynTree::RotationalInertiaRaw::Zero();
+
     bool assigned_inertia_flag = assigned_inertias_map.find(link_name) != assigned_inertias_map.end();
-    for (int i_row = 0; i_row < idyn_inertia_tensor.rows(); i_row++) {
-        for (int j_col = 0; j_col < idyn_inertia_tensor.cols(); j_col++) {
-            if ((assigned_inertia_flag) && (i_row == j_col))
-            {
-                idyn_inertia_tensor.setVal(i_row, j_col, assigned_inertias_map.at(link_name)[i_row]);
+    for (int i_row = 0; i_row < idyn_inertia_tensor_root_orientation.rows(); i_row++) {
+        for (int j_col = 0; j_col < idyn_inertia_tensor_root_orientation.cols(); j_col++) {
+            if ((assigned_inertia_flag) && (i_row == j_col)) {
+                // The assigned inertia is already expressed in the link frame
+                idyn_inertia_tensor_link_orientation.setVal(i_row, j_col, assigned_inertias_map.at(link_name)[i_row]);
             }
             else {
-                idyn_inertia_tensor.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col) * scale[i_row] * scale[j_col]);
+                idyn_inertia_tensor_root_orientation.setVal(i_row, j_col, inertia_tensor->get(i_row, j_col) * scale[i_row] * scale[j_col]);
             }
         }
     }
@@ -402,7 +409,14 @@ iDynTree::SpatialInertia Creo2Urdf::computeSpatialInertiafromCreo(pfcMassPropert
     // point in which it is expressed, and with the orientation of the root link, so we rotate it back with
     // the orientation of the link frame, unless an assignedInertia is used
     if (!assigned_inertia_flag) {
-        iDynTree::toEigen() = 
+        // Note, this auto-defined methods are Eigen::Map, so they are reference to data that remains
+        // stored in the original iDynTree object, see https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html
+        auto inertia_tensor_root = iDynTree::toEigen(idyn_inertia_tensor_root_orientation.data());
+        auto inertia_tensor_link = iDynTree::toEigen(idyn_inertia_tensor_link_orientation.data());
+        auto root_R_link = iDynTree::toEigen(H.getRotation().data());
+
+        // See Equation 15 of https://ocw.mit.edu/courses/16-07-dynamics-fall-2009/dd277ec654440f4c2b5b07d6c286c3fd_MIT16_07F09_Lec26.pdf
+        inertia_tensor_link = root_R_link.transpose()*inertia_tensor_root*root_R_link;
     }
 
     double mass{ 0.0 };
