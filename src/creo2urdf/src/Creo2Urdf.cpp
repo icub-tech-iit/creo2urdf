@@ -405,7 +405,7 @@ iDynTree::SpatialInertia Creo2Urdf::computeSpatialInertiafromCreo(pfcMassPropert
 
     iDynTree::Position com_child({ com->get(0) * scale[0] , com->get(1) * scale[1], com->get(2) * scale[2] });
 
-    // Account for root_H_link transformation
+    // Account for csysPart_H_link transformation
     // See https://github.com/icub-tech-iit/ergocub-software/issues/224#issuecomment-1985692598 for full contents
 
     // The COM returned by Creo's GetGravityCenter seems to be expressed in the root frame, so we need 
@@ -413,7 +413,7 @@ iDynTree::SpatialInertia Creo2Urdf::computeSpatialInertiafromCreo(pfcMassPropert
     com_child = H.inverse() * com_child;
 
     // The inertia returned by Creo's GetCenterGravityInertiaTensor seems to be expressed with the COM as the
-    // point in which it is expressed, and with the orientation of the root link, so we rotate it back with
+    // point in which it is expressed, and with the orientation of the CSYS of the part, so we rotate it back with
     // the orientation of the link frame, unless an assignedInertia is used
     if (!assigned_inertia_flag) {
         // Note, this auto-defined methods are Eigen::Map, so they are reference to data that remains
