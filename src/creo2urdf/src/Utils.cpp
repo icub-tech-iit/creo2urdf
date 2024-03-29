@@ -54,7 +54,7 @@ std::vector<string> getSolidDatumNames(pfcSolid_ptr solid, pfcModelItemType type
     std::vector<string> result;
     auto items = solid->ListItems(type);
     if (items->getarraysize() == 0) {
-        printToMessageWindow("There is no axis in " + string(solid->GetFullName()), c2uLogLevel::WARN);
+        printToMessageWindow("There is no Axis in " + string(solid->GetFullName()), c2uLogLevel::WARN);
         return result;
     }
 
@@ -113,7 +113,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPat
 
     if (!ret)
     {
-        printToMessageWindow("Unable to get the transform from to the root for " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
+        printToMessageWindow("Unable to get the transform "  + link_frame_name + " in " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
         return make_pair(false, csysAsm_H_link);
     }
 
@@ -131,7 +131,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
     auto link_child_name = string(modelhdl->GetFullName());
     
     if (csys_list->getarraysize() == 0) {
-        printToMessageWindow("There are no CSYS in the part " + link_child_name, c2uLogLevel::WARN);
+        printToMessageWindow("There are no Coordinate Systems in the part " + link_child_name, c2uLogLevel::WARN);
 
         H_child = iDynTree::Transform::Identity();
 
@@ -179,7 +179,7 @@ std::pair<bool, iDynTree::Direction> getAxisFromPart(pfcModel_ptr modelhdl, cons
 
     auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
     if (axes_list->getarraysize() == 0) {
-        printToMessageWindow("There is no AXIS in the part " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
+        printToMessageWindow("There is no Axis in the part " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
 
         return { false, axis_unit_vector };
     }

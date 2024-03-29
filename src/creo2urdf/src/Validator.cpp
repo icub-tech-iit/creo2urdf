@@ -125,6 +125,9 @@ bool Validator::validatePositions(iDynTree::VectorDynSize positions) {
 
 void Validator::OnCommand() {
 
+    printToMessageWindow("Model validation is not yet implemented", c2uLogLevel::INFO);
+
+    /*
     iDynRedirectErrors idyn_redirect;
     idyn_redirect.redirectBuffer(std::cerr.rdbuf(), "iDynTreeErrors.txt");
 
@@ -158,6 +161,7 @@ void Validator::OnCommand() {
     {
         printToMessageWindow("Validation successful!");
     }
+    */
 
     return;
 }
