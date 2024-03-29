@@ -1,10 +1,6 @@
 # creo2urdf
 Generate URDF model from CREO Parametric mechanisms.
 
-> [!warning]
->
-> ⚠️ LIBRARY UNDER DEVELOPMENT ⚠️
-
 **Since it is under development, we cannot guarantee that the user interface of `creo2urdf` will not implement breaking changes. Be aware of this if you start using the code contained in this repository**
 
 ## CREO Parametric versions supported and tested
