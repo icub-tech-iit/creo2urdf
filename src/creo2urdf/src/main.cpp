@@ -10,6 +10,7 @@
 #include <creo2urdf/Validator.h>
 #include <ProTKRunTime.h>
 #include <ProCore.h>
+#include <pfcExceptions.h>
 
 
  /*! @brief Do batch mode stuff
@@ -26,13 +27,18 @@ ProError evaluateBatchMode(const std::string& asm_path, const std::string& yaml_
 		return PRO_TK_GENERAL_ERROR;
 	}
 
-    auto asm_model_ptr = session->RetrieveModel(pfcModelDescriptor::CreateFromFileName(asm_path.c_str()));
+    pfcModel_ptr asm_model_ptr{ nullptr };
 
-    if (!asm_model_ptr) {
-		ProTKPrintf("Creo2Urdf: impossible to retrieve the model located in %s", asm_path);
-        return PRO_TK_GENERAL_ERROR;
+    try {
+        asm_model_ptr = session->RetrieveModel(pfcModelDescriptor::CreateFromFileName(asm_path.c_str()));
     }
-
+    xcatchbegin
+    xcatchcip(defaultEx)
+    {
+        ProTKPrintf("Exception caught: %s", pfcXPFC::cast(defaultEx)->GetMessage());
+        return PRO_TK_E_NOT_FOUND;
+    }
+    xcatchend
 
     Creo2Urdf creo2urdfApp(yaml_path, csv_path, output_path, asm_model_ptr);
     creo2urdfApp.OnCommand();
@@ -58,6 +64,16 @@ extern "C" int user_initialize(
         std::string yaml_path   = argv[2];
         std::string csv_path    = argv[3];
         std::string output_path = argv[4];
+
+        // We need to remove the '+' character from the paths
+        asm_path.erase(std::find(asm_path.begin(), asm_path.end(), '+'));
+        yaml_path.erase(std::find(yaml_path.begin(), yaml_path.end(), '+'));
+        csv_path.erase(std::find(csv_path.begin(), csv_path.end(), '+'));
+        output_path.erase(std::find(output_path.begin(), output_path.end(), '+'));
+
+        ProTKPrintf("Running in batch mode");
+        auto debug_msg = "Assembly path: " + asm_path + " yaml path " + yaml_path + " csv_path " + csv_path + " output_path " + output_path;
+        ProTKPrintf("%s\n", debug_msg.c_str());
         ProError err = evaluateBatchMode(asm_path, yaml_path, csv_path, output_path);
         ProEngineerEnd();
         return (int)err; // or whatever you want
