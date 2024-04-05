@@ -19,7 +19,17 @@
 void Creo2Urdf::OnCommand() {
 
     pfcSession_ptr session_ptr = pfcGetProESession();
-    pfcModel_ptr model_ptr = session_ptr->GetCurrentModel();
+    if (!session_ptr) {
+		printToMessageWindow("Failed to get the session", c2uLogLevel::WARN);
+		return;
+	}
+    if (!m_asm_model_ptr) {
+        m_asm_model_ptr = session_ptr->GetCurrentModel();
+        if (!m_asm_model_ptr) {
+			printToMessageWindow("Failed to get the current model", c2uLogLevel::WARN);
+			return;
+		}
+    }
 
 
     // TODO Principal units probably to be changed from MM to M before getting the model properties
@@ -31,23 +41,28 @@ void Creo2Urdf::OnCommand() {
     auto yaml_file_open_option = pfcFileOpenOptions::Create("*.yml,*.yaml");
     yaml_file_open_option->SetDialogLabel("Select the yaml");
 
-    auto yaml_path = session_ptr->UIOpenFile(yaml_file_open_option);
-
-    if (!loadYamlConfig(string(yaml_path)))
+    // YAML file path
+    if (m_yaml_path.empty()) {
+		m_yaml_path = string(session_ptr->UIOpenFile(yaml_file_open_option));
+	}
+    if (!loadYamlConfig(m_yaml_path))
     {
         printToMessageWindow("Failed to run Creo2Urdf!", c2uLogLevel::WARN);
         return;
     }
-    auto csv_file_open_option = pfcFileOpenOptions::Create("*.csv");
-    csv_file_open_option->SetDialogLabel("Select the csv");
-
-    auto csv_path = session_ptr->UIOpenFile(csv_file_open_option);
-
-    rapidcsv::Document joints_csv_table(string(csv_path), rapidcsv::LabelParams(0, 0));
-    auto output_folder_open_option = pfcDirectorySelectionOptions::Create();
-    output_folder_open_option->SetDialogLabel("Select the output dir");
-
-    m_output_path = string(session_ptr->UISelectDirectory(output_folder_open_option));
+    // CSV file path
+    if (m_csv_path.empty()) {
+		auto csv_file_open_option = pfcFileOpenOptions::Create("*.csv");
+		csv_file_open_option->SetDialogLabel("Select the csv");
+		m_csv_path = string(session_ptr->UIOpenFile(csv_file_open_option));
+	}
+    rapidcsv::Document joints_csv_table(m_csv_path, rapidcsv::LabelParams(0, 0));
+    // Output folder path
+    if (m_output_path.empty()) {
+        auto output_folder_open_option = pfcDirectorySelectionOptions::Create();
+        output_folder_open_option->SetDialogLabel("Select the output dir");
+        m_output_path = string(session_ptr->UISelectDirectory(output_folder_open_option));
+    }
     printToMessageWindow("Output path is: " + m_output_path);
     
 
@@ -56,7 +71,7 @@ void Creo2Urdf::OnCommand() {
 
     bool ret;
 
-    auto asm_component_list = model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
+    auto asm_component_list = m_asm_model_ptr->ListItems(pfcModelItemType::pfcITEM_FEATURE);
     if (asm_component_list->getarraysize() == 0) {
         printToMessageWindow("There are no FEATURES in the asm", c2uLogLevel::WARN);
         return;
@@ -117,7 +132,7 @@ void Creo2Urdf::OnCommand() {
 
         elem_tree.populateJointInfoFromElementTree(feat, joint_info_map);
 
-        pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_ptr), seq);
+        pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(m_asm_model_ptr), seq);
 
         auto component_handle = session_ptr->RetrieveModel(pfcComponentFeat::cast(feat)->GetModelDescr());
         
