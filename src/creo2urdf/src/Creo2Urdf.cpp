@@ -373,6 +373,12 @@ void Creo2Urdf::OnCommand() {
 
     exportModelToUrdf(idyn_model, export_options);
 
+    // Let's clear the map in case of multiple click TODO UNIFY
+    m_yaml_path.clear();
+    m_csv_path.clear();
+    m_output_path.clear();
+    m_asm_model_ptr = nullptr;
+
     return;
 }
 
