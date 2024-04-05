@@ -24,8 +24,8 @@ ProError evaluateBatchMode(const std::string& asm_path, const std::string& yaml_
     pfcBaseSession* session = pfcGetProESession();
     if (!session) {
         ProTKPrintf("Creo2Urdf: impossible to retrieve the session");
-		return PRO_TK_GENERAL_ERROR;
-	}
+        return PRO_TK_GENERAL_ERROR;
+    }
 
     pfcModel_ptr asm_model_ptr{ nullptr };
 
