@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.7] - 2024-04-09
+- Made `creo2urdf` runnable from terminal
+
 ## [0.4.6] - 2024-03-19
 - Account for part/link rotation when saving inertia matrix
 
