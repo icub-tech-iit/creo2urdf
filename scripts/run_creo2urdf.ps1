@@ -31,23 +31,23 @@ Write-Host "Using output path: $outputPath"
 
 if ([string]::IsNullOrEmpty($env:CREO9_INSTALL_PATH)) {
     Write-Host "CREO9_INSTALL_PATH not set, exiting."
-    Exit
+    Exit 1
 }
 if ([string]::IsNullOrEmpty($asmPath)) {
     Write-Host "asm path not specified, exiting."
-    Exit
+    Exit 1
 }
 if ([string]::IsNullOrEmpty($yamlPath)) {
     Write-Host "yaml path not specified, exiting."
-    Exit
+    Exit 1
 }
 if ([string]::IsNullOrEmpty($csvPath)) {
     Write-Host "csv path not specified, exiting."
-    Exit
+    Exit 1
 }
 if ([string]::IsNullOrEmpty($outputPath)) {
     Write-Host "output path not specified, exiting."
-    Exit
+    Exit 1
 }
 
 $parametricExe = "$env:CREO9_INSTALL_PATH\..\Parametric\bin\parametric.exe"
@@ -57,7 +57,9 @@ Start-Process -FilePath $parametricExe -ArgumentList "-g:no_graphics", "-batch_m
 $urdfPath = Join-Path -Path $outputPath -ChildPath "model.urdf"
 if (Test-Path -Path $urdfPath) {
     Write-Host "Conversion completed successfully. The URDF file is located at: $urdfPath"
+    Exit 0
 }
 else {
     Write-Host "Conversion failed. The URDF file was not generated."
+    Exit 1
 }
