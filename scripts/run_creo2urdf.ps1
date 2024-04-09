@@ -34,15 +34,15 @@ if ([string]::IsNullOrEmpty($env:CREO9_INSTALL_PATH)) {
     Exit 1
 }
 if ([string]::IsNullOrEmpty($asmPath)) {
-    Write-Host "asm path not specified, exiting."
+    Write-Host "asm path not valid, exiting."
     Exit 1
 }
-if ([string]::IsNullOrEmpty($yamlPath)) {
-    Write-Host "yaml path not specified, exiting."
+if ([string]::IsNullOrEmpty($yamlPath) -or -not (Test-Path $yamlPath -PathType Leaf)) {
+    Write-Host "yaml path not valid, exiting."
     Exit 1
 }
-if ([string]::IsNullOrEmpty($csvPath)) {
-    Write-Host "csv path not specified, exiting."
+if ([string]::IsNullOrEmpty($csvPath)-or -not (Test-Path $csvPath -PathType Leaf)) {
+    Write-Host "csv path not valid, exiting."
     Exit 1
 }
 if ([string]::IsNullOrEmpty($outputPath)) {
