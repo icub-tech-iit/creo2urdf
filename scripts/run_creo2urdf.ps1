@@ -51,7 +51,11 @@ if ([string]::IsNullOrEmpty($outputPath)) {
 }
 
 $parametricExe = "$env:CREO9_INSTALL_PATH\..\Parametric\bin\parametric.exe"
-Start-Process -FilePath $parametricExe -ArgumentList "-g:no_graphics", "-batch_mode", "creo2urdf", "+$asmPath", "+$yamlPath", "+$csvPath", "+$outputPath" -Wait
+$process = Start-Process -FilePath $parametricExe -ArgumentList "-g:no_graphics", "-batch_mode", "creo2urdf", "+$asmPath", "+$yamlPath", "+$csvPath", "+$outputPath" -PassThru -NoNewWindow
+
+Start-Sleep -Seconds 30.0
+
+$process | kill
 
 # Check if model.urdf exists in the output path
 $urdfPath = Join-Path -Path $outputPath -ChildPath "model.urdf"
