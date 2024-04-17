@@ -215,3 +215,38 @@ std::pair<bool, iDynTree::Direction> getAxisFromPart(pfcModel_ptr modelhdl, cons
     
     return { true, axis_unit_vector };
 }
+
+std::string extractFolderPath(const std::string& filePath) {
+    auto found = std::find_if(filePath.rbegin(), filePath.rend(),
+        [](char c) { return c == '/' || c == '\\'; });
+
+    if (found != filePath.rend()) {
+        return std::string(filePath.begin(), found.base());
+    }
+    else {
+        return "";
+    }
+}
+
+
+void mergeYAMLNodes(YAML::Node& dest, const YAML::Node& src) {
+
+    for (const auto& item : src) {
+        std::string key = item.first.as<std::string>();
+        if (!dest[key]) {
+            // If the key doesn't exist in the destination node, simply add it
+            dest[key] = item.second;
+        }
+        else {
+            // If the key exists in the destination node, merge the values
+            // If both values are maps, recursively merge them
+            if (dest[key].IsMap() && item.second.IsMap()) {
+                mergeYAMLNodes(dest[key], item.second);
+            }
+            else {
+                // Otherwise, overwrite the value in the destination node
+                dest[key] = item.second;
+            }
+        }
+    }
+}
