@@ -377,6 +377,7 @@ void Creo2Urdf::OnCommand() {
     m_yaml_path.clear();
     m_csv_path.clear();
     m_output_path.clear();
+    config = YAML::Node();
     m_asm_model_ptr = nullptr;
 
     return;
@@ -723,7 +724,19 @@ bool Creo2Urdf::loadYamlConfig(const std::string& filename)
 {
     try 
     {
-        config = YAML::LoadFile(filename);
+        auto config_temp = YAML::LoadFile(filename);
+        auto folder_path = extractFolderPath(filename);
+        if (config_temp["includes"].IsDefined() && config_temp["includes"].IsSequence()) {
+            for (const auto& include : config_temp["includes"]) {
+                auto include_filename = folder_path + include.as<std::string>();
+                auto include_config = YAML::LoadFile(include_filename);
+                mergeYAMLNodes(config, include_config);
+            }
+        }
+        else
+        {
+            config = config_temp;
+        }
     }
     catch (YAML::BadFile file_does_not_exist) 
     {

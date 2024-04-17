@@ -32,6 +32,7 @@
 #include <iDynTree/Model/Model.h>
 #include <iDynTree/Model/RevoluteJoint.h>
 #include <iDynTree/Model/FixedJoint.h>
+#include <yaml-cpp/yaml.h>
 
 /**
  * @brief Small positive value used for numerical precision comparisons.
@@ -438,5 +439,23 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
  * @return std::pair<bool, iDynTree::Direction>  Pair containing a success/failure flag, and the axis direction
  */
 std::pair<bool, iDynTree::Direction> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_frame_name, const array<double, 3>& scale);
+
+/**
+ * @brief Extracts the folder path from a file path.
+ * 
+ * @param filePath The file path from which to extract the folder path.
+ * @return std::string The folder path extracted from the input file path.
+ */
+std::string extractFolderPath(const std::string& filePath);
+
+/**
+ * @brief Merge two YAML nodes, recursively.
+ * 
+ * @param dest The destination YAML node.
+ * @param src The source YAML node.
+ * @return void
+ * 
+ */
+void mergeYAMLNodes(YAML::Node& dest, const YAML::Node& src);
 
 #endif // !UTILS_H

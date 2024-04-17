@@ -74,7 +74,18 @@ If the export process was successful, you should see three files": "bar.stl", "b
 
 ### YAML Parameter File
 The YAML format is used to pass parameters to the plugin to customized the conversion process.
-The parameter accepted by the plugin are documented in the following.
+The parameters accepted by the plugin are documented in the following.
+
+##### Include Parameters
+The YAML can eventually include other YAML files using the `includes` parameter, if so, the included files are merged with the main file.
+All internal groups are merged if they are maps, they are overwritten only if an element is not a map, taking precedence over the main file in case of conflicts.
+
+> [!NOTE]
+> The `includes` parameter is not mandatory, but if it is present, it must be a list of strings, containing relative path respect the directory of the main YAML file.
+
+| Attribute name   | Type   | Default Value | Description  |
+|:----------------:|:---------:|:------------:|:-------------:|
+| `includes`     | List of strings  | "" | List of paths relative to the main YAML directory |
 
 ##### Severity Parameters
 | Attribute name   | Type   | Default Value | Description  |
