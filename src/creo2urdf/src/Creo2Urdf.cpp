@@ -724,7 +724,7 @@ bool Creo2Urdf::loadYamlConfig(const std::string& filename)
 {
     try 
     {
-        auto config = YAML::LoadFile(filename);
+        config = YAML::LoadFile(filename);
         if (config["includes"].IsDefined() && config["includes"].IsSequence()) {
             auto folder_path = extractFolderPath(filename);
             for (const auto& include : config["includes"]) {
