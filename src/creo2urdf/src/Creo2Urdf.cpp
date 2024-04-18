@@ -724,18 +724,14 @@ bool Creo2Urdf::loadYamlConfig(const std::string& filename)
 {
     try 
     {
-        auto config_temp = YAML::LoadFile(filename);
-        auto folder_path = extractFolderPath(filename);
-        if (config_temp["includes"].IsDefined() && config_temp["includes"].IsSequence()) {
-            for (const auto& include : config_temp["includes"]) {
+        auto config = YAML::LoadFile(filename);
+        if (config["includes"].IsDefined() && config["includes"].IsSequence()) {
+            auto folder_path = extractFolderPath(filename);
+            for (const auto& include : config["includes"]) {
                 auto include_filename = folder_path + include.as<std::string>();
                 auto include_config = YAML::LoadFile(include_filename);
                 mergeYAMLNodes(config, include_config);
             }
-        }
-        else
-        {
-            config = config_temp;
         }
     }
     catch (YAML::BadFile file_does_not_exist) 
