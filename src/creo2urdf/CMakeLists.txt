@@ -69,7 +69,7 @@ add_compile_definitions(creo2urdf PUBLIC PRO_MACHINE=36
 # Link dependencies
 target_link_libraries(creo2urdf PRIVATE iDynTree::idyntree-modelio
                                         iDynTree::idyntree-high-level
-                                        yaml-cpp
+                                        yaml-cpp::yaml-cpp
                                         LibXml2::LibXml2
                                         Eigen3::Eigen
                                         protk_dllmd_NU
