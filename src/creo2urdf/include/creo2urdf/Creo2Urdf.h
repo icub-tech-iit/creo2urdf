@@ -66,7 +66,7 @@ public:
     Creo2Urdf(const std::string& yaml_path, const std::string& csv_path, const std::string& output_path, pfcModel_ptr asm_model_ptr) : m_yaml_path(yaml_path),
                                                                                                                                        m_csv_path(csv_path),
                                                                                                                                        m_output_path(output_path),
-                                                                                                                                       m_asm_model_ptr(asm_model_ptr) { }
+                                                                                                                                       m_root_asm_model_ptr(asm_model_ptr) { }
 
 private:
     /**
@@ -124,6 +124,8 @@ private:
      */
     bool loadYamlConfig(const std::string& filename);
 
+    bool processAsmItems(pfcModelItems_ptr asmListItems);
+
     /**
      * @brief Get the renamed element from the configuration.
      * @param elem_name The original element name.
@@ -147,7 +149,9 @@ private:
     std::string m_yaml_path{ "" }; /**< Path to the YAML configuration file. */
     std::string m_csv_path{ "" }; /**< Path to the CSV file containing joint information. */
     std::string m_output_path{ "" }; /**< Output path for the exported URDF file. */
-    pfcModel_ptr m_asm_model_ptr{ nullptr }; /**< Handle to the Creo model. */
+    pfcModel_ptr m_root_asm_model_ptr{ nullptr }; /**< Handle to the Creo model. */
+    ElementTreeManager m_element_tree; /**< Manager for the element tree. */
+    pfcSession_ptr m_session_ptr{ nullptr }; /**< Handle to the Creo session. */
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {

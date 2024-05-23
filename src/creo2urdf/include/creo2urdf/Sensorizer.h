@@ -65,18 +65,18 @@ struct Sensorizer {
 
     /**
      * @brief Builds a vector of XML trees as strings for force/torque sensors, 
-	 * starting from the information retrieved in the YAML. The XML trees are returned in this
-	 * way so that they can be added as blobs using iDynTree.
-	 * 
+     * starting from the information retrieved in the YAML. The XML trees are returned in this
+     * way so that they can be added as blobs using iDynTree.
+     * 
      * @return A vector of strings representing the XML blobs.
      */
     std::vector<std::string> buildFTXMLBlobs();
 
     /**
      * @brief Builds a vector of XML trees as strings for general sensors, 
-	 * starting from the information retrieved in the YAML. The XML trees are returned in this
-	 * way so that they can be added as blobs using iDynTree.
-	 * 
+     * starting from the information retrieved in the YAML. The XML trees are returned in this
+     * way so that they can be added as blobs using iDynTree.
+     * 
      * @return A vector of strings representing the XML blobs.
      */
     std::vector<std::string> buildSensorsXMLBlobs();
