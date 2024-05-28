@@ -124,7 +124,7 @@ private:
      */
     bool loadYamlConfig(const std::string& filename);
 
-    bool processAsmItems(pfcModelItems_ptr asmListItems);
+    bool processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner);
 
     /**
      * @brief Get the renamed element from the configuration.

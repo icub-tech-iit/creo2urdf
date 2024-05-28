@@ -40,6 +40,11 @@ void Sensorizer::readSensorsFromConfig(const YAML::Node & config)
         if (s["exportedFrameName"].IsDefined()) {
             exported_frame_name = s["exportedFrameName"].Scalar();
         }
+        std::vector<string> sensor_blobs;
+        if (s["sensorBlobs"].IsDefined())
+        {
+            sensor_blobs = s["sensorBlobs"].as<std::vector<std::string>>();
+        }
 
         try
         {
@@ -51,7 +56,7 @@ void Sensorizer::readSensorsFromConfig(const YAML::Node & config)
                                 export_frame,
                                 stringToEnum<SensorType>(sensor_type_map, s["sensorType"].Scalar()),
                                 update_rate,
-                                s["sensorBlobs"].as<std::vector<std::string>>() });
+                                sensor_blobs });
         }
         catch (YAML::Exception& e)
         {
