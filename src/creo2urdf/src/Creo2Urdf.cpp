@@ -17,7 +17,7 @@
 #include <Eigen/Core>
 
 
-bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems) {
+bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner) {
 
     for (int i = 0; i < asmListItems->getarraysize(); i++)
     {
@@ -34,18 +34,27 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems) {
             return false;
         }
 
+        printToMessageWindow("Processing " + string(component_handle->GetFullName()) + " Owner " + string(model_owner->GetFullName()));
+
         auto type = component_handle->GetType();
         if (type == pfcMDL_ASSEMBLY) {
             auto sub_asm_component_list = component_handle->ListItems(pfcModelItemType::pfcITEM_FEATURE);
-            processAsmItems(sub_asm_component_list);
+            auto ok = processAsmItems(sub_asm_component_list, component_handle);
+            if (!ok) {
+                return false;
+            }
+            else {
+                continue;
+            }
         }
 
         xintsequence_ptr seq = xintsequence::create();
         seq->append(asmItemAsFeat->GetId());
 
+
         m_element_tree.populateJointInfoFromElementTree(asmItemAsFeat, joint_info_map);
 
-        pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(m_root_asm_model_ptr), seq);
+        pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_owner), seq);
 
         auto link_name = string(component_handle->GetFullName());
 
@@ -69,6 +78,8 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems) {
             link_frame_name = "CSYS";
         }
         std::tie(ret, root_H_link) = getTransformFromRootToChild(comp_path, component_handle, link_frame_name, scale);
+
+        printToMessageWindow(root_H_link.toString());
 
         if (!ret && warningsAreFatal)
         {
@@ -208,7 +219,11 @@ void Creo2Urdf::OnCommand() {
     sensorizer.readSensorsFromConfig(config);
 
     // Let's traverse the model tree and get all links and axis properties
-    bool ok = processAsmItems(asm_component_list);
+    bool ok = processAsmItems(asm_component_list, m_root_asm_model_ptr);
+    if (!ok) {
+        printToMessageWindow("Failed to process the assembly", c2uLogLevel::WARN);
+        return;
+    }
 
     // Now we have to add joints to the iDynTree model
 
