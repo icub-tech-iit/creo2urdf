@@ -124,7 +124,7 @@ private:
      */
     bool loadYamlConfig(const std::string& filename);
 
-    bool processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner);
+    bool processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner, iDynTree::Transform parent_H_csysItem = iDynTree::Transform::Identity());
 
     /**
      * @brief Get the renamed element from the configuration.

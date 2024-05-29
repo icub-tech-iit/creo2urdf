@@ -119,6 +119,11 @@ void Sensorizer::assignTransformToFTSensor(const std::map<std::string, ExportedF
             f.second.child_link_H_sensor = exported_frame_info_map.at(f.second.frameName).linkFrame_H_additionalFrame * exported_frame_info_map.at(f.second.frameName).additionalTransformation;
         }
         else {
+            if (joint_info_map.find(f.second.frameName) == joint_info_map.end())
+            {
+                continue;
+            }
+
             JointInfo j_info = joint_info_map.at(f.second.frameName);
 
             LinkInfo parent_l_info = link_info_map.at(j_info.parent_link_name);

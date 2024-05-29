@@ -17,7 +17,7 @@
 #include <Eigen/Core>
 
 
-bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner) {
+bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner, iDynTree::Transform parent_H_csysItem) {
 
     for (int i = 0; i < asmListItems->getarraysize(); i++)
     {
@@ -39,7 +39,18 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
         auto type = component_handle->GetType();
         if (type == pfcMDL_ASSEMBLY) {
             auto sub_asm_component_list = component_handle->ListItems(pfcModelItemType::pfcITEM_FEATURE);
-            auto ok = processAsmItems(sub_asm_component_list, component_handle);
+            iDynTree::Transform parentAsmCsys_H_asmCsys = iDynTree::Transform::Identity();
+            bool ret{ false };
+            std::tie(ret, parentAsmCsys_H_asmCsys) = getTransformFromPart(component_handle, "ASM_CSYS", scale);
+            if(!ret) {
+                printToMessageWindow("Failed to get the transform from  " + string(model_owner->GetFullName()) + " (the parent assembly) to " + string(component_handle->GetFullName()), c2uLogLevel::WARN);
+                //return false;
+            }
+            else {
+                printToMessageWindow("Got the transform from  " + string(model_owner->GetFullName()) + " (the parent assembly) to " + string(component_handle->GetFullName()), c2uLogLevel::INFO);
+                printToMessageWindow(parentAsmCsys_H_asmCsys.toString());
+            }
+            auto ok = processAsmItems(sub_asm_component_list, component_handle, parentAsmCsys_H_asmCsys);
             if (!ok) {
                 return false;
             }
@@ -58,8 +69,9 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
 
         auto link_name = string(component_handle->GetFullName());
 
-        iDynTree::Transform root_H_link = iDynTree::Transform::Identity();
+        iDynTree::Transform csysAsm_H_link  = iDynTree::Transform::Identity();
         iDynTree::Transform csysPart_H_link = iDynTree::Transform::Identity();
+        iDynTree::Transform parent_H_link   = iDynTree::Transform::Identity();
 
         std::string urdf_link_name = getRenameElementFromConfig(link_name);
 
@@ -77,9 +89,11 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
             printToMessageWindow(link_name + " misses the frame in the linkFrames section, CSYS will be used instead", c2uLogLevel::WARN);
             link_frame_name = "CSYS";
         }
-        std::tie(ret, root_H_link) = getTransformFromRootToChild(comp_path, component_handle, link_frame_name, scale);
+        std::tie(ret, csysAsm_H_link) = getTransformFromRootToChild(comp_path, component_handle, link_frame_name, scale);
 
-        printToMessageWindow(root_H_link.toString());
+        parent_H_link = parent_H_csysItem * csysAsm_H_link;
+
+        //printToMessageWindow(csysAsm_H_link.toString());
 
         if (!ret && warningsAreFatal)
         {
@@ -105,7 +119,7 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
             }
         }
 
-        LinkInfo l_info{ urdf_link_name, component_handle, root_H_link, link_frame_name };
+        LinkInfo l_info{ urdf_link_name, component_handle, parent_H_link, link_frame_name };
         link_info_map.insert(std::make_pair(link_name, l_info));
         populateExportedFrameInfoMap(component_handle);
 
@@ -231,12 +245,16 @@ void Creo2Urdf::OnCommand() {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
         auto axis_name = joint_info.second.datum_name;
+        auto joint_name = getRenameElementFromConfig(parent_link_name + "--" + child_link_name);
+
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
-        if (child_link_name.empty()) {
+        if (child_link_name.empty() || link_info_map.find(parent_link_name) == link_info_map.end() || link_info_map.find(child_link_name) == link_info_map.end()) {
+            printToMessageWindow("Skipping joint " + joint_name + " child link name " + child_link_name + " parent link name " + parent_link_name , c2uLogLevel::WARN);
             continue;
         }
 
-        auto joint_name = getRenameElementFromConfig(parent_link_name + "--" + child_link_name);
+        
+        printToMessageWindow("Adding joint " + joint_name);
         auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
         auto root_H_child_link = link_info_map.at(child_link_name).root_H_link;
         auto child_model = link_info_map.at(child_link_name).modelhdl;
