@@ -24,13 +24,16 @@ ElementTreeManager::ElementTreeManager(pfcFeature_ptr feat, std::map<std::string
 
 ElementTreeManager::~ElementTreeManager() {}
 
-bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map)
+bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map, bool is_asm)
 {
     wfeat = wfcWFeature::cast(feat);
 
     try
     {
         tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);
+        std::string joint_name = std::to_string(feat->GetId()) + ".xml";
+        //printToMessageWindow("Element tree extracted for feature " + std::to_string(feat->GetId()), c2uLogLevel::INFO);
+        tree->WriteElementTreeToFile(wfcELEMTREE_XML, joint_name.c_str());
     }
     xcatchbegin
     xcatchcip(pfcXToolkitInvalidType)
@@ -41,11 +44,16 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
     
     JointInfo joint;
 
-    if (!retrieveSolidReferences())
+
+    if (!retrieveSolidReferences()) {
+        printToMessageWindow("Could not retrieve solid references!", c2uLogLevel::WARN);
         return false;
+    }
 
     joint.child_link_name = getChildName();
     joint.parent_link_name = getParentName();
+    std::string joint_name = joint.parent_link_name + "--" + joint.child_link_name;
+    printToMessageWindow("JOINT !! " + joint_name, c2uLogLevel::INFO);
     joint.type = proAsmCompSetType_to_JointType.at(static_cast<ProAsmcompSetType>(getConstraintType()));
 
     if (joint.type == JointType::Revolute)
@@ -72,7 +80,7 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
         return false;
     }
 
-    joint_info_map.insert({ joint.datum_name, joint });
+    joint_info_map.insert({ joint_name, joint });
 
     return true;
 }
@@ -126,8 +134,9 @@ string ElementTreeManager::getConstraintDatum(pfcFeature_ptr feat, pfcComponentC
 
 std::string ElementTreeManager::getParentName()
 {
-    if (tree == nullptr)
+    if (!tree || !parent_solid)
     {
+        printToMessageWindow("Tree or parent solid is null!", c2uLogLevel::WARN);
         return "";
     }
     try{
@@ -143,13 +152,14 @@ std::string ElementTreeManager::getParentName()
 
 std::string ElementTreeManager::getChildName()
 {
-    if (tree == nullptr)
+    if (!tree || !child_solid)
     {
+        printToMessageWindow("Tree or child solid is null!", c2uLogLevel::WARN);
         return "";
     }
     try {
 
-    return std::string(child_solid->GetFullName());
+        return std::string(child_solid->GetFullName());
     }
     xcatchbegin
     xcatchcip(defaultEx)
@@ -185,18 +195,18 @@ bool ElementTreeManager::retrieveSolidReferences()
 
         for (int m = 0; m < extrefs->getarraysize(); m++) {
             auto extref = extrefs->get(m)->GetAsmcomponents()->GetPathToRef()->GetLeaf();
-
-            if (std::string(extref->GetFullName()) != retrievePartName())
-            {
+            // While defining a constraint the first part is the parent link and the second part is the child link
+            if (extref && !parent_solid) {
                 parent_solid = extref;
             }
-            if (std::string(extref->GetFullName()) == retrievePartName())
-            {
+            else if (extref && !child_solid && parent_solid) {
                 child_solid = extref;
+            }
+            else {
+                break;
             }
         }
     }
-
     return true;
 }
 
