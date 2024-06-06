@@ -119,12 +119,18 @@ void Sensorizer::assignTransformToFTSensor(const std::map<std::string, ExportedF
             f.second.child_link_H_sensor = exported_frame_info_map.at(f.second.frameName).linkFrame_H_additionalFrame * exported_frame_info_map.at(f.second.frameName).additionalTransformation;
         }
         else {
-            if (joint_info_map.find(f.second.frameName) == joint_info_map.end())
+
+            auto joint_it = std::find_if(joint_info_map.begin(), joint_info_map.end(),
+                [f](const std::pair<std::string, JointInfo>& pair) {
+                    return pair.second.datum_name == f.second.frameName;
+                });
+
+            if (joint_it == joint_info_map.end())
             {
                 continue;
             }
 
-            JointInfo j_info = joint_info_map.at(f.second.frameName);
+            JointInfo j_info = joint_it->second;
 
             LinkInfo parent_l_info = link_info_map.at(j_info.parent_link_name);
             LinkInfo child_l_info = link_info_map.at(j_info.child_link_name);
@@ -261,6 +267,13 @@ void Sensorizer::assignTransformToSensors(const std::map<std::string, ExportedFr
                     break;
                 }
             }
+
+            if (link_info_map.find(cad_link_name) == link_info_map.end())
+			{
+				printToMessageWindow("Sensorizer: link " + cad_link_name + " not found in the link info map, sensor "+ s.sensorName + " skipped.", c2uLogLevel::WARN);
+				continue;
+			}
+
             auto link_info = link_info_map.at(cad_link_name);
             std::tie(ret, csys_H_additionalFrame) = getTransformFromPart(link_info.modelhdl, s.frameName, scale);
             if (!ret)

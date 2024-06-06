@@ -186,7 +186,7 @@ struct FTSensorInfo {
     std::string frame{"sensor"}; ///< Frame associated with the FT sensor.
     std::string sensorName{""}; ///< Name of the FT sensor.
     std::string frameName{""}; ///< Name of the frame.
-    std::string linkName{" "}; ///< Name of the associated link.
+    std::string linkName{""}; ///< Name of the associated link.
     std::string exportedFrameName{""}; ///< Name of the exported frame.
     iDynTree::Transform parent_link_H_sensor{iDynTree::Transform::Identity()}; ///< 3D transform from parent link to sensor.
     iDynTree::Transform child_link_H_sensor{iDynTree::Transform::Identity()}; ///< 3D transform from child link to sensor.

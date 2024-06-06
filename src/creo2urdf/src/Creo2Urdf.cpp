@@ -33,12 +33,18 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
         if (!component_handle) {
             return false;
         }
+        ElementTreeManager element_tree_manager;
 
-        printToMessageWindow("Processing " + string(component_handle->GetFullName()) + " Owner " + string(model_owner->GetFullName()));
+        //printToMessageWindow("Processing " + string(component_handle->GetFullName()) + " Owner " + string(model_owner->GetFullName()));
 
         auto type = component_handle->GetType();
         if (type == pfcMDL_ASSEMBLY) {
             auto sub_asm_component_list = component_handle->ListItems(pfcModelItemType::pfcITEM_FEATURE);
+            auto ok = element_tree_manager.populateJointInfoFromElementTree(asmItemAsFeat, joint_info_map);
+            if (!ok) {
+                // WE NEED TO FIX the failure, the paths are not cleared
+                //continue;
+            }
             iDynTree::Transform parentAsmCsys_H_asmCsys = iDynTree::Transform::Identity();
             bool ret{ false };
             std::tie(ret, parentAsmCsys_H_asmCsys) = getTransformFromPart(component_handle, "ASM_CSYS", scale);
@@ -47,10 +53,10 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
                 //return false;
             }
             else {
-                printToMessageWindow("Got the transform from  " + string(model_owner->GetFullName()) + " (the parent assembly) to " + string(component_handle->GetFullName()), c2uLogLevel::INFO);
-                printToMessageWindow(parentAsmCsys_H_asmCsys.toString());
+                //printToMessageWindow("Got the transform from  " + string(model_owner->GetFullName()) + " (the parent assembly) to " + string(component_handle->GetFullName()), c2uLogLevel::INFO);
+                //printToMessageWindow(parentAsmCsys_H_asmCsys.toString());
             }
-            auto ok = processAsmItems(sub_asm_component_list, component_handle, parentAsmCsys_H_asmCsys);
+            ok = processAsmItems(sub_asm_component_list, component_handle, parentAsmCsys_H_asmCsys);
             if (!ok) {
                 return false;
             }
@@ -63,7 +69,7 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
         seq->append(asmItemAsFeat->GetId());
 
 
-        m_element_tree.populateJointInfoFromElementTree(asmItemAsFeat, joint_info_map);
+        element_tree_manager.populateJointInfoFromElementTree(asmItemAsFeat, joint_info_map);
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_owner), seq);
 
@@ -245,7 +251,7 @@ void Creo2Urdf::OnCommand() {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
         auto axis_name = joint_info.second.datum_name;
-        auto joint_name = getRenameElementFromConfig(parent_link_name + "--" + child_link_name);
+        auto joint_name = getRenameElementFromConfig(joint_info.first);
 
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
         if (child_link_name.empty() || link_info_map.find(parent_link_name) == link_info_map.end() || link_info_map.find(child_link_name) == link_info_map.end()) {

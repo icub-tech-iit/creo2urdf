@@ -150,7 +150,6 @@ private:
     std::string m_csv_path{ "" }; /**< Path to the CSV file containing joint information. */
     std::string m_output_path{ "" }; /**< Output path for the exported URDF file. */
     pfcModel_ptr m_root_asm_model_ptr{ nullptr }; /**< Handle to the Creo model. */
-    ElementTreeManager m_element_tree; /**< Manager for the element tree. */
     pfcSession_ptr m_session_ptr{ nullptr }; /**< Handle to the Creo session. */
 };
 
