@@ -101,7 +101,7 @@ void sanitizeSTL(std::string stl)
     output.close();
 }
 
-std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale) {
+std::pair<bool, iDynTree::Transform> getTransformFromOwnerToLinkFrame(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale) {
     
     iDynTree::Transform csysAsm_H_link = iDynTree::Transform::Identity();
 
@@ -172,20 +172,21 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
     return { false, H_child };
 }
 
-std::pair<bool, iDynTree::Direction> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const string& link_frame_name, const array<double, 3>& scale) {
+std::tuple<bool, iDynTree::Direction, iDynTree::Transform> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const string& link_frame_name, const array<double, 3>& scale) {
 
     iDynTree::Direction axis_unit_vector;
+    iDynTree::Transform oldChild_H_newChild = iDynTree::Transform::Identity();
     axis_unit_vector.zero();
 
     auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
     if (axes_list->getarraysize() == 0) {
         printToMessageWindow("There is no Axis in the part " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
 
-        return { false, axis_unit_vector };
+        return { false, axis_unit_vector, oldChild_H_newChild };
     }
 
     if (axis_name.empty())
-        return { false, axis_unit_vector };
+        return { false, axis_unit_vector, oldChild_H_newChild };
 
     pfcAxis* axis = nullptr;
 
@@ -202,18 +203,34 @@ std::pair<bool, iDynTree::Direction> getAxisFromPart(pfcModel_ptr modelhdl, cons
 
     auto axis_line = pfcLineDescriptor::cast(axis_data); // cursed cast from hell
 
+    if (link_frame_name == "CSYS") {
+        // We use the medium point of the axis as offset
+        pfcPoint3D_ptr pstart = axis_line->GetEnd1();
+        pfcPoint3D_ptr pend = axis_line->GetEnd2();
+        auto x = ((pend->get(0) + pstart->get(0)) / 2.0) * scale[0];
+        auto y = ((pend->get(1) + pstart->get(1)) / 2.0) * scale[1];
+        auto z = ((pend->get(2) + pstart->get(2)) / 2.0) * scale[2];
+        oldChild_H_newChild.setPosition({ x, y, z });
+
+    }
+
+    // There are just two points in the array
+
     auto unit = computeUnitVectorFromAxis(axis_line);
 
     axis_unit_vector.setVal(0, unit[0]);
     axis_unit_vector.setVal(1, unit[1]);
     axis_unit_vector.setVal(2, unit[2]);
 
+   // auto csysAsm_H_csysPart = fromCreo(comp_path->GetTransform(xtrue), scale);
+    
+
     auto& csys_H_child = getTransformFromPart(modelhdl, link_frame_name, scale).second;
 
     axis_unit_vector = csys_H_child.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
     axis_unit_vector.Normalize();
     
-    return { true, axis_unit_vector };
+    return { true, axis_unit_vector, oldChild_H_newChild };
 }
 
 std::string extractFolderPath(const std::string& filePath) {
