@@ -258,7 +258,8 @@ struct JointInfo {
 struct LinkInfo {
     std::string name{""}; ///< Name of the link.
     pfcModel_ptr modelhdl{nullptr}; ///< Pointer to the Creo model associated with the link.
-    iDynTree::Transform root_H_link{iDynTree::Transform::Identity()}; ///< 3D Transform from the root to the link's reference frame.
+    iDynTree::Transform rootAsm_H_linkFrame{iDynTree::Transform::Identity()}; ///< 3D Transform from the root to the link's reference frame.
+    iDynTree::Transform csysAsm_H_linkFrame{iDynTree::Transform::Identity()}; ///< 3D Transform from the assembly to the link's reference frame.
     std::string link_frame_name{""}; ///< Name of the link frame.
 };
 
@@ -400,7 +401,7 @@ void printRotationMatrix(pfcMatrix3D_ptr m);
 void sanitizeSTL(std::string stl);
 
 /**
- * @brief Retrieves the transformation from the root to a specified link frame in the context of a component path.
+ * @brief Retrieves the transformation from the owner assembly to a specified link frame in the context of a component path.
  *
  * @param comp_path component path that represents the assembly hierarchy.
  * @param modelhdl The part model in which the link frame is defined.
@@ -412,7 +413,7 @@ void sanitizeSTL(std::string stl);
  *         - The second element is an iDynTree::Transform representing the transformation from the root to the specified link frame.
  *           If the operation fails, this transformation will be an identity transformation.
  */
-std::pair<bool, iDynTree::Transform> getTransformFromRootToChild(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
+std::pair<bool, iDynTree::Transform> getTransformFromOwnerToLinkFrame(pfcComponentPath_ptr comp_path, pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale);
 
 /**
  * @brief Retrieves the transformation matrix representing the coordinate system of a specified link frame in the given part.
@@ -438,7 +439,7 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
  * @param scale The scaling factor for the origin of the child frame
  * @return std::pair<bool, iDynTree::Direction>  Pair containing a success/failure flag, and the axis direction
  */
-std::pair<bool, iDynTree::Direction> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_frame_name, const array<double, 3>& scale);
+std::tuple<bool, iDynTree::Direction, iDynTree::Transform> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_frame_name, const array<double, 3>& scale);
 
 /**
  * @brief Extracts the folder path from a file path.

@@ -17,7 +17,7 @@
 #include <Eigen/Core>
 
 
-bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner, iDynTree::Transform parent_H_csysItem) {
+bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner, iDynTree::Transform parentAsm_H_csysAsm) {
 
     for (int i = 0; i < asmListItems->getarraysize(); i++)
     {
@@ -33,37 +33,12 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
         if (!component_handle) {
             return false;
         }
+
+        auto type = component_handle->GetType();
+
         ElementTreeManager element_tree_manager;
 
         //printToMessageWindow("Processing " + string(component_handle->GetFullName()) + " Owner " + string(model_owner->GetFullName()));
-
-        auto type = component_handle->GetType();
-        if (type == pfcMDL_ASSEMBLY) {
-            auto sub_asm_component_list = component_handle->ListItems(pfcModelItemType::pfcITEM_FEATURE);
-            auto ok = element_tree_manager.populateJointInfoFromElementTree(asmItemAsFeat, joint_info_map);
-            if (!ok) {
-                // WE NEED TO FIX the failure, the paths are not cleared
-                //continue;
-            }
-            iDynTree::Transform parentAsmCsys_H_asmCsys = iDynTree::Transform::Identity();
-            bool ret{ false };
-            std::tie(ret, parentAsmCsys_H_asmCsys) = getTransformFromPart(component_handle, "ASM_CSYS", scale);
-            if(!ret) {
-                printToMessageWindow("Failed to get the transform from  " + string(model_owner->GetFullName()) + " (the parent assembly) to " + string(component_handle->GetFullName()), c2uLogLevel::WARN);
-                //return false;
-            }
-            else {
-                //printToMessageWindow("Got the transform from  " + string(model_owner->GetFullName()) + " (the parent assembly) to " + string(component_handle->GetFullName()), c2uLogLevel::INFO);
-                //printToMessageWindow(parentAsmCsys_H_asmCsys.toString());
-            }
-            ok = processAsmItems(sub_asm_component_list, component_handle, parentAsmCsys_H_asmCsys);
-            if (!ok) {
-                return false;
-            }
-            else {
-                continue;
-            }
-        }
 
         xintsequence_ptr seq = xintsequence::create();
         seq->append(asmItemAsFeat->GetId());
@@ -73,33 +48,50 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_owner), seq);
 
+        iDynTree::Transform csysAsm_H_linkFrame = iDynTree::Transform::Identity();
+        iDynTree::Transform csysPart_H_link_frame = iDynTree::Transform::Identity();
+        iDynTree::Transform parentAsm_H_linkFrame = iDynTree::Transform::Identity();
+        
+        std::string link_frame_name{ "" };
         auto link_name = string(component_handle->GetFullName());
+        std::string urdf_link_name { "" };
+       
+        if (type == pfcMDL_ASSEMBLY) {
+            link_frame_name = "ASM_CSYS";
+        }
+        else {
+			link_frame_name = "CSYS";
+            urdf_link_name = getRenameElementFromConfig(link_name);
+            for (const auto& lf : config["linkFrames"]) {
+                if (lf["linkName"].Scalar() != urdf_link_name)
+                {
+                    continue;
+                }
+                link_frame_name = lf["frameName"].Scalar();
+            }
 
-        iDynTree::Transform csysAsm_H_link  = iDynTree::Transform::Identity();
-        iDynTree::Transform csysPart_H_link = iDynTree::Transform::Identity();
-        iDynTree::Transform parent_H_link   = iDynTree::Transform::Identity();
+            if (link_frame_name.empty()) {
+                printToMessageWindow(link_name + " misses the frame in the linkFrames section, CSYS will be used instead", c2uLogLevel::WARN);
+                link_frame_name = "CSYS";
+            }
+		}
+        std::tie(ret, csysAsm_H_linkFrame) = getTransformFromOwnerToLinkFrame(comp_path, component_handle, link_frame_name , scale);
 
-        std::string urdf_link_name = getRenameElementFromConfig(link_name);
+        parentAsm_H_linkFrame = parentAsm_H_csysAsm * csysAsm_H_linkFrame;
 
-        std::string link_frame_name = "";
+        if (type == pfcMDL_ASSEMBLY) {
+            auto sub_asm_component_list = component_handle->ListItems(pfcModelItemType::pfcITEM_FEATURE);
 
-        for (const auto& lf : config["linkFrames"]) {
-            if (lf["linkName"].Scalar() != urdf_link_name)
-            {
+            bool ok = processAsmItems(sub_asm_component_list, component_handle, parentAsm_H_linkFrame);
+            if (!ok) {
+                return false;
+            }
+            else {
                 continue;
             }
-            link_frame_name = lf["frameName"].Scalar();
         }
 
-        if (link_frame_name.empty()) {
-            printToMessageWindow(link_name + " misses the frame in the linkFrames section, CSYS will be used instead", c2uLogLevel::WARN);
-            link_frame_name = "CSYS";
-        }
-        std::tie(ret, csysAsm_H_link) = getTransformFromRootToChild(comp_path, component_handle, link_frame_name, scale);
-
-        parent_H_link = parent_H_csysItem * csysAsm_H_link;
-
-        //printToMessageWindow(csysAsm_H_link.toString());
+        //printToMessageWindow(csysAsm_H_linkFrame.toString());
 
         if (!ret && warningsAreFatal)
         {
@@ -108,14 +100,14 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
 
         auto mass_prop = pfcSolid::cast(component_handle)->GetMassProperty();
 
-        std::tie(ret, csysPart_H_link) = getTransformFromPart(component_handle, link_frame_name, scale);
+        std::tie(ret, csysPart_H_link_frame) = getTransformFromPart(component_handle, link_frame_name, scale);
         if (!ret && warningsAreFatal)
         {
             return false;
         }
 
         iDynTree::Link link;
-        link.setInertia(computeSpatialInertiafromCreo(mass_prop, csysPart_H_link, urdf_link_name));
+        link.setInertia(computeSpatialInertiafromCreo(mass_prop, csysPart_H_link_frame, urdf_link_name));
 
         if (!link.getInertia().isPhysicallyConsistent())
         {
@@ -125,7 +117,7 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
             }
         }
 
-        LinkInfo l_info{ urdf_link_name, component_handle, parent_H_link, link_frame_name };
+        LinkInfo l_info{ urdf_link_name, component_handle, parentAsm_H_linkFrame, csysAsm_H_linkFrame, link_frame_name };
         link_info_map.insert(std::make_pair(link_name, l_info));
         populateExportedFrameInfoMap(component_handle);
 
@@ -141,6 +133,14 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
 
 void Creo2Urdf::OnCommand() {
 
+    // Let's clear the map in case of multiple click
+    if (joint_info_map.size() > 0) {
+        joint_info_map.clear();
+        link_info_map.clear();
+        exported_frame_info_map.clear();
+        assigned_inertias_map.clear();
+        assigned_collision_geometry_map.clear();
+    }
     m_session_ptr = pfcGetProESession();
     if (!m_session_ptr) {
         printToMessageWindow("Failed to get the session", c2uLogLevel::WARN);
@@ -200,15 +200,6 @@ void Creo2Urdf::OnCommand() {
         return;
     }
 
-    // Let's clear the map in case of multiple click
-    if (joint_info_map.size() > 0) {
-        joint_info_map.clear();
-        link_info_map.clear();
-        exported_frame_info_map.clear();
-        assigned_inertias_map.clear();
-        assigned_collision_geometry_map.clear();
-    }
-
     if (config["warningsAreFatal"].IsDefined()) {
         warningsAreFatal = config["warningsAreFatal"].as<bool>();
     }
@@ -260,22 +251,23 @@ void Creo2Urdf::OnCommand() {
         }
 
         
-        printToMessageWindow("Adding joint " + joint_name);
-        auto root_H_parent_link = link_info_map.at(parent_link_name).root_H_link;
-        auto root_H_child_link = link_info_map.at(child_link_name).root_H_link;
+        
+        auto asm_owner_H_parent_link = link_info_map.at(parent_link_name).rootAsm_H_linkFrame;
+        auto asm_owner_H_child_link = link_info_map.at(child_link_name).rootAsm_H_linkFrame;
         auto child_model = link_info_map.at(child_link_name).modelhdl;
         auto parent_model = link_info_map.at(parent_link_name).modelhdl;
         auto parent_link_frame = link_info_map.at(parent_link_name).link_frame_name;
 
-        //printToMessageWindow("Parent link H " + root_H_parent_link.toString());
-        //printToMessageWindow("Child  link H " + root_H_child_link.toString());
+        //printToMessageWindow("Parent link H " + asm_owner_H_parent_link.toString());
+        //printToMessageWindow("Child  link H " + asm_owner_H_child_link.toString());
         iDynTree::Transform parent_H_child = iDynTree::Transform::Identity();
-        parent_H_child = root_H_parent_link.inverse() * root_H_child_link;
+        parent_H_child = asm_owner_H_parent_link.inverse() * asm_owner_H_child_link;
 
         if (joint_info.second.type == JointType::Revolute || joint_info.second.type == JointType::Linear) {
 
             iDynTree::Direction axis;
-            std::tie(ret, axis) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
+            iDynTree::Transform oldChild_H_newChild;
+            std::tie(ret, axis, oldChild_H_newChild) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
             if (!ret && warningsAreFatal)
             {
@@ -287,6 +279,20 @@ void Creo2Urdf::OnCommand() {
             {
                 axis = axis.reverse();
             }
+
+            auto urdf_child_link_name = getRenameElementFromConfig(child_link_name);
+
+
+            // FIXME
+            // It does something but the transform is somehow wrong, in case of proper definition of the csys oldChild_H_newChild is the identity
+            // Once we found the proper transform we should updatea also the spatial inertia
+
+            parent_H_child = parent_H_child * oldChild_H_newChild;
+            auto link_H_collision_solid_shape = idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_child_link_name)][0]->getLink_H_geometry();
+            auto link_H_visual_solid_shape    = idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_child_link_name)][0]->getLink_H_geometry();
+
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_child_link_name)][0]->setLink_H_geometry(oldChild_H_newChild.inverse() * link_H_collision_solid_shape);
+            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_child_link_name)][0]->setLink_H_geometry(oldChild_H_newChild.inverse() *  link_H_visual_solid_shape);
 
             std::shared_ptr<iDynTree::IJoint> joint_sh_ptr;
             if (joint_info.second.type == JointType::Revolute) {
@@ -480,7 +486,7 @@ iDynTree::SpatialInertia Creo2Urdf::computeSpatialInertiafromCreo(pfcMassPropert
 
     iDynTree::Position com_child({ com->get(0) * scale[0] , com->get(1) * scale[1], com->get(2) * scale[2] });
 
-    // Account for csysPart_H_link transformation
+    // Account for csysPart_H_link_frame transformation
     // See https://github.com/icub-tech-iit/ergocub-software/issues/224#issuecomment-1985692598 for full contents
 
     // The COM returned by Creo's GetGravityCenter seems to be expressed in the root frame, so we need 

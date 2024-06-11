@@ -64,7 +64,7 @@ public:
      * @param[out] joint_info_map A map containing joint information.
      * @return True if successful, false otherwise.
      */
-    bool populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map, bool is_asm=false);
+    bool populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map);
 
     /**
      * @brief Gets the constraint type between two assembled parts.
@@ -126,4 +126,8 @@ private:
      * @return A pair representing the limits (min, max).
      */
     std::pair<double, double> retrieveLimits(pfcFeature_ptr feat);
+
+    // SEEMS to work but we need to investigate further, using this may allow to refactor the code deeply
+
+    pfcTransform3D_ptr retrieveTransform(pfcFeature_ptr feat);
 };

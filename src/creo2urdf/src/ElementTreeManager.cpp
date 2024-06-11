@@ -24,16 +24,13 @@ ElementTreeManager::ElementTreeManager(pfcFeature_ptr feat, std::map<std::string
 
 ElementTreeManager::~ElementTreeManager() {}
 
-bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map, bool is_asm)
+bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, std::map<std::string, JointInfo>& joint_info_map)
 {
     wfeat = wfcWFeature::cast(feat);
 
     try
     {
         tree = wfeat->GetElementTree(nullptr, wfcFEAT_EXTRACT_NO_OPTS);
-        std::string joint_name = std::to_string(feat->GetId()) + ".xml";
-        //printToMessageWindow("Element tree extracted for feature " + std::to_string(feat->GetId()), c2uLogLevel::INFO);
-        tree->WriteElementTreeToFile(wfcELEMTREE_XML, joint_name.c_str());
     }
     xcatchbegin
     xcatchcip(pfcXToolkitInvalidType)
@@ -49,11 +46,9 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
         printToMessageWindow("Could not retrieve solid references!", c2uLogLevel::WARN);
         return false;
     }
-
     joint.child_link_name = getChildName();
     joint.parent_link_name = getParentName();
     std::string joint_name = joint.parent_link_name + "--" + joint.child_link_name;
-    printToMessageWindow("JOINT !! " + joint_name, c2uLogLevel::INFO);
     joint.type = proAsmCompSetType_to_JointType.at(static_cast<ProAsmcompSetType>(getConstraintType()));
 
     if (joint.type == JointType::Revolute)
@@ -234,6 +229,33 @@ std::string ElementTreeManager::retrievePartName()
     }
     xcatchend
 }
+
+
+pfcTransform3D_ptr ElementTreeManager::retrieveTransform(pfcFeature_ptr feat) {
+    pfcTransform3D_ptr parentCsys_H_childCsys = nullptr;
+    
+    wfcElemPathItems_ptr elemItems = wfcElemPathItems::create();
+    wfcElemPathItem_ptr Item;
+    wfcElement_ptr element;
+    
+    Item = wfcElemPathItem::Create(wfcELEM_PATH_ITEM_TYPE_ID, wfcPRO_E_COMPONENT_INIT_POS);
+    elemItems->append(Item);
+
+    wfcElementPath_ptr transform_path = wfcElementPath::Create(elemItems);
+    element = tree->GetElement(transform_path);
+
+    auto value_ptr = element->GetValue();
+    if(!value_ptr)
+        printToMessageWindow("wfcPRO_E_COMPONENT_INIT_POS value is null");
+    else {
+        parentCsys_H_childCsys = value_ptr->GetTransformValue();
+        // Because the transform is from child to parent, we need to invert it
+        parentCsys_H_childCsys->Invert();
+    }
+    
+    return parentCsys_H_childCsys;
+}
+
 
 std::pair<double, double> ElementTreeManager::retrieveLimits(pfcFeature_ptr feat)
 {
