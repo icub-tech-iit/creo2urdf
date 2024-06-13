@@ -43,7 +43,6 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
 
 
     if (!retrieveSolidReferences()) {
-        printToMessageWindow("Could not retrieve solid references!", c2uLogLevel::WARN);
         return false;
     }
     joint.child_link_name = getChildName();
