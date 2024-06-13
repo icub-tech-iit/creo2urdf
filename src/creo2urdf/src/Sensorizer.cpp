@@ -269,10 +269,10 @@ void Sensorizer::assignTransformToSensors(const std::map<std::string, ExportedFr
             }
 
             if (link_info_map.find(cad_link_name) == link_info_map.end())
-			{
-				printToMessageWindow("Sensorizer: link " + cad_link_name + " not found in the link info map, sensor "+ s.sensorName + " skipped.", c2uLogLevel::WARN);
-				continue;
-			}
+            {
+                printToMessageWindow("Sensorizer: link " + cad_link_name + " not found in the link info map, sensor "+ s.sensorName + " skipped.", c2uLogLevel::WARN);
+                continue;
+            }
 
             auto link_info = link_info_map.at(cad_link_name);
             std::tie(ret, csys_H_additionalFrame) = getTransformFromPart(link_info.modelhdl, s.frameName, scale);

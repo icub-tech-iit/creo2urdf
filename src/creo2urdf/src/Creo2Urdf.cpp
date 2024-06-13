@@ -60,7 +60,7 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
             link_frame_name = "ASM_CSYS";
         }
         else {
-			link_frame_name = "CSYS";
+            link_frame_name = "CSYS";
             urdf_link_name = getRenameElementFromConfig(link_name);
             for (const auto& lf : config["linkFrames"]) {
                 if (lf["linkName"].Scalar() != urdf_link_name)
@@ -74,7 +74,7 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
                 printToMessageWindow(link_name + " misses the frame in the linkFrames section, CSYS will be used instead", c2uLogLevel::WARN);
                 link_frame_name = "CSYS";
             }
-		}
+        }
         std::tie(ret, csysAsm_H_linkFrame) = getTransformFromOwnerToLinkFrame(comp_path, component_handle, link_frame_name , scale);
 
         parentAsm_H_linkFrame = parentAsm_H_csysAsm * csysAsm_H_linkFrame;
