@@ -12,6 +12,7 @@ Generate URDF model from CREO Parametric mechanisms.
 - Subassemblies are **NOT** yet supported.
 - The joints are in position 0.
 - Right now it can handle only **REVOLUTE**, **PRISMATIC** and **FIXED** joints.
+- In each joint, the frame of the child link must lie on the joint's axis (https://github.com/icub-tech-iit/creo2urdf/issues/99).
 
 ## Installation from binaries
 
