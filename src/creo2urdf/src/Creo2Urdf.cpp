@@ -250,24 +250,21 @@ void Creo2Urdf::OnCommand() {
             continue;
         }
 
-        
-        
         auto asm_owner_H_parent_link = link_info_map.at(parent_link_name).rootAsm_H_linkFrame;
         auto asm_owner_H_child_link = link_info_map.at(child_link_name).rootAsm_H_linkFrame;
-        auto child_model = link_info_map.at(child_link_name).modelhdl;
         auto parent_model = link_info_map.at(parent_link_name).modelhdl;
         auto parent_link_frame = link_info_map.at(parent_link_name).link_frame_name;
 
         //printToMessageWindow("Parent link H " + asm_owner_H_parent_link.toString());
         //printToMessageWindow("Child  link H " + asm_owner_H_child_link.toString());
-        iDynTree::Transform parent_H_child = iDynTree::Transform::Identity();
-        parent_H_child = asm_owner_H_parent_link.inverse() * asm_owner_H_child_link;
+        iDynTree::Transform parentLink_H_childLink = iDynTree::Transform::Identity();
+        parentLink_H_childLink = asm_owner_H_parent_link.inverse() * asm_owner_H_child_link;
 
         if (joint_info.second.type == JointType::Revolute || joint_info.second.type == JointType::Linear) {
 
             iDynTree::Direction axis;
-            iDynTree::Transform oldChild_H_newChild;
-            std::tie(ret, axis, oldChild_H_newChild) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
+            iDynTree::Transform parentLink_H_newParentLink;
+            std::tie(ret, axis, parentLink_H_newParentLink) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
             if (!ret && warningsAreFatal)
             {
@@ -280,31 +277,35 @@ void Creo2Urdf::OnCommand() {
                 axis = axis.reverse();
             }
 
-            auto urdf_child_link_name = getRenameElementFromConfig(child_link_name);
+            auto urdf_parent_link_name = getRenameElementFromConfig(parent_link_name);
 
 
             // FIXME
-            // It does something but the transform is somehow wrong, in case of proper definition of the csys oldChild_H_newChild is the identity
+            // It does something but the transform is somehow wrong, in case of proper definition of the csys parentLink_H_newParentLink is the identity
             // Once we found the proper transform we should updatea also the spatial inertia
 
-            parent_H_child = parent_H_child * oldChild_H_newChild;
-            auto link_H_collision_solid_shape = idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_child_link_name)][0]->getLink_H_geometry();
-            auto link_H_visual_solid_shape    = idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_child_link_name)][0]->getLink_H_geometry();
+            parentLink_H_childLink = parentLink_H_newParentLink.inverse() * parentLink_H_childLink;// newParentLink_H_childLink 
+            auto link_H_collision_solid_shape = idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_parent_link_name)][0]->getLink_H_geometry();
+            auto link_H_visual_solid_shape    = idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_parent_link_name)][0]->getLink_H_geometry();
 
-            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_child_link_name)][0]->setLink_H_geometry(oldChild_H_newChild.inverse() * link_H_collision_solid_shape);
-            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_child_link_name)][0]->setLink_H_geometry(oldChild_H_newChild.inverse() *  link_H_visual_solid_shape);
+
+            //printToMessageWindow("link_H_collision_solid_shape " + link_H_collision_solid_shape.toString());
+            //printToMessageWindow("parentLink_H_newParentLink " + parentLink_H_newParentLink.toString());
+
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_parent_link_name)][0]->setLink_H_geometry(parentLink_H_newParentLink.inverse() * link_H_collision_solid_shape);
+            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_parent_link_name)][0]->setLink_H_geometry(parentLink_H_newParentLink.inverse() *  link_H_visual_solid_shape);
 
             std::shared_ptr<iDynTree::IJoint> joint_sh_ptr;
             if (joint_info.second.type == JointType::Revolute) {
                 joint_sh_ptr = std::make_shared<iDynTree::RevoluteJoint>();
-                dynamic_cast<iDynTree::RevoluteJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, parent_H_child.getPosition()));
+                dynamic_cast<iDynTree::RevoluteJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, parentLink_H_childLink.getPosition()));
             }
             else if (joint_info.second.type == JointType::Linear) {
                 joint_sh_ptr = std::make_shared<iDynTree::PrismaticJoint>();
-                dynamic_cast<iDynTree::PrismaticJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, parent_H_child.getPosition()));
+                dynamic_cast<iDynTree::PrismaticJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, parentLink_H_childLink.getPosition()));
             }
 
-            joint_sh_ptr->setRestTransform(parent_H_child);
+            joint_sh_ptr->setRestTransform(parentLink_H_childLink);
             double conversion_factor = 1.0;
             if (joint_info.second.type == JointType::Revolute) {
                 conversion_factor = deg2rad;
@@ -336,7 +337,7 @@ void Creo2Urdf::OnCommand() {
             }
         }
         else if (joint_info.second.type == JointType::Fixed) {
-            iDynTree::FixedJoint joint(parent_H_child);
+            iDynTree::FixedJoint joint(parentLink_H_childLink);
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
