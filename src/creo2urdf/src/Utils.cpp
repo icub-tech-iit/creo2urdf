@@ -172,21 +172,21 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
     return { false, H_child };
 }
 
-std::tuple<bool, iDynTree::Direction, iDynTree::Transform> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const string& link_frame_name, const array<double, 3>& scale) {
+std::tuple<bool, iDynTree::Direction, iDynTree::Position> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const string& link_frame_name, const array<double, 3>& scale) {
 
     iDynTree::Direction axis_unit_vector;
-    iDynTree::Transform csys_H_newLinkFrame = iDynTree::Transform::Identity();
+    iDynTree::Position axis_mid_point_pos = iDynTree::Position::Zero();
     axis_unit_vector.zero();
 
     auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
     if (axes_list->getarraysize() == 0) {
         printToMessageWindow("There is no Axis in the part " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
 
-        return { false, axis_unit_vector, csys_H_newLinkFrame };
+        return { false, axis_unit_vector, axis_mid_point_pos };
     }
 
     if (axis_name.empty())
-        return { false, axis_unit_vector, csys_H_newLinkFrame };
+        return { false, axis_unit_vector, axis_mid_point_pos };
 
     pfcAxis* axis = nullptr;
 
@@ -201,7 +201,7 @@ std::tuple<bool, iDynTree::Direction, iDynTree::Transform> getAxisFromPart(pfcMo
 
     if (!axis) {
 		printToMessageWindow("Unable to find the axis " + axis_name + " in " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
-		return { false, axis_unit_vector, csys_H_newLinkFrame };
+		return { false, axis_unit_vector, axis_mid_point_pos };
 	}
 
     auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
@@ -224,24 +224,14 @@ std::tuple<bool, iDynTree::Direction, iDynTree::Transform> getAxisFromPart(pfcMo
         // We use the medium point of the axis as offset
         pfcPoint3D_ptr pstart = axis_line->GetEnd1();
         pfcPoint3D_ptr pend = axis_line->GetEnd2();
-        auto x = ((pend->get(0) + pstart->get(0)) / 2.0) * scale[0];
-        auto y = ((pend->get(1) + pstart->get(1)) / 2.0) * scale[1];
-        auto z = ((pend->get(2) + pstart->get(2)) / 2.0) * scale[2];
-        csys_H_newLinkFrame.setPosition({ x, y, z });
-
-        auto linkFrame_H_newLinkFrame = csys_H_linkFrame.inverse() * csys_H_newLinkFrame;
-
-        axis_unit_vector = csys_H_newLinkFrame.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
-        axis_unit_vector.Normalize();
-        return { true, axis_unit_vector, linkFrame_H_newLinkFrame };
-
+        axis_mid_point_pos[0] = ((pend->get(0) + pstart->get(0)) / 2.0) * scale[0];
+        axis_mid_point_pos[1] = ((pend->get(1) + pstart->get(1)) / 2.0) * scale[1];
+        axis_mid_point_pos[2] = ((pend->get(2) + pstart->get(2)) / 2.0) * scale[2];
     }
-    else {
-        axis_unit_vector = csys_H_linkFrame.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
-        axis_unit_vector.Normalize();
-        return { true, axis_unit_vector, iDynTree::Transform::Identity() };
-    }
-    return { false, axis_unit_vector, iDynTree::Transform::Identity() };
+
+    axis_unit_vector = csys_H_linkFrame.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
+    axis_unit_vector.Normalize();
+    return { true, axis_unit_vector, axis_mid_point_pos };
 }
 
 std::string extractFolderPath(const std::string& filePath) {
