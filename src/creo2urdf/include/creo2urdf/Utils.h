@@ -437,9 +437,9 @@ std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl,
  * @param axis_name The name of the desired axis of which to retrieve the direction
  * @param link_frame_name The name of the frame belonging to modelhdl
  * @param scale The scaling factor for the origin of the child frame
- * @return std::tuple<bool, iDynTree::Direction, iDynTree::Transform>>  Tuple containing a success/failure flag, the axis direction, and the transform oldLink_H_newLink in order that the frame lies on the axis.
+ * @return std::tuple<bool, iDynTree::Direction, iDynTree::Position>>  Tuple containing a success/failure flag, the axis direction, and the position of the middle point of the axis in the link csys in order that the frame lies on the axis.
  */
-std::tuple<bool, iDynTree::Direction, iDynTree::Transform> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_frame_name, const array<double, 3>& scale);
+std::tuple<bool, iDynTree::Direction, iDynTree::Position> getAxisFromPart(pfcModel_ptr modelhdl, const std::string& axis_name, const std::string& link_frame_name, const array<double, 3>& scale);
 
 /**
  * @brief Extracts the folder path from a file path.

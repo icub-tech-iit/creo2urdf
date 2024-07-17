@@ -263,8 +263,8 @@ void Creo2Urdf::OnCommand() {
         if (joint_info.second.type == JointType::Revolute || joint_info.second.type == JointType::Linear) {
 
             iDynTree::Direction axis;
-            iDynTree::Transform parentLink_H_newParentLink;
-            std::tie(ret, axis, parentLink_H_newParentLink) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
+            iDynTree::Position axis_mid_point_pos_in_parent;
+            std::tie(ret, axis, axis_mid_point_pos_in_parent) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
             if (!ret && warningsAreFatal)
             {
@@ -278,31 +278,25 @@ void Creo2Urdf::OnCommand() {
             }
 
             auto urdf_parent_link_name = getRenameElementFromConfig(parent_link_name);
+            
+            auto axis_origin = iDynTree::Position::Zero();
 
-
-            // FIXME
-            // It does something but the transform is somehow wrong, in case of proper definition of the csys parentLink_H_newParentLink is the identity
-            // Once we found the proper transform we should updatea also the spatial inertia
-
-            parentLink_H_childLink = parentLink_H_newParentLink.inverse() * parentLink_H_childLink;// newParentLink_H_childLink 
-            auto link_H_collision_solid_shape = idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_parent_link_name)][0]->getLink_H_geometry();
-            auto link_H_visual_solid_shape    = idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_parent_link_name)][0]->getLink_H_geometry();
-
-
-            //printToMessageWindow("link_H_collision_solid_shape " + link_H_collision_solid_shape.toString());
-            //printToMessageWindow("parentLink_H_newParentLink " + parentLink_H_newParentLink.toString());
-
-            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_parent_link_name)][0]->setLink_H_geometry(parentLink_H_newParentLink.inverse() * link_H_collision_solid_shape);
-            idyn_model.visualSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(urdf_parent_link_name)][0]->setLink_H_geometry(parentLink_H_newParentLink.inverse() *  link_H_visual_solid_shape);
+            if (parent_link_frame == "CSYS") {
+                axis_origin = axis_mid_point_pos_in_parent;
+            }
+            else {
+                axis_origin = parentLink_H_childLink.getPosition();
+            }
+            
 
             std::shared_ptr<iDynTree::IJoint> joint_sh_ptr;
             if (joint_info.second.type == JointType::Revolute) {
                 joint_sh_ptr = std::make_shared<iDynTree::RevoluteJoint>();
-                dynamic_cast<iDynTree::RevoluteJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, parentLink_H_childLink.getPosition()));
+                dynamic_cast<iDynTree::RevoluteJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, axis_origin));
             }
             else if (joint_info.second.type == JointType::Linear) {
                 joint_sh_ptr = std::make_shared<iDynTree::PrismaticJoint>();
-                dynamic_cast<iDynTree::PrismaticJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, parentLink_H_childLink.getPosition()));
+                dynamic_cast<iDynTree::PrismaticJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, axis_origin));
             }
 
             joint_sh_ptr->setRestTransform(parentLink_H_childLink);
