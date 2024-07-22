@@ -12,7 +12,7 @@ include(GNUInstallDirs)
 include(FeatureSummary)
 
 find_package(Eigen3 REQUIRED)
-find_package(iDynTree 12.3.1 REQUIRED)
+find_package(iDynTree 12.4.0 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(LibXml2 REQUIRED)
 
