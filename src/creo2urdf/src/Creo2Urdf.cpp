@@ -13,6 +13,7 @@
 
 #include <iDynTree/PrismaticJoint.h>
 #include <iDynTree/EigenHelpers.h>
+#include <iDynTree/ModelTransformers.h>
 
 #include <Eigen/Core>
 
@@ -440,7 +441,12 @@ void Creo2Urdf::OnCommand() {
 bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options) {
     iDynTree::ModelExporter mdl_exporter;
 
-    mdl_exporter.init(mdl);
+    // Convert modelToExport in a URDF-compatible model (using the default base link)
+    iDynTree::Model modelToExportURDFCompatible;
+
+    bool ok = iDynTree::moveLinkFramesToBeCompatibleWithURDFWithGivenBaseLink(mdl, modelToExportURDFCompatible);
+
+    mdl_exporter.init(modelToExportURDFCompatible);
     mdl_exporter.setExportingOptions(options);
 
     if (!mdl_exporter.isValid())
