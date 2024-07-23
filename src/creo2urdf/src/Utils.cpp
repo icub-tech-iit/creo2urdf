@@ -200,9 +200,9 @@ std::tuple<bool, iDynTree::Direction, iDynTree::Position> getAxisFromPart(pfcMod
     }
 
     if (!axis) {
-		printToMessageWindow("Unable to find the axis " + axis_name + " in " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
-		return { false, axis_unit_vector, axis_mid_point_pos };
-	}
+        printToMessageWindow("Unable to find the axis " + axis_name + " in " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
+        return { false, axis_unit_vector, axis_mid_point_pos };
+    }
 
     auto axis_data = wfcWAxis::cast(axis)->GetAxisData();
 
@@ -220,14 +220,12 @@ std::tuple<bool, iDynTree::Direction, iDynTree::Position> getAxisFromPart(pfcMod
 
     // There are just two points in the array
 
-    if (link_frame_name == "CSYS") {
-        // We use the medium point of the axis as offset
-        pfcPoint3D_ptr pstart = axis_line->GetEnd1();
-        pfcPoint3D_ptr pend = axis_line->GetEnd2();
-        axis_mid_point_pos[0] = ((pend->get(0) + pstart->get(0)) / 2.0) * scale[0];
-        axis_mid_point_pos[1] = ((pend->get(1) + pstart->get(1)) / 2.0) * scale[1];
-        axis_mid_point_pos[2] = ((pend->get(2) + pstart->get(2)) / 2.0) * scale[2];
-    }
+    // We use the medium point of the axis as offset
+    pfcPoint3D_ptr pstart = axis_line->GetEnd1();
+    pfcPoint3D_ptr pend = axis_line->GetEnd2();
+    axis_mid_point_pos[0] = ((pend->get(0) + pstart->get(0)) / 2.0) * scale[0];
+    axis_mid_point_pos[1] = ((pend->get(1) + pstart->get(1)) / 2.0) * scale[1];
+    axis_mid_point_pos[2] = ((pend->get(2) + pstart->get(2)) / 2.0) * scale[2];
 
     axis_unit_vector = csys_H_linkFrame.inverse() * axis_unit_vector;  // We might benefit from performing this operation directly in Creo
     axis_unit_vector.Normalize();

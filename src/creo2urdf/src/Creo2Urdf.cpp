@@ -263,9 +263,9 @@ void Creo2Urdf::OnCommand() {
 
         if (joint_info.second.type == JointType::Revolute || joint_info.second.type == JointType::Linear) {
 
-            iDynTree::Direction axis;
+            iDynTree::Direction direction;
             iDynTree::Position axis_mid_point_pos_in_parent;
-            std::tie(ret, axis, axis_mid_point_pos_in_parent) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
+            std::tie(ret, direction, axis_mid_point_pos_in_parent) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
             if (!ret && warningsAreFatal)
             {
@@ -275,29 +275,27 @@ void Creo2Urdf::OnCommand() {
             if (config["reverseRotationAxis"].IsDefined() && 
                 config["reverseRotationAxis"].Scalar().find(joint_name) != std::string::npos)
             {
-                axis = axis.reverse();
+                direction = direction.reverse();
             }
 
             auto urdf_parent_link_name = getRenameElementFromConfig(parent_link_name);
-            
-            auto axis_origin = iDynTree::Position::Zero();
 
-            if (parent_link_frame == "CSYS") {
-                axis_origin = axis_mid_point_pos_in_parent;
+            iDynTree::Axis idyn_axis{ direction, parentLink_H_childLink.getPosition() };
+
+            // Check if the axis is aligned with the link frame
+            if (parent_link_frame == "CSYS" && idyn_axis.getDistanceBetweenAxisAndPoint(axis_mid_point_pos_in_parent) > 1e-7 ) {
+                idyn_axis.setOrigin(axis_mid_point_pos_in_parent);
+                m_need_to_move_link_frames_to_be_compatible_with_URDF = true;
             }
-            else {
-                axis_origin = parentLink_H_childLink.getPosition();
-            }
-            
 
             std::shared_ptr<iDynTree::IJoint> joint_sh_ptr;
             if (joint_info.second.type == JointType::Revolute) {
                 joint_sh_ptr = std::make_shared<iDynTree::RevoluteJoint>();
-                dynamic_cast<iDynTree::RevoluteJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, axis_origin));
+                dynamic_cast<iDynTree::RevoluteJoint*>(joint_sh_ptr.get())->setAxis(idyn_axis);
             }
             else if (joint_info.second.type == JointType::Linear) {
                 joint_sh_ptr = std::make_shared<iDynTree::PrismaticJoint>();
-                dynamic_cast<iDynTree::PrismaticJoint*>(joint_sh_ptr.get())->setAxis(iDynTree::Axis(axis, axis_origin));
+                dynamic_cast<iDynTree::PrismaticJoint*>(joint_sh_ptr.get())->setAxis(idyn_axis);
             }
 
             joint_sh_ptr->setRestTransform(parentLink_H_childLink);
@@ -444,7 +442,16 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
     // Convert modelToExport in a URDF-compatible model (using the default base link)
     iDynTree::Model modelToExportURDFCompatible;
 
-    bool ok = iDynTree::moveLinkFramesToBeCompatibleWithURDFWithGivenBaseLink(mdl, modelToExportURDFCompatible);
+    if (m_need_to_move_link_frames_to_be_compatible_with_URDF) {
+        bool ok = iDynTree::moveLinkFramesToBeCompatibleWithURDFWithGivenBaseLink(mdl, modelToExportURDFCompatible);
+        if (!ok) {
+            printToMessageWindow("Failed to move link frames to be URDF compatible", c2uLogLevel::WARN);
+            return false;
+        }
+    }
+    else {
+        modelToExportURDFCompatible = mdl;
+    }
 
     mdl_exporter.init(modelToExportURDFCompatible);
     mdl_exporter.setExportingOptions(options);

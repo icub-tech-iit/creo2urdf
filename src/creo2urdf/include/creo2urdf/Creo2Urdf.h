@@ -151,6 +151,7 @@ private:
     std::string m_output_path{ "" }; /**< Output path for the exported URDF file. */
     pfcModel_ptr m_root_asm_model_ptr{ nullptr }; /**< Handle to the Creo model. */
     pfcSession_ptr m_session_ptr{ nullptr }; /**< Handle to the Creo session. */
+    bool m_need_to_move_link_frames_to_be_compatible_with_URDF{ false }; /**< Flag indicating whether to move link frames to be compatible with URDF. */
 };
 
 class Creo2UrdfAccess : public pfcUICommandAccessListener {
