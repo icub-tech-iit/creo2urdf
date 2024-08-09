@@ -1,5 +1,5 @@
-Run Creo2Urdf
-Creo2Urdf
+Run Creo2URDF
+Creo2URDF
 #
 #
 
