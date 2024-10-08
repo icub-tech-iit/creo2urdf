@@ -146,6 +146,7 @@ All internal groups are merged if they are maps, they are overwritten only if an
 | `assignedCollisionGeometry` | Array |  None | Structure for redefining the collision geometry for a given link.  |
 | `assignedColors` | Map |  {} (Empty Map) | If a link is in this map, the color found in the SimMechanics file is substituted with the one passed through this map. The color is represented by a 4 element vector of containing numbers from 0 to 1 representing the red, green, blue and alpha component.  |
 | `meshFormat` | String |  `stl_binary` | Format of the meshes exported. Allowed values: `stl_binary`, `stl_ascii`, `step` |
+| `exportMeshes` | Boolean |  True | If false, the meshes will not be exported. |
 
 ###### Assigned collision geometries (keys of elements of `assignedCollisionGeometry`)
 | Attribute name   | Type   | Default Value | Description  |
