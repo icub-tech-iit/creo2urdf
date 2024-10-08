@@ -635,7 +635,9 @@ void Creo2Urdf::readExportedFramesFromConfig() {
 
 bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::string& mesh_transform)
 {
+    bool export_mesh = true;
     std::string file_extension = ".stl";
+    std::string meshFormat = "stl_binary";
     std::string link_name = component_handle->GetFullName();
     std::string renamed_link_name = link_name;
  
@@ -644,15 +646,26 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
         renamed_link_name = config["rename"][link_name].Scalar();
     }
 
+    if (config["exportMeshes"].IsDefined())
+    {
+        export_mesh = config["exportMeshes"].as<bool>();
+    }
+
 
     if (config["stringToRemoveFromMeshFileName"].IsDefined())
     {
         link_name.erase(link_name.find(config["stringToRemoveFromMeshFileName"].Scalar()), 
             config["stringToRemoveFromMeshFileName"].Scalar().length());
     }
-    std::string meshFormat = "stl_binary";
-    if (config["meshFormat"].IsDefined()) {
 
+    // Make all alphabetic characters lowercase
+    if (config["forcelowercase"].IsDefined() && config["forcelowercase"].as<bool>())
+    {
+        std::transform(link_name.begin(), link_name.end(), link_name.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+    }
+
+    if (config["meshFormat"].IsDefined()) {
         meshFormat = config["meshFormat"].Scalar();
         if (mesh_types_supported_extension_map.find(meshFormat) != mesh_types_supported_extension_map.end()) {
             file_extension = mesh_types_supported_extension_map.at(meshFormat);
@@ -664,48 +677,44 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
             }
         }
     }
-
-    // Make all alphabetic characters lowercase
-    if (config["forcelowercase"].IsDefined() && config["forcelowercase"].as<bool>())
+ 
+    if (export_mesh)
     {
-        std::transform(link_name.begin(), link_name.end(), link_name.begin(),
-            [](unsigned char c) { return std::tolower(c); });
-    }
+        std::string mesh_file_name = m_output_path + "\\" + link_name;
 
-    std::string mesh_file_name = m_output_path + "\\" + link_name;
+        if (meshFormat != "step") {
+            // We use ExportIntf3D for step format, applies the extension to the file name.
+            mesh_file_name += file_extension;
+        }
+        try {
+            if (meshFormat == "stl_binary") {
+                component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(mesh_transform.c_str())));
+            }
+            else if(meshFormat =="stl_ascii") {
+                component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLASCIIExportInstructions().Create(mesh_transform.c_str())));
+            }
+            else if (meshFormat == "step") {
+                component_handle->ExportIntf3D(mesh_file_name.c_str(), pfcExportType::pfcEXPORT_STEP);
+            }
+            else {
+                return false;
+            }
 
-    if (meshFormat != "step") {
-        // We use ExportIntf3D for step format, applies the extension to the file name.
-        mesh_file_name += file_extension;
-    }
-    try {
-        if (meshFormat == "stl_binary") {
-            component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(mesh_transform.c_str())));
         }
-        else if(meshFormat =="stl_ascii") {
-            component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLASCIIExportInstructions().Create(mesh_transform.c_str())));
-        }
-        else if (meshFormat == "step") {
-            component_handle->ExportIntf3D(mesh_file_name.c_str(), pfcExportType::pfcEXPORT_STEP);
-        }
-        else {
+        xcatchbegin
+        xcatchcip(defaultEx)
+        {
+            printToMessageWindow(": exception caught: " + string(pfcXPFC::cast(defaultEx)->GetMessage()));
             return false;
         }
+        xcatchend
 
-    }
-    xcatchbegin
-    xcatchcip(defaultEx)
-    {
-        printToMessageWindow(": exception caught: " + string(pfcXPFC::cast(defaultEx)->GetMessage()));
-        return false;
-    }
-    xcatchend
-
-    // Replace the first 5 bytes of the binary file with a string different than "solid"
-    // to avoid issues with stl parsers.
-    // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
-    if (meshFormat == "stl_binary") {
-        sanitizeSTL(mesh_file_name);
+        // Replace the first 5 bytes of the binary file with a string different than "solid"
+        // to avoid issues with stl parsers.
+        // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
+        if (meshFormat == "stl_binary") {
+            sanitizeSTL(mesh_file_name);
+        }
     }
 
     // Lets add the mesh to the link
@@ -740,8 +749,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     }
 
     // We assume there is only one of occurrence to replace
-    file_format.replace(file_format.find("%s"), file_format.length(), link_name);
-    file_format += file_extension;
+    file_format.replace(file_format.find("%s"), 2, link_name); // 2 is sizeof %s, in this way we keep the formatting extension
 
     visualMesh.setFilename(file_format);
 
