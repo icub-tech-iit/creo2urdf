@@ -1,0 +1,24 @@
+name: Dispatch CI in creo2urdf-private
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+env:
+     GH_TOKEN: ${{ secrets.SELF_HOSTED_RUNNER_CREO2URDF }}
+jobs:
+     triggering_creo2urdf:
+       runs-on: ubuntu-latest
+       steps:
+       - name: Repository Dispatch
+         uses: peter-evans/repository-dispatch@v3
+         with:
+           token: ${{ secrets.SELF_HOSTED_RUNNER_CREO2URDF }}
+           repository: icub-tech-iit/creo2urdf-private
+           event-type: creo2urdf_run_CI
+
+        
