@@ -61,8 +61,8 @@ END
 - Open CREO Parametric and the first time you will need to accecpt to register the plugin
 - Load the mechanism of which you want to export the urdf
 - Press the button
- <img src="https://github.com/icub-tech-iit/creo2urdf/assets/19152494/19866e6c-8f52-4010-84ef-db458189b753" width=600 align=center >
- 
+ <img src="https://github.com/user-attachments/assets/d8ad3e71-baa4-40c4-9dbc-084962d425d3" width=800 align=center >
+
 - Select a yaml and csv configuration files with a format explained in the following sections, and the folder where the urdf and the meshes will be saved.
 
 
