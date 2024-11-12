@@ -400,6 +400,8 @@ void printRotationMatrix(pfcMatrix3D_ptr m);
  */
 void sanitizeSTL(std::string stl);
 
+std::pair<bool, std::string> getFirstCoordinateSystemName(pfcModel_ptr modelhdl);
+
 /**
  * @brief Retrieves the transformation from the owner assembly to a specified link frame in the context of a component path.
  *
