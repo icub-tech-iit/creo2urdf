@@ -17,7 +17,6 @@
 
 #include <Eigen/Core>
 
-
 bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner, iDynTree::Transform parentAsm_H_csysAsm) {
 
     for (int i = 0; i < asmListItems->getarraysize(); i++)
@@ -31,20 +30,22 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
 
         auto component_handle = m_session_ptr->RetrieveModel(pfcComponentFeat::cast(asmItemAsFeat)->GetModelDescr());
 
-        if (!component_handle) {
+        if (component_handle == nullptr) {
             return false;
         }
 
-        auto type = component_handle->GetType();
-
-        ElementTreeManager element_tree_manager;
+        if(pfcSolid::cast(component_handle)->GetIsSkeleton())
+        {   
+            printToMessageWindow(std::string(component_handle->GetFullName()) + " is a skeleton, skipping", c2uLogLevel::INFO);
+            continue;
+        }
 
         //printToMessageWindow("Processing " + string(component_handle->GetFullName()) + " Owner " + string(model_owner->GetFullName()));
 
         xintsequence_ptr seq = xintsequence::create();
         seq->append(asmItemAsFeat->GetId());
 
-
+        ElementTreeManager element_tree_manager;
         element_tree_manager.populateJointInfoFromElementTree(asmItemAsFeat, joint_info_map);
 
         pfcComponentPath_ptr comp_path = pfcCreateComponentPath(pfcAssembly::cast(model_owner), seq);
@@ -56,12 +57,14 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
         std::string link_frame_name{ "" };
         auto link_name = string(component_handle->GetFullName());
         std::string urdf_link_name { "" };
-       
+
+        auto type = component_handle->GetType();
+
         if (type == pfcMDL_ASSEMBLY) {
             link_frame_name = "ASM_CSYS";
         }
         else {
-            link_frame_name = "CSYS";
+            link_frame_name = "";
             urdf_link_name = getRenameElementFromConfig(link_name);
             for (const auto& lf : config["linkFrames"]) {
                 if (lf["linkName"].Scalar() != urdf_link_name)
@@ -72,11 +75,14 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
             }
 
             if (link_frame_name.empty()) {
-                printToMessageWindow(link_name + " misses the frame in the linkFrames section, CSYS will be used instead", c2uLogLevel::WARN);
-                link_frame_name = "CSYS";
+                std::tie(ret, link_frame_name) = getFirstCoordinateSystemName(component_handle);
+                
+                if (!ret) return false;
+
+                printToMessageWindow(link_name + " misses the frame in the linkFrames section, " + link_frame_name + " will be used instead", c2uLogLevel::WARN);
             }
         }
-        std::tie(ret, csysAsm_H_linkFrame) = getTransformFromOwnerToLinkFrame(comp_path, component_handle, link_frame_name , scale);
+        std::tie(ret, csysAsm_H_linkFrame) = getTransformFromOwnerToLinkFrame(comp_path, component_handle, link_frame_name, scale);
 
         parentAsm_H_linkFrame = parentAsm_H_csysAsm * csysAsm_H_linkFrame;
 
@@ -130,6 +136,7 @@ bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr mod
             }
         }
     }
+    return true;
 }
 
 void Creo2Urdf::OnCommand() {
@@ -305,21 +312,7 @@ void Creo2Urdf::OnCommand() {
             }
 
             // Read limits from CSV data, until it is possible to do so from Creo directly
-            if (joints_csv_table.GetRowIdx(joint_name) >= 0) {
-                double min = joints_csv_table.GetCell<double>("lower_limit", joint_name) * conversion_factor;
-                double max = joints_csv_table.GetCell<double>("upper_limit", joint_name) * conversion_factor;
-
-                joint_sh_ptr->enablePosLimits(true);
-                joint_sh_ptr->setPosLimits(0, min, max);
-                // TODO we have to retrieve the rest transform from creo
-                //joint.setRestTransform();
-
-                min = joints_csv_table.GetCell<double>("damping", joint_name);
-                max = joints_csv_table.GetCell<double>("friction", joint_name);
-                joint_sh_ptr->setJointDynamicsType(iDynTree::URDFJointDynamics);
-                joint_sh_ptr->setDamping(0, min);
-                joint_sh_ptr->setStaticFriction(0, max);
-            }
+            setJointParametersFromCsv(joints_csv_table, joint_name, *joint_sh_ptr, conversion_factor);
 
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, joint_sh_ptr.get()) == iDynTree::JOINT_INVALID_INDEX) {
@@ -434,6 +427,29 @@ void Creo2Urdf::OnCommand() {
     m_root_asm_model_ptr = nullptr;
 
     return;
+}
+
+bool Creo2Urdf::setJointParametersFromCsv(const rapidcsv::Document& csv, const std::string& joint_name, 
+    iDynTree::IJoint& joint, double conversion_factor = 1.0)
+{
+    if (csv.GetRowIdx(joint_name) < 0) return false;
+
+    double min = csv.GetCell<double>("lower_limit", joint_name) * conversion_factor;
+    double max = csv.GetCell<double>("upper_limit", joint_name) * conversion_factor;
+
+    if (!std::isinf(min) && !std::isinf(max))
+    {
+        joint.enablePosLimits(true);
+        joint.setPosLimits(0, min, max);
+    }
+    // TODO we have to retrieve the rest transform from creo
+    //joint.setRestTransform();
+
+    joint.setJointDynamicsType(iDynTree::URDFJointDynamics);
+    joint.setDamping(0, csv.GetCell<double>("damping", joint_name));
+    joint.setStaticFriction(0, csv.GetCell<double>("friction", joint_name));
+
+    return true;
 }
 
 bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOptions options) {

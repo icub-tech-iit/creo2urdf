@@ -105,7 +105,17 @@ std::pair<bool, iDynTree::Transform> getTransformFromOwnerToLinkFrame(pfcCompone
     
     iDynTree::Transform csysAsm_H_link = iDynTree::Transform::Identity();
 
-    auto csysAsm_H_csysPart = fromCreo(comp_path->GetTransform(xtrue), scale);
+    auto csysAsm_H_csysPart = iDynTree::Transform::Identity();
+    try {
+        csysAsm_H_csysPart = fromCreo(comp_path->GetTransform(xtrue), scale);
+    }
+    xcatchbegin
+    xcatchcip(defaultEx)
+    {
+        printToMessageWindow("Exception caught: Could not retrieve transform of " + link_frame_name, c2uLogLevel::WARN);
+    }
+    xcatchend
+    
     iDynTree::Transform csysPart_H_link;
 
     bool ret = false;
@@ -121,6 +131,19 @@ std::pair<bool, iDynTree::Transform> getTransformFromOwnerToLinkFrame(pfcCompone
 
     return make_pair(true, csysAsm_H_link);
 
+}
+
+std::pair<bool, std::string> getFirstCoordinateSystemName(pfcModel_ptr modelhdl)
+{
+    auto csys_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_COORD_SYS);
+
+    if (csys_list->getarraysize() == 0) {
+        printToMessageWindow("There are no Coordinate Systems in the part " + std::string(modelhdl->GetFullName()), c2uLogLevel::WARN);
+        return { false, "" };
+    }
+
+    auto csys = pfcCoordSystem::cast(csys_list->get(0))->GetName();
+    return { true,std::string(csys) };
 }
 
 std::pair<bool, iDynTree::Transform> getTransformFromPart(pfcModel_ptr modelhdl, const std::string& link_frame_name, const array<double, 3>& scale) {
