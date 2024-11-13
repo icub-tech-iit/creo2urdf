@@ -18,6 +18,5 @@ jobs:
            token: ${{ secrets.SELF_HOSTED_RUNNER_CREO2URDF }}
            repository: icub-tech-iit/creo2urdf-private
            event-type: creo2urdf_run_CI
-           token: ${{ secrets.SELF_HOSTED_RUNNER_CREO2URDF }}
 
         
