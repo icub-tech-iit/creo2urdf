@@ -677,15 +677,28 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
             }
         }
     }
- 
+    // Assign name
+    string file_format = "%s";
+    if (config["filenameformat"].IsDefined()) {
+        file_format = config["filenameformat"].Scalar();
+    }
+    else if (meshFormat != "step") {
+        // We use ExportIntf3D for step format, applies the extension to the file name.
+        file_format += file_extension;
+    }
+
+    // We assume there is only one of occurrence to replace
+    file_format.replace(file_format.find("%s"), 2, link_name); // 2 is sizeof %s, in this way we keep the formatting extension
+
     if (export_mesh)
     {
-        std::string mesh_file_name = m_output_path + "\\" + link_name;
-
-        if (meshFormat != "step") {
-            // We use ExportIntf3D for step format, applies the extension to the file name.
-            mesh_file_name += file_extension;
+        std::string mesh_file_name = file_format;
+        if (file_format.find("/") != std::string::npos)
+        {
+            mesh_file_name = file_format.substr(file_format.find_last_of("/") + 1);
         }
+        mesh_file_name = m_output_path + "\\" + mesh_file_name;
+
         try {
             if (meshFormat == "stl_binary") {
                 component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(mesh_transform.c_str())));
@@ -741,15 +754,6 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     // Assign transform
     // TODO Right now maybe it is not needed it ie exported respct the link csys
     // visualMesh.setLink_H_geometry(H_parent_to_child);
-
-    // Assign name
-    string file_format = "%s";
-    if (config["filenameformat"].IsDefined()) {
-        file_format = config["filenameformat"].Scalar();
-    }
-
-    // We assume there is only one of occurrence to replace
-    file_format.replace(file_format.find("%s"), 2, link_name); // 2 is sizeof %s, in this way we keep the formatting extension
 
     visualMesh.setFilename(file_format);
 
