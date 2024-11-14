@@ -4,13 +4,12 @@ Generate URDF model from CREO Parametric mechanisms.
 **Since it is under development, we cannot guarantee that the user interface of `creo2urdf` will not implement breaking changes. Be aware of this if you start using the code contained in this repository**
 
 ## CREO Parametric versions supported and tested
-- `9.0.2`
+- `9.0.8.0`
 
 ## Assumptions & limitations
 
-- In order to export the urdf of the robot, the relative CREO mechanism has to conform to [these guidelines](https://github.com/icub-tech-iit/cad-libraries/wiki/Prepare-PTC-Creo-Mechanism-for-URDF).
-- Subassemblies are **NOT** yet supported.
-- The joints are in position 0.
+- To export the urdf of the robot, the CREO mechanism has to follow [these guidelines](https://github.com/icub-tech-iit/cad-libraries/wiki/Prepare-PTC-Creo-Mechanism-for-URDF).
+- The joints are assumed to be in position 0.
 - Right now it can handle only **REVOLUTE**, **PRISMATIC** and **FIXED** joints.
 
 ## Installation from binaries
@@ -19,12 +18,12 @@ Generate URDF model from CREO Parametric mechanisms.
 > Users are encountering issues using the dll, see https://github.com/icub-tech-iit/creo2urdf/issues/84
 
 > [!NOTE]  
-> The dll provided has not been unlocked, this means that for using the Toolkit licence is required
+> The provided dll has not been unlocked, therefore the Toolkit licence is required for using it
 > 
 
 Download `creo2urdf.zip` from the assets of the [latest release](https://github.com/icub-tech-iit/creo2urdf/releases/latest), and extract it in the folder you like.<br>
-Follow the [`Usage`](https://github.com/icub-tech-iit/creo2urdf/tree/master#usage) section instructions for completing the installation. <br>
 This archive contains the dll of the plugin and the `text` folder for running it. <br>
+Follow the [`Usage`](https://github.com/icub-tech-iit/creo2urdf/tree/master#usage) section instructions for completing the installation. <br>
 
 ## Installation from sources
 
@@ -34,15 +33,15 @@ Right now the `creo2urdf` plugin needs its dependencies to be compiled and linke
 
 - Download [vcpkg](https://github.com/microsoft/vcpkg): `git clone https://github.com/microsoft/vcpkg`
 - Bootstrap vcpkg: `.\vcpkg\bootstrap-vcpkg.bat`
-- Run `[path to vcpkg]/vcpkg install --triplet x64-windows-static-md eigen3 yaml-cpp rapidcsv libxml2 assimp idyntree`
 
 ### Build `creo2urdf`
 
-- Export `CREO9_INSTALL_PATH` pointing to the Creo9 installation folder, e.g. `C:\Program Files\PTC\Creo 9.0.2.0\Common Files`
-- Pass `-DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static-md` to the creo2urdf compilation.
+- Export `CREO9_INSTALL_PATH` pointing to the Creo9 installation folder, e.g. `C:\Program Files\PTC\Creo 9.0.8.0\Common Files`
+- Pass `-DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake` to the creo2urdf compilation.
+- Run the CMake `configure` step, then build the project:
+    - Within Visual Studio, you can do: **Project > Configure creo2urdf**, then **Build > Build all** 
 
 For those who use the CMake integration in Visual Studio, the `-DCMAKE_TOOLCHAIN_FILE` option should not be passed to `CMake command arguments`. Instead, the `vcpkg.cmake` file path must be passed in `CMake toolchain file`.
-
 
 ## Usage
 
@@ -54,16 +53,16 @@ name creo2urdf
 Startup dll
 Allow_stop True
 Delay_start False
-exec_file /path/to/creo2urdf.dll
-text_dir /path/to/creo2urdf/src/creo2urdf/text
+exec_file \path\to\creo2urdf.dll
+text_dir \path\to\creo2urdf\src\creo2urdf\text
 END
 ```
-- Open CREO Parametric and the first time you will need to accecpt to register the plugin
-- Load the mechanism of which you want to export the urdf
+- Open CREO Parametric: on the first time, you will need to accept the plugin registration
+- Load the assembly mechanism of which you want to export the urdf
 - Press the button
  <img src="https://github.com/user-attachments/assets/d8ad3e71-baa4-40c4-9dbc-084962d425d3" width=800 align=center >
 
-- Select a yaml and csv configuration files with a format explained in the following sections, and the folder where the urdf and the meshes will be saved.
+- Select a yaml and csv configuration files with a format explained in the following sections, and the folder where both the urdf the meshes will be saved.
 
 
 ### Test your installation
