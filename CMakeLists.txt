@@ -38,10 +38,10 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Set manifest mode to use vcpkg.json to resolve dependencies
-option(VCPKG_MANIFEST_MODE ON)
+option(VCPKG_MANIFEST_MODE "Enable manifest mode to use vcpkg.json" ON)
 
 # When ON, vcpkg install is ran every time configure is ran
-option(VCPKG_MANIFEST_INSTALL ON)
+option(VCPKG_MANIFEST_INSTALL "Install dependencies in manifest mode" ON)
 
 # Force use of following triplet since thats the only config supported by Creo
 set(VCPKG_TARGET_TRIPLET "x64-windows-static-md")
