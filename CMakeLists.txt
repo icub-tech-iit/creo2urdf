@@ -37,10 +37,14 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Automatically check for installation of dependencies with vcpkg
-# When ON, vcpkg install is ran every time cmake is ran
+# Set manifest mode to use vcpkg.json to resolve dependencies
 option(VCPKG_MANIFEST_MODE ON)
+
+# When ON, vcpkg install is ran every time configure is ran
 option(VCPKG_MANIFEST_INSTALL ON)
+
+# Force use of following triplet since thats the only config supported by Creo
+set(VCPKG_TARGET_TRIPLET "x64-windows-static-md")
 
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.19)
   cmake_policy(SET CMP0111 NEW)
