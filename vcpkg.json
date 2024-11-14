@@ -7,10 +7,5 @@
     "yaml-cpp",
     "libxml2",
     "rapidcsv",
-    {
-      "name": "idyntree",
-      "version>=": "12.4.0"
-    }
-  ],
-  "builtin-baseline": "7a57b42f959ad138a5283477fe2e6c97a7cb852f"
+    "idyntree"]
 }
