@@ -3,13 +3,14 @@
   "homepage": "https://github.com/icub-tech-iit/creo2urdf",
   "documentation": "https://icub-tech-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html",
   "dependencies": [
-    "eigen3",
-    "yaml-cpp",
-    "libxml2",
-    "rapidcsv",
+    { "name": "eigen", "default-features": false },
+    { "name": "yaml-cpp", "default-features": false },
+    { "name": "libxml2", "default-features": false },
+    { "name": "rapidcsv", "default-features": false },
     {
       "name": "idyntree",
-      "version>=": "12.4.0"
+      "version>=": "12.4.0",
+      "default-features": false
     }
   ],
   "builtin-baseline": "21bd538cbc3aa687d920d9399befb6c987c87942"
