@@ -14,11 +14,6 @@ Generate URDF model from CREO Parametric mechanisms.
 
 ## Installation from binaries
 
-> [!warning]
-> Users are encountering issues using the dll, see https://github.com/icub-tech-iit/creo2urdf/issues/84.
->
-> The DLL of v0.5.5 is broken: https://github.com/icub-tech-iit/creo2urdf/issues/118
-
 > [!NOTE]  
 > The provided dll has not been unlocked, therefore the Toolkit licence is required for using it
 > 
