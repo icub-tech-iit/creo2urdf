@@ -39,7 +39,7 @@ Right now the `creo2urdf` plugin needs its dependencies to be compiled and linke
 ### Build `creo2urdf`
 
 - Export `CREO9_INSTALL_PATH` pointing to the Creo9 installation folder, e.g. `C:\Program Files\PTC\Creo 9.0.8.0\Common Files`
-- Pass `-DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake` to the creo2urdf compilation.
+- Pass `-DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static-md` to the creo2urdf compilation.
 - Run the CMake `configure` step, then build the project:
     - Within Visual Studio, you can do: **Project > Configure creo2urdf**, then **Build > Build all** 
 
