@@ -51,12 +51,12 @@ target_sources(creo2urdf
 target_include_directories(creo2urdf PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
                                             ${RAPIDCSV_INCLUDE_DIRS}
-                                            ${CREO9_INSTALL_PATH}/protoolkit/includes
-                                            ${CREO9_INSTALL_PATH}/otk/otk_cpp/include/
-                                            ${CREO9_INSTALL_PATH}/protoolkit/protk_appls/includes)
+                                            ${CREO_INSTALL_PATH}/protoolkit/includes
+                                            ${CREO_INSTALL_PATH}/otk/otk_cpp/include/
+                                            ${CREO_INSTALL_PATH}/protoolkit/protk_appls/includes)
 
-target_link_directories(creo2urdf PUBLIC    ${CREO9_INSTALL_PATH}/otk/otk_cpp/x86e_win64/obj/
-                                            ${CREO9_INSTALL_PATH}/protoolkit/x86e_win64/obj/)
+target_link_directories(creo2urdf PUBLIC    ${CREO_INSTALL_PATH}/otk/otk_cpp/x86e_win64/obj/
+                                            ${CREO_INSTALL_PATH}/protoolkit/x86e_win64/obj/)
 
 ## FIXME C++ 17 triggers "byte ambigous symbol" probably std::byte clashes with PTC defines
 target_compile_features(creo2urdf PUBLIC cxx_std_14)

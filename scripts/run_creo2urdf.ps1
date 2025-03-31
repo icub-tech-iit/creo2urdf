@@ -29,8 +29,8 @@ Write-Host "Using csv path: $csvPath"
 Write-Host "Using output path: $outputPath"
 
 
-if ([string]::IsNullOrEmpty($env:CREO9_INSTALL_PATH)) {
-    Write-Host "CREO9_INSTALL_PATH not set, exiting."
+if ([string]::IsNullOrEmpty($env:CREO_INSTALL_PATH)) {
+    Write-Host "CREO_INSTALL_PATH not set, exiting."
     Exit 1
 }
 if ([string]::IsNullOrEmpty($asmPath)) {
@@ -50,7 +50,7 @@ if ([string]::IsNullOrEmpty($outputPath)) {
     Exit 1
 }
 
-$parametricExe = "$env:CREO9_INSTALL_PATH\..\Parametric\bin\parametric.exe"
+$parametricExe = "$env:CREO_INSTALL_PATH\..\Parametric\bin\parametric.exe"
 $process = Start-Process -FilePath $parametricExe -ArgumentList "-g:no_graphics", "-batch_mode", "creo2urdf", "+$asmPath", "+$yamlPath", "+$csvPath", "+$outputPath" -PassThru -NoNewWindow
 
 Start-Sleep -Seconds 30.0
