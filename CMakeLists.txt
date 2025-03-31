@@ -68,13 +68,19 @@ endif()
 
 # FIXME add find_package CREO9
 
-if (NOT "$ENV{CREO9_INSTALL_PATH}" STREQUAL "")
-  set(CREO9_INSTALL_PATH "$ENV{CREO9_INSTALL_PATH}" CACHE INTERNAL "Copied from environment variable CREO9_INSTALL_PATH")
+if (NOT "$ENV{CREO_INSTALL_PATH}" STREQUAL "")
+  set(CREO_INSTALL_PATH "$ENV{CREO_INSTALL_PATH}" CACHE INTERNAL "Copied from environment variable CREO_INSTALL_PATH")
 else()
-  message( FATAL_ERROR "CREO9_INSTALL_PATH not set" )
+  if (NOT "$ENV{CREO9_INSTALL_PATH}" STREQUAL "")
+    message(WARNING "CREO9_INSTALL_PATH is deprecated. Please use CREO_INSTALL_PATH instead.")
+    set(CREO_INSTALL_PATH "$ENV{CREO9_INSTALL_PATH}" CACHE INTERNAL "Copied from deprecated environment variable CREO9_INSTALL_PATH")
+  else()
+    message(FATAL_ERROR "CREO_INSTALL_PATH not set")
+  endif()
 endif()
 
-message("CREO9_INSTALL_PATH = ${CREO9_INSTALL_PATH}")
+message("CREO_INSTALL_PATH = ${CREO_INSTALL_PATH}")
+
 
 #### Optional Dependencies
 
