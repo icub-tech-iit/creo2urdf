@@ -5,6 +5,7 @@ Generate URDF model from CREO Parametric mechanisms.
 
 ## CREO Parametric versions supported and tested
 - `9.0.8.0`
+- `11.0.3.0`
 
 ## Assumptions & limitations
 
