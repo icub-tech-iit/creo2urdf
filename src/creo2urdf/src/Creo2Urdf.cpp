@@ -705,8 +705,15 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     }
 
     if (config["meshQuality"].IsDefined()) {
-		mesh_quality = config["meshQuality"].as<int>();
-	}
+        mesh_quality = config["meshQuality"].as<int>();
+        if (mesh_quality < 1) {
+            mesh_quality = 1; // Minimum quality
+            printToMessageWindow("Mesh quality is too low, setting to minimum value of 1", c2uLogLevel::WARN);
+        } else if (mesh_quality > 10) {
+            mesh_quality = 10; // Maximum quality
+            printToMessageWindow("Mesh quality is too high, setting to maximum value of 10", c2uLogLevel::WARN);
+        }
+    }
 
     // We assume there is only one of occurrence to replace
     file_format.replace(file_format.find("%s"), 2, link_name); // 2 is sizeof %s, in this way we keep the formatting extension
