@@ -695,6 +695,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
     }
     // Assign name
     string file_format = "%s";
+    int mesh_quality = 3;
     if (config["filenameformat"].IsDefined()) {
         file_format = config["filenameformat"].Scalar();
     }
@@ -702,6 +703,10 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
         // We use ExportIntf3D for step format, applies the extension to the file name.
         file_format += file_extension;
     }
+
+    if (config["meshQuality"].IsDefined()) {
+		mesh_quality = config["meshQuality"].as<int>();
+	}
 
     // We assume there is only one of occurrence to replace
     file_format.replace(file_format.find("%s"), 2, link_name); // 2 is sizeof %s, in this way we keep the formatting extension
@@ -717,10 +722,14 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
 
         try {
             if (meshFormat == "stl_binary") {
-                component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLBinaryExportInstructions().Create(mesh_transform.c_str())));
+                auto stl_binary_export_instructions = pfcSTLBinaryExportInstructions().Create(mesh_transform.c_str());
+                stl_binary_export_instructions->SetQuality(mesh_quality);
+                component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(stl_binary_export_instructions));
             }
             else if(meshFormat =="stl_ascii") {
-                component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(pfcSTLASCIIExportInstructions().Create(mesh_transform.c_str())));
+                auto stl_ascii_export_instructions = pfcSTLASCIIExportInstructions().Create(mesh_transform.c_str());
+                stl_ascii_export_instructions->SetQuality(mesh_quality);
+                component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(stl_ascii_export_instructions));
             }
             else if (meshFormat == "step") {
                 component_handle->ExportIntf3D(mesh_file_name.c_str(), pfcExportType::pfcEXPORT_STEP);
