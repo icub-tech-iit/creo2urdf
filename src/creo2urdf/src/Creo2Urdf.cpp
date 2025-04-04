@@ -706,12 +706,12 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
 
     if (config["meshQuality"].IsDefined()) {
         mesh_quality = config["meshQuality"].as<int>();
-        if (mesh_quality < 1) {
-            mesh_quality = 1; // Minimum quality
-            printToMessageWindow("Mesh quality is too low, setting to minimum value of 1", c2uLogLevel::WARN);
-        } else if (mesh_quality > 10) {
-            mesh_quality = 10; // Maximum quality
-            printToMessageWindow("Mesh quality is too high, setting to maximum value of 10", c2uLogLevel::WARN);
+        if (mesh_quality < 1 || mesh_quality > 10) {
+            printToMessageWindow("Mesh quality is too low, or too hight, the range is between 1 and 10", c2uLogLevel::WARN);
+            if (warningsAreFatal) {
+                printToMessageWindow("Aborting the mesh exportation", c2uLogLevel::WARN);
+                return false;
+            }
         }
     }
 
