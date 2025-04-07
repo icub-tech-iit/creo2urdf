@@ -612,7 +612,7 @@ void Creo2Urdf::readAssignedCollisionGeometryFromConfig() {
             break;
         case ShapeType::Cylinder:
             cgi.radius = cg["geometricShape"]["radius"].as<double>();
-            cgi.length = cg["geometricShape"]["lenght"].as<double>();
+            cgi.length = cg["geometricShape"]["length"].as<double>();
             break;
         case ShapeType::Sphere:
             cgi.radius = cg["geometricShape"]["radius"].as<double>();
