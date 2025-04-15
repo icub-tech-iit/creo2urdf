@@ -269,23 +269,34 @@ std::string extractFolderPath(const std::string& filePath) {
 
 
 void mergeYAMLNodes(YAML::Node& dest, const YAML::Node& src) {
+    if (!src || src.IsNull()) return;
 
-    for (const auto& item : src) {
-        std::string key = item.first.as<std::string>();
-        if (!dest[key]) {
-            // If the key doesn't exist in the destination node, simply add it
-            dest[key] = item.second;
-        }
-        else {
-            // If the key exists in the destination node, merge the values
-            // If both values are maps, recursively merge them
-            if (dest[key].IsMap() && item.second.IsMap()) {
-                mergeYAMLNodes(dest[key], item.second);
+    // If src is a map
+    if (src.IsMap()) {
+        for (const auto& item : src) {
+            const YAML::Node& keyNode = item.first;
+            const YAML::Node& srcValue = item.second;
+            const std::string key = keyNode.as<std::string>();
+
+            if (!dest[key]) {
+                dest[key] = srcValue;
             }
             else {
-                // Otherwise, overwrite the value in the destination node
-                dest[key] = item.second;
+                YAML::Node& destValue = dest[key];
+                mergeYAMLNodes(destValue, srcValue);
             }
         }
+    }
+
+    // If both are sequences, append src items to dest
+    else if (src.IsSequence() && dest.IsSequence()) {
+        for (const auto& item : src) {
+            dest.push_back(item);
+        }
+    }
+
+    // If dest and src are scalars or mismatched types, overwrite
+    else {
+        dest = src;
     }
 }
