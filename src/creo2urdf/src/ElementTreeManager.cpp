@@ -50,9 +50,9 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
     std::string joint_name = joint.parent_link_name + "--" + joint.child_link_name;
     joint.type = proAsmCompSetType_to_JointType.at(static_cast<ProAsmcompSetType>(getConstraintType()));
 
-    if (joint.type == JointType::Revolute)
+    if (joint.type == JointType::Revolute || joint.type == JointType::Linear)
     {
-        // We assume that one axis is used to defined the revolute joint
+        // We assume that one axis is used to defined the revolute or linear joint
         joint.datum_name = getConstraintDatum(feat, 
             pfcComponentConstraintType::pfcASM_CONSTRAINT_ALIGN,
             pfcModelItemType::pfcITEM_AXIS);
@@ -62,12 +62,6 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
         joint.datum_name = getConstraintDatum(feat,
             pfcComponentConstraintType::pfcASM_CONSTRAINT_CSYS,
             pfcModelItemType::pfcITEM_COORD_SYS);
-    }
-    else if (joint.type == JointType::Linear) {
-        // We assume that one axis is used to defined the linear joint
-        joint.datum_name = getConstraintDatum(feat,
-                                              pfcComponentConstraintType::pfcASM_CONSTRAINT_ALIGN,
-                                              pfcModelItemType::pfcITEM_AXIS);
     }
     else {
         printToMessageWindow("Joint type not supported!", c2uLogLevel::WARN);

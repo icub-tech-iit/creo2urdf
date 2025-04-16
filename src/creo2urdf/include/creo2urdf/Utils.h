@@ -233,7 +233,7 @@ struct JointInfo {
     std::string datum_name{""}; ///< Name of the joint's associated datum (axis for revolute, csys for fixed).
     std::string parent_link_name{""}; ///< Name of the parent link connected to the joint.
     std::string child_link_name{""}; ///< Name of the child link connected to the joint.
-    JointType type{JointType::Revolute}; ///< Type of the joint (default is revolute).
+    JointType type{JointType::None}; ///< Type of the joint (default is none).
 
     /**
      * @brief Limits for joint movement.
