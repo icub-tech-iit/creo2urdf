@@ -201,15 +201,17 @@ std::tuple<bool, iDynTree::Direction, iDynTree::Position> getAxisFromPart(pfcMod
     iDynTree::Position axis_mid_point_pos = iDynTree::Position::Zero();
     axis_unit_vector.zero();
 
-    auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
-    if (axes_list->getarraysize() == 0) {
-        printToMessageWindow("There is no Axis in the part " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
-
+    if (axis_name.empty()) {
+        printToMessageWindow("getAxisFromPart: Axis name is empty ", c2uLogLevel::WARN);
         return { false, axis_unit_vector, axis_mid_point_pos };
     }
 
-    if (axis_name.empty())
+    auto axes_list = modelhdl->ListItems(pfcModelItemType::pfcITEM_AXIS);
+    if (axes_list->getarraysize() == 0) {
+        printToMessageWindow("getAxisFromPart: There is no Axis in the part " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
+
         return { false, axis_unit_vector, axis_mid_point_pos };
+    }
 
     pfcAxis* axis = nullptr;
 
@@ -223,7 +225,7 @@ std::tuple<bool, iDynTree::Direction, iDynTree::Position> getAxisFromPart(pfcMod
     }
 
     if (!axis) {
-        printToMessageWindow("Unable to find the axis " + axis_name + " in " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
+        printToMessageWindow("getAxisFromPart: Unable to find the axis " + axis_name + " in " + string(modelhdl->GetFullName()), c2uLogLevel::WARN);
         return { false, axis_unit_vector, axis_mid_point_pos };
     }
 
