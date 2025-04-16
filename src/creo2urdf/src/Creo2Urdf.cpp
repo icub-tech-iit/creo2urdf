@@ -274,9 +274,15 @@ void Creo2Urdf::OnCommand() {
             iDynTree::Position axis_mid_point_pos_in_parent;
             std::tie(ret, direction, axis_mid_point_pos_in_parent) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
 
-            if (!ret && warningsAreFatal)
+            if (!ret)
             {
-                return;
+                printToMessageWindow("Failed to get the axis from the part " + parent_link_name + ", skipping " + joint_name, c2uLogLevel::WARN);
+                if (warningsAreFatal) {
+                    return;
+                }
+                else {
+                    continue;
+                }
             }
 
             if (config["reverseRotationAxis"].IsDefined() && 
