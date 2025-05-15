@@ -237,7 +237,7 @@ to URDF limitations.
 | `sensorName`      | String   | LinkName_FrameName | Name of the sensor, to be used in the output URDF file |
 | `exportFrameInURDF` | Bool   | False        | If true, export a fake URDF link whose frame is coincident with the sensor frame (as if the sensor frame was added to the `exportedFrames` array) |
 | `exportedFrameName` | String | sensorName | Name of the URDF link exported by the `exportFrameInURDF` option |
-| `sensorType` | String | Mandatory | Type of sensor. Supported: "altimeter", "camera", "contact", "depth", "gps", "gpu_ray", "imu", "logical_camera", "magnetometer", "multicamera", "ray", "rfid", "rfidtag", "sonar", "wireless_receiver", "wireless_transmitter" |
+| `sensorType` | String | Mandatory | Type of sensor. Supported: "accelerometer", "gyroscope", "camera", "depth", "ray", "rgbd_camera" |
 | `updateRate` | String | Mandatory | Number representing the update rate of the sensor. Expressed in [Hz]. |
 | `sensorBlobs` | String | empty | Array of strings (possibly on multiple lines) represeting complex XML blobs that will be included as child of the `<sensor>` element |
 
