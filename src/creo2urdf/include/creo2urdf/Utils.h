@@ -106,7 +106,8 @@ enum class SensorType {
     Gyroscope,      ///< Gyroscope sensor type.
     Camera,         ///< Camera sensor type, usually RGB.
     Depth,          ///< Depth sensor type, usually associated with a RGBD camera.
-    Ray             ///< Ray sensor type, such as LIDAR.
+    Ray,            ///< Ray sensor type, such as LIDAR.
+    RGBDCamera      ///< RGBD camera sensor type.
 };
 
 /**
@@ -131,7 +132,8 @@ static const std::map<SensorType, std::string> sensor_type_map = {
     {SensorType::Gyroscope, "gyroscope"}, /// < Gyroscope sensor type.
     {SensorType::Camera, "camera"},  /// < Camera sensor type.
     {SensorType::Depth, "depth"}, /// < Depth sensor type.
-    {SensorType::Ray, "ray"} /// < Lidar sensor type.
+    {SensorType::Ray, "ray"}, /// < Lidar sensor type.
+    {SensorType::RGBDCamera, "rgbd_camera"} /// < RGBD camera sensor type.
 };
 
 /**
@@ -157,7 +159,8 @@ static const std::map<SensorType, std::string> gazebo_sensor_type_map = {
     {SensorType::Gyroscope, "gyroscope"}, /// < Gyroscope sensor type.
     {SensorType::Camera, "camera"}, /// < Camera sensor type.
     {SensorType::Depth, "depth"}, /// < Depth sensor type.
-    {SensorType::Ray, "ray"} /// < Lidar sensor type.
+    {SensorType::Ray, "ray"}, /// < Lidar sensor type.
+    {SensorType::RGBDCamera, "rgbd_camera"} /// < RGBD camera sensor type.
 };
 
 /**
