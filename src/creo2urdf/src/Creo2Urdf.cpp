@@ -628,9 +628,20 @@ void Creo2Urdf::readAssignedCollisionGeometryFromConfig() {
         default:
             break;
         }
-        auto origin = cg["geometricShape"]["origin"].as < std::array<double, 6>>();
-        cgi.link_H_geometry.setPosition({ origin[0], origin[1], origin[2] });
-        cgi.link_H_geometry.setRotation(iDynTree::Rotation::RPY(origin[3], origin[4], origin[5]));
+        if (!cg["geometricShape"]["origin"].IsDefined()) {
+            printToMessageWindow("Origin is not defined for " + cg["linkName"].Scalar() + " collision geometry. Origin data for this shape will be skipped.", c2uLogLevel::WARN);
+            if (warningsAreFatal) {
+                // If warnings are fatal, halt further collision geometry processing.
+                return;
+            }
+            // If not fatal, we've warned. cgi.link_H_geometry will retain its default Identity transform.
+            // The .as<>() call below will be skipped due to the 'else' block.
+        } else {
+            // Origin is defined, so load it.
+            auto origin = cg["geometricShape"]["origin"].as < std::array<double, 6>>();
+            cgi.link_H_geometry.setPosition({ origin[0], origin[1], origin[2] });
+            cgi.link_H_geometry.setRotation(iDynTree::Rotation::RPY(origin[3], origin[4], origin[5]));
+        }
         assigned_collision_geometry_map.insert(std::make_pair(cg["linkName"].Scalar(), cgi));
     }
 }
@@ -822,6 +833,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
         }
             break;
         case ShapeType::None:
+            idyn_model.collisionSolidShapes().getLinkSolidShapes()[idyn_model.getLinkIndex(renamed_link_name)].clear();
             break;
         default:
             break;
