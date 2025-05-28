@@ -628,15 +628,7 @@ void Creo2Urdf::readAssignedCollisionGeometryFromConfig() {
         default:
             break;
         }
-        if (!cg["geometricShape"]["origin"].IsDefined()) {
-            printToMessageWindow("Origin is not defined for " + cg["linkName"].Scalar() + " collision geometry. Origin data for this shape will be skipped.", c2uLogLevel::WARN);
-            if (warningsAreFatal) {
-                // If warnings are fatal, halt further collision geometry processing.
-                return;
-            }
-            // If not fatal, we've warned. cgi.link_H_geometry will retain its default Identity transform.
-            // The .as<>() call below will be skipped due to the 'else' block.
-        } else {
+        if (cg["geometricShape"]["origin"].IsDefined()) {
             // Origin is defined, so load it.
             auto origin = cg["geometricShape"]["origin"].as < std::array<double, 6>>();
             cgi.link_H_geometry.setPosition({ origin[0], origin[1], origin[2] });
