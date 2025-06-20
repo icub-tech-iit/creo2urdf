@@ -144,6 +144,7 @@ private:
     std::map<std::string, CollisionGeometryInfo> assigned_collision_geometry_map; /**< Map storing assigned collision geometries. */
     YAML::Node config; /**< YAML configuration node, storing the content of the configuration file. */
     bool exportAllUseradded{ false }; /**< Flag indicating whether to export all user-added frames. */
+    bool exportFirstBaseLinkAdditionalFrameAsFakeURDFBase{ false };  /**< Flag to export the first additional frame attached to the base link as fake urdf base. */
     
     std::array<double, 3> scale{ 1.0, 1.0, 1.0 }; /**< Scale factor for the exported model. Useful for converting between m and mm and viceversa. */
     std::array<double, 3> originXYZ {0.0, 0.0, 0.0}; /**< Offset of the root link in XYZ (meters) wrt the world frame. */
