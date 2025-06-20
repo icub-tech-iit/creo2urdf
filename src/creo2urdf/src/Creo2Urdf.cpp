@@ -228,6 +228,11 @@ void Creo2Urdf::OnCommand() {
         exportAllUseradded = config["exportAllUseradded"].as<bool>();
     }
 
+    if (config["exportFirstBaseLinkAdditionalFrameAsFakeURDFBase"].IsDefined())
+    {
+        exportFirstBaseLinkAdditionalFrameAsFakeURDFBase = config["exportFirstBaseLinkAdditionalFrameAsFakeURDFBase"].as<bool>();
+    }
+
     readExportedFramesFromConfig();
     readAssignedInertiasFromConfig();
     readAssignedCollisionGeometryFromConfig();
@@ -399,6 +404,7 @@ void Creo2Urdf::OnCommand() {
 
     iDynTree::ModelExporterOptions export_options;
     export_options.robotExportedName = config["robotName"].Scalar();
+    export_options.exportFirstBaseLinkAdditionalFrameAsFakeURDFBase = exportFirstBaseLinkAdditionalFrameAsFakeURDFBase;
 
     if (config["root"].IsDefined())
         export_options.baseLink = config["root"].Scalar();
