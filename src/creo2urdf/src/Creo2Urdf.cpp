@@ -411,16 +411,6 @@ void Creo2Urdf::OnCommand() {
     else
         export_options.baseLink = "root_link";
 
-    
-    if (config["XMLBlobs"].IsDefined()) {
-        export_options.xmlBlobs = config["XMLBlobs"].as<std::vector<std::string>>();
-        // Adding gazebo pose as xml blob at the end of the urdf.
-        std::string gazebo_pose_xml_str{""};
-        gazebo_pose_xml_str = to_string(originXYZ[0]) + " " + to_string(originXYZ[1]) + " " + to_string(originXYZ[2]) + " " + to_string(originRPY[0]) + " " + to_string(originRPY[1]) + " " + to_string(originRPY[2]);
-        gazebo_pose_xml_str = "<gazebo><pose>" + gazebo_pose_xml_str + "</pose></gazebo>";
-        export_options.xmlBlobs.push_back(gazebo_pose_xml_str);
-    }
-
     // Add FTs and other sensors as XML blobs for now
 
     std::vector<std::string> ft_xml_blobs = sensorizer.buildFTXMLBlobs();
@@ -428,6 +418,16 @@ void Creo2Urdf::OnCommand() {
 
     export_options.xmlBlobs.insert(export_options.xmlBlobs.end(), ft_xml_blobs.begin(), ft_xml_blobs.end());
     export_options.xmlBlobs.insert(export_options.xmlBlobs.end(), sens_xml_blobs.begin(), sens_xml_blobs.end());
+    
+    if (config["XMLBlobs"].IsDefined()) {
+        auto config_xml_blobs = config["XMLBlobs"].as<std::vector<std::string>>();
+        export_options.xmlBlobs.insert(export_options.xmlBlobs.end(), config_xml_blobs.begin(), config_xml_blobs.end());
+        // Adding gazebo pose as xml blob at the end of the urdf.
+        std::string gazebo_pose_xml_str{""};
+        gazebo_pose_xml_str = to_string(originXYZ[0]) + " " + to_string(originXYZ[1]) + " " + to_string(originXYZ[2]) + " " + to_string(originRPY[0]) + " " + to_string(originRPY[1]) + " " + to_string(originRPY[2]);
+        gazebo_pose_xml_str = "<gazebo><pose>" + gazebo_pose_xml_str + "</pose></gazebo>";
+        export_options.xmlBlobs.push_back(gazebo_pose_xml_str);
+    }
 
     exportModelToUrdf(idyn_model, export_options);
 
