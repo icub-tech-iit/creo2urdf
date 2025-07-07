@@ -148,6 +148,10 @@ All internal groups are merged if they are maps, they are overwritten only if an
 | `assignedCollisionGeometry` | Array |  None | Structure for redefining the collision geometry for a given link.  |
 | `assignedColors` | Map |  {} (Empty Map) | If a link is in this map, the color found in the SimMechanics file is substituted with the one passed through this map. The color is represented by a 4 element vector of containing numbers from 0 to 1 representing the red, green, blue and alpha component.  |
 | `meshFormat` | String |  `stl_binary` | Format of the meshes exported. Allowed values: `stl_binary`, `stl_ascii`, `step` |
+| `STEPAsSolid` | Boolean |  True | If true, the STEP meshes are exported as solid. This is only valid if `meshFormat` is set to `step`. |
+| `STEPAsSurfaces` | Boolean |  False | If true, the STEP meshes are exported as surfaces. This is only valid if `meshFormat` is set to `step`. |
+| `STEPAsQuilts` | Boolean |  False | If true, the STEP meshes are exported as quilts. This is only valid if `meshFormat` is set to `step`. |
+| `STEPAsWireframe` | Boolean |  False | If true, the STEP meshes are exported as wireframes. This is only valid if `meshFormat` is set to `step`. |
 | `exportMeshes` | Boolean |  True | If false, the meshes will not be exported. |
 | `meshQuality` | Integer |  3 | Quality of the meshes exported. The value is between 1 and 10, where 1 is the lowest quality and 10 is the highest, see the ptc [creo docs on `pfcCoordSysExportInstructions::SetQuality` method](https://support.ptc.com/help/creo_toolkit/otk_cpp_plus/usascii/index.html#page/creo_toolkit/api/dita/t-pfcModel-CoordSysExportInstructions.html#wwID0EJNT6B). NOTE: this is valid for the stl meshes. |
 

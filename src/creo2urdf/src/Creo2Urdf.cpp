@@ -744,17 +744,28 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
 
         try {
             if (meshFormat == "stl_binary") {
-                auto stl_binary_export_instructions = pfcSTLBinaryExportInstructions().Create(mesh_transform.c_str());
+                auto stl_binary_export_instructions = pfcSTLBinaryExportInstructions::Create(mesh_transform.c_str());
                 stl_binary_export_instructions->SetQuality(mesh_quality);
                 component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(stl_binary_export_instructions));
             }
             else if(meshFormat =="stl_ascii") {
-                auto stl_ascii_export_instructions = pfcSTLASCIIExportInstructions().Create(mesh_transform.c_str());
+                auto stl_ascii_export_instructions = pfcSTLASCIIExportInstructions::Create(mesh_transform.c_str());
                 stl_ascii_export_instructions->SetQuality(mesh_quality);
                 component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(stl_ascii_export_instructions));
             }
             else if (meshFormat == "step") {
-                component_handle->ExportIntf3D(mesh_file_name.c_str(), pfcExportType::pfcEXPORT_STEP);
+                // Set the geometry flags for STEP export
+                auto geom_flags = pfcGeometryFlags::Create();
+                geom_flags->SetAsSolids(true);
+                if (config["STEPAsSolid"].IsDefined()) { geom_flags->SetAsSolids(config["STEPAsSolid"].as<bool>()); }
+                if (config["STEPAsSurfaces"].IsDefined()) { geom_flags->SetAsSurfaces(config["STEPAsSurfaces"].as<bool>()); }
+                if (config["STEPAsWireframe"].IsDefined()) { geom_flags->SetAsWireframe(config["STEPAsWireframe"].as<bool>()); }
+                if (config["STEPAsQuilts"].IsDefined()) { geom_flags->SetAsQuilts(config["STEPAsQuilts"].as<bool>()); }
+                // Create the step export instructions
+
+                auto step_export_instructions = pfcSTEP3DExportInstructions::Create(pfcEXPORT_ASM_FLAT_FILE, geom_flags);
+
+                component_handle->Export(mesh_file_name.c_str(), pfcExportInstructions::cast(step_export_instructions));
             }
             else {
                 return false;
