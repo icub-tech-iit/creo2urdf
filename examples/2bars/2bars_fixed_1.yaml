@@ -1,0 +1,58 @@
+robotName: 2bars
+scale: [0.001,0.001,0.001]
+root: bar_3
+
+# Model base origin
+originXYZ: [0.0,0.0,0.80]
+originRPY: [0.0,0.0,0.0]
+# Meshes options
+filenameformat: "package://2bars/meshes/simmechanics/%s.stl"
+epsilon: 2e-4
+exportMeshes: Yes
+
+forcelowercase: Yes
+
+
+rename:
+    BAR_3: bar_3
+    BARLONGER_3: bar_longer_3
+    BAR_3--BARLONGER_3: bar_3_bar_longer_3_fixed_joint
+
+
+# assignedCollisionGeometry:
+#     - linkName: bar
+#       geometricShape:
+#         shape: box
+#         size: [0.117, 0.100, 0.006]
+#         origin: [0.0,0.0,-0.0193,0.0,0.0,0.0]
+#     - linkName: bar_longer
+#       geometricShape:
+#         shape: box
+#         size: [0.117, 0.100, 0.006]
+#         origin: [0.0,0.0,-0.0193,0.0,0.0,0.0]
+
+assignedMasses:
+ bar_3   : 2.0645667
+ bar_longer_3: 4.1291334
+
+assignedInertias:
+  - linkName: bar_3
+    xx: 0.0074060860
+    yy: 0.0059470733
+    zz: 0.0031780111
+
+assignedColors:
+  bar_3         : [0.6, 0.6, 0.6, 1]
+  bar_longer_3  : [0.6, 0.6, 0.6, 1]
+
+
+XMLBlobs:
+    - |
+            <link name="fake_link_3"/>
+    - |
+            <joint name="fake_link_3_fixed_joint" type="fixed">
+              <origin xyz="0.0606 -0.00639428 0.01745" rpy="1.5708 -0.000105208 -1.5708"/>
+              <parent link="bar_longer_3"/>
+              <child link="fake_link_3"/>
+              <dynamics damping="0.1"/>
+            </joint>
