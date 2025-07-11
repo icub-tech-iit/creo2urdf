@@ -1,3 +1,7 @@
-robotName: 2bars
-scale: [0.001,0.001,0.001]
-root: BAR
+rename:
+    BARLONGER_1--BARLONGER_2: bar_longer_1_bar_longer_2_revolute_joint
+    BAR_2--BAR: bar_2_bar_prismatic_joint
+    BAR_3--BAR_1: bar_3_bar_1_fixed_joint
+
+
+includes: [2bars_pin_2.yaml, 2bars_prismatic.yaml, 2bars_pin.yaml, 2bars_fixed_1.yaml]

@@ -15,9 +15,9 @@ Generate URDF model from CREO Parametric mechanisms.
 
 ## Installation from binaries
 
-> [!NOTE]  
+> [!NOTE]
 > The provided dll has not been unlocked, therefore the Toolkit licence is required for using it
-> 
+>
 
 Download `creo2urdf.zip` from the assets of the [latest release](https://github.com/icub-tech-iit/creo2urdf/releases/latest), and extract it in the folder you like.<br>
 This archive contains the dll of the plugin and the `text` folder for running it. <br>
@@ -37,13 +37,13 @@ Right now the `creo2urdf` plugin needs its dependencies to be compiled and linke
 - Export `CREO_INSTALL_PATH` pointing to the Creo9 installation folder, e.g. `C:\Program Files\PTC\Creo 9.0.8.0\Common Files`
 - Pass `-DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static-md` to the creo2urdf compilation.
 - Run the CMake `configure` step, then build the project:
-    - Within Visual Studio, you can do: **Project > Configure creo2urdf**, then **Build > Build all** 
+    - Within Visual Studio, you can do: **Project > Configure creo2urdf**, then **Build > Build all**
 
 For those who use the CMake integration in Visual Studio, the `-DCMAKE_TOOLCHAIN_FILE` option should not be passed to `CMake command arguments`. Instead, the `vcpkg.cmake` file path must be passed in `CMake toolchain file`.
 
 >[!note]
 >`creo2urdf` uses a [`vcpkg.json`](https://github.com/icub-tech-iit/creo2urdf/blob/master/vcpkg.json#L15) for installing the specific version of the dependencies needed for the compilation.
->The version of vcpkg used is specified [here](https://github.com/icub-tech-iit/creo2urdf/blob/3ff282240344ff2703e0130023eb8a11d50ef5f9/vcpkg.json#L15). 
+>The version of vcpkg used is specified [here](https://github.com/icub-tech-iit/creo2urdf/blob/3ff282240344ff2703e0130023eb8a11d50ef5f9/vcpkg.json#L15).
 
 ## Usage
 
@@ -68,11 +68,11 @@ END
 
 
 ### Test your installation
-The folder `examples` contains a simple assembly with two links, called 2BARS.asm. 
+The folder `examples` contains a simple assembly with two links, called joints_assembled.asm.
 You can open the assembly in Creo and then test the installation by clicking on the Creo2Urdf button.
-The plugin will ask you to select the related .yaml and .csv files, which are provided in the folder.
+The plugin will ask you to select the related .yaml (2bars.yaml) and .csv (2bars.csv) files, which are provided in the folder.
 
-If the export process was successful, you should see three files": "bar.stl", "barlonger.stl" and "model.urdf".
+If the export process was successful, you should see "model.urdf" and the stl of the meshes.
 
 ### YAML Parameter File
 The YAML format is used to pass parameters to the plugin to customized the conversion process.
@@ -257,7 +257,7 @@ Note that every blob must have only one root element.
 | `XMLBlobs `         | Array of String  |  [] (empty array)   | List of XML Blobs to include in the URDF file as children of `<robot>` |
 
 #### CSV  Parameter File
-By using the a .csv file it is possible to load some joint-related information from a csv file. 
+By using the a .csv file it is possible to load some joint-related information from a csv file.
 The rationale for using CSV over YAML for some information related to the model (for example joint limits) is to use a format that it is easier to modify  using common spreadsheet tools like Excel/LibreOffice Calc, that can be easily used also by people without a background in computer science.
 
 ##### Format
