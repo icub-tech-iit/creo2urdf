@@ -213,15 +213,36 @@ void Creo2Urdf::OnCommand() {
     }
 
     if(config["scale"].IsDefined()) {
-        scale = config["scale"].as<std::array<double,3>>();
+        if (!config["scale"].IsSequence() || config["scale"].size() < 3) {
+			printToMessageWindow("scale must be a sequence of 3 values", c2uLogLevel::WARN);
+			return;
+		}
+        const auto& scale_vec = config["scale"].as<std::vector<double>>();
+        scale = { scale_vec[0],
+                  scale_vec[1],
+                  scale_vec[2] };
     }
 
     if (config["originXYZ"].IsDefined()) {
-        originXYZ = config["originXYZ"].as<std::array<double, 3>>();
+        if (!config["originXYZ"].IsSequence() || config["originXYZ"].size() < 3) {
+			printToMessageWindow("originXYZ must be a sequence of 3 values", c2uLogLevel::WARN);
+			return;
+		}
+        const auto& xyz_vec = config["originXYZ"].as<std::vector<double>>();
+        originXYZ = { xyz_vec[0],
+                      xyz_vec[1],
+                      xyz_vec[2] };
     }
 
     if (config["originRPY"].IsDefined()) {
-        originRPY = config["originRPY"].as<std::array<double, 3>>();
+        if (!config["originRPY"].IsSequence() || config["originRPY"].size() < 3) {
+            printToMessageWindow("originRPY must be a sequence of 3 values", c2uLogLevel::WARN);
+            return;
+        }
+        const auto& rpy_vec = config["originRPY"].as<std::vector<double>>();
+        originRPY = { rpy_vec[0],
+                      rpy_vec[1],
+                      rpy_vec[2] };
     }
 
     if (config["exportAllUseradded"].IsDefined()) {
