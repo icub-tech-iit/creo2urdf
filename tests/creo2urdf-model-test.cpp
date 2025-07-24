@@ -13,14 +13,6 @@
 #include <cmath>
 #include <cstdlib>
 
-bool isNotergoCub1Model(const std::string& modelPath)
-{
-    return (modelPath.find("SN001") != std::string::npos ||
-        modelPath.find("GazeboV1_1") != std::string::npos ||
-        modelPath.find("SN002") != std::string::npos ||
-        modelPath.find("GazeboV1_3") != std::string::npos);
-}
-
 inline bool checkDoubleAreEqual(const double& val1,
     const double& val2,
     const double tol)
@@ -95,7 +87,7 @@ bool getAxisInRootLink(iDynTree::KinDynComputations& comp,
 
     if (rootLinkIdx == iDynTree::FRAME_INVALID_INDEX)
     {
-        std::cerr << "ergocub-model-test error: impossible to find root_link in model" << std::endl;
+        std::cerr << "creo2urdf-model-test error: impossible to find root_link in model" << std::endl;
         return false;
     }
 
@@ -103,7 +95,7 @@ bool getAxisInRootLink(iDynTree::KinDynComputations& comp,
 
     if (jntIdx == iDynTree::JOINT_INVALID_INDEX)
     {
-        std::cerr << "ergocub-model-test error: impossible to find " << jointName << " in model" << std::endl;
+        std::cerr << "creo2urdf-model-test error: impossible to find " << jointName << " in model" << std::endl;
         return false;
     }
 
@@ -114,13 +106,13 @@ bool getAxisInRootLink(iDynTree::KinDynComputations& comp,
 
     if (!revJoint)
     {
-        std::cerr << "ergocub-model-test error: " << jointName << " is not revolute " << std::endl;
+        std::cerr << "creo2urdf-model-test error: " << jointName << " is not revolute " << std::endl;
         return false;
     }
 
     if (!revJoint->hasPosLimits())
     {
-        std::cerr << "ergocub-model-test error: " << jointName << " is a continous joint" << std::endl;
+        std::cerr << "creo2urdf-model-test error: " << jointName << " is a continous joint" << std::endl;
         return false;
     }
 
@@ -135,7 +127,7 @@ bool checkBaseLink(iDynTree::KinDynComputations& comp)
 
     if (rootLinkIdx == iDynTree::FRAME_INVALID_INDEX)
     {
-        std::cerr << "ergocub-model-test error: impossible to find root_link in model" << std::endl;
+        std::cerr << "creo2urdf-model-test error: impossible to find root_link in model" << std::endl;
         return false;
     }
 
@@ -143,123 +135,29 @@ bool checkBaseLink(iDynTree::KinDynComputations& comp)
 
     if (rootLinkIdx == iDynTree::FRAME_INVALID_INDEX)
     {
-        std::cerr << "ergocub-model-test error: impossible to find base_link in model" << std::endl;
+        std::cerr << "creo2urdf-model-test error: impossible to find base_link in model" << std::endl;
         return false;
     }
 
     if (comp.getRobotModel().getFrameLink(base_linkIdx) != rootLinkIdx)
     {
-        std::cerr << "ergocub-model-test error: base_link is not attached to root_link" << std::endl;
+        std::cerr << "creo2urdf-model-test error: base_link is not attached to root_link" << std::endl;
         return false;
     }
 
     if (!checkTransformAreEqual(comp.getRobotModel().getFrameTransform(base_linkIdx), iDynTree::Transform::Identity(), 1e-6))
     {
-        std::cerr << "ergocub-model-test error: base_link <---> root_link transform is not an identity" << std::endl;
+        std::cerr << "creo2urdf-model-test error: base_link <---> root_link transform is not an identity" << std::endl;
         return false;
     }
 
-    std::cerr << "ergocub-model-test : base_link test performed correctly " << std::endl;
-
-    return true;
-}
-
-bool checkSolesAreParallelAndCorrectlyPlaced(iDynTree::KinDynComputations& comp)
-{
-    iDynTree::LinkIndex rootLinkIdx = comp.getFrameIndex("root_link");
-
-    if (rootLinkIdx == iDynTree::FRAME_INVALID_INDEX)
-    {
-        std::cerr << "ergocub-model-test error: impossible to find root_link in model" << std::endl;
-        return false;
-    }
-
-    iDynTree::LinkIndex l_sole = comp.getFrameIndex("l_sole");
-
-    if (rootLinkIdx == iDynTree::FRAME_INVALID_INDEX)
-    {
-        std::cerr << "ergocub-model-test error: impossible to find frame l_sole in model" << std::endl;
-        return false;
-    }
-
-    iDynTree::LinkIndex r_sole = comp.getFrameIndex("r_sole");
-
-    if (rootLinkIdx == iDynTree::FRAME_INVALID_INDEX)
-    {
-        std::cerr << "ergocub-model-test error: impossible to find frame r_sole in model" << std::endl;
-        return false;
-    }
-
-    iDynTree::Transform root_H_l_sole = comp.getRelativeTransform(rootLinkIdx, l_sole);
-    iDynTree::Transform root_H_r_sole = comp.getRelativeTransform(rootLinkIdx, r_sole);
-
-    iDynTree::Transform root_H_l_sole_expected(iDynTree::Rotation(1, 0, 0,
-        0, 1, 0,
-        0, 0, 1),
-        iDynTree::Position(0.04403, 0.0744, -0.7793));
-    iDynTree::Transform root_H_r_sole_expected(iDynTree::Rotation(1, 0, 0,
-        0, 1, 0,
-        0, 0, 1),
-        iDynTree::Position(0.04403, -0.0744, -0.7793));
-
-
-    if (!checkTransformAreEqual(root_H_l_sole, root_H_l_sole_expected, 1e-5))
-    {
-        std::cerr << "ergocub-model-test : transform between root_H_l_sole is not the expected one, test failed." << std::endl;
-        std::cerr << "ergocub-model-test : root_H_l_sole :" << root_H_l_sole.toString() << std::endl;
-        std::cerr << "ergocub-model-test : root_H_l_sole_expected :" << root_H_l_sole_expected.toString() << std::endl;
-        return false;
-    }
-
-    if (!checkTransformAreEqual(root_H_r_sole, root_H_r_sole_expected, 1e-5))
-    {
-        std::cerr << "ergocub-model-test : transform between root_H_r_sole is not the expected one, test failed." << std::endl;
-        std::cerr << "ergocub-model-test : root_H_r_sole :" << root_H_r_sole.toString() << std::endl;
-        std::cerr << "ergocub-model-test : root_H_r_sole_expected :" << root_H_r_sole_expected.toString() << std::endl;
-        return false;
-    }
-
-    // height of the sole should be equal
-    double l_sole_height = root_H_l_sole.getPosition().getVal(2);
-    double r_sole_height = root_H_r_sole.getPosition().getVal(2);
-
-    if (!checkDoubleAreEqual(l_sole_height, r_sole_height, 1e-5))
-    {
-        std::cerr << "ergocub-model-test error: l_sole_height is " << l_sole_height << ", while r_sole_height is " << r_sole_height << " (diff : " << std::fabs(l_sole_height - r_sole_height) << " )" << std::endl;
-        return false;
-    }
-
-    // x should also be equal
-    double l_sole_x = root_H_l_sole.getPosition().getVal(0);
-    double r_sole_x = root_H_r_sole.getPosition().getVal(0);
-
-    // The increased threshold is a workaround for https://github.com/robotology/ergocub-model-generator/issues/125
-    if (!checkDoubleAreEqual(l_sole_x, r_sole_x, 2e-4))
-    {
-        std::cerr << "ergocub-model-test error: l_sole_x is " << l_sole_x << ", while r_sole_x is " << r_sole_x << " (diff : " << std::fabs(l_sole_x - r_sole_x) << " )" << std::endl;
-        return false;
-    }
-
-    // y should be simmetric
-    double l_sole_y = root_H_l_sole.getPosition().getVal(1);
-    double r_sole_y = root_H_r_sole.getPosition().getVal(1);
-
-    // The increased threshold is a workaround for https://github.com/robotology/ergocub-model-generator/issues/125
-    if (!checkDoubleAreEqual(l_sole_y, -r_sole_y, 1e-4))
-    {
-        std::cerr << "ergocub-model-test error: l_sole_y is " << l_sole_y << ", while r_sole_y is " << r_sole_y << " while they should be simmetric (diff : " << std::fabs(l_sole_y + r_sole_y) << " )" << std::endl;
-        return false;
-    }
-
-
-    std::cerr << "ergocub-model-test : sole are parallel test performed correctly " << std::endl;
+    std::cerr << "creo2urdf-model-test : base_link test performed correctly " << std::endl;
 
     return true;
 }
 
 
-
-bool checkAxisDirections(iDynTree::KinDynComputations& comp, bool isNotergoCub1Model)
+bool checkAxisDirections(iDynTree::KinDynComputations& comp)
 {
 
     std::vector<std::string> axisNames;
@@ -268,140 +166,6 @@ bool checkAxisDirections(iDynTree::KinDynComputations& comp, bool isNotergoCub1M
     expectedDirectionInRootLink.push_back(iDynTree::Direction(-1, 0, 0));
     axisNames.push_back("l_hip_pitch");
     expectedDirectionInRootLink.push_back(iDynTree::Direction(0, -1, 0));
-    axisNames.push_back("r_hip_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, -1, 0));
-    axisNames.push_back("r_hip_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-1, 0, 0));
-    axisNames.push_back("r_hip_yaw");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, 0, -1));
-    axisNames.push_back("r_knee");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, -1, 0));
-    axisNames.push_back("r_ankle_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, 1, 0));
-    axisNames.push_back("r_ankle_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-1, 0, 0));
-    axisNames.push_back("l_hip_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(1, 0, 0));
-    axisNames.push_back("l_hip_yaw");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, 0, 1));
-    axisNames.push_back("l_knee");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, -1, 0));
-    axisNames.push_back("l_ankle_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, 1, 0));
-    axisNames.push_back("l_ankle_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(1, 0, 0));
-    axisNames.push_back("torso_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, 1, 0));
-    axisNames.push_back("torso_yaw");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, 0, -1));
-    axisNames.push_back("l_shoulder_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.250563, 0.935113, 0.250563));
-    axisNames.push_back("r_shoulder_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.250563, 0.935113, -0.250563));
-    axisNames.push_back("neck_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, -1, 0));
-    axisNames.push_back("neck_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(1, 0, 0));
-    axisNames.push_back("neck_yaw");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-1.62555e-21, -1.1e-15, 1));
-    axisNames.push_back("camera_tilt");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0, -1, 0));
-    axisNames.push_back("r_shoulder_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.961047, -0.271447, -0.0520081));
-    axisNames.push_back("r_shoulder_yaw");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.116648, 0.227771, 0.966702));
-    axisNames.push_back("r_elbow");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.250563, -0.935113, 0.250563));
-    axisNames.push_back("r_wrist_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.961047, 0.271447, 0.0520081));
-    axisNames.push_back("r_wrist_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.250563, -0.935113, 0.250563));
-    axisNames.push_back("r_wrist_yaw");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.116648, 0.227771, 0.966702));
-    axisNames.push_back("r_thumb_add");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.329847, 0.160871, 0.930227));
-    if (!isNotergoCub1Model) {
-        axisNames.push_back("r_thumb_prox");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.525416, 0.838737, -0.143034));
-        axisNames.push_back("r_thumb_dist");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.525416, 0.838737, -0.143034));
-        axisNames.push_back("r_index_add");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.250563, -0.935113, 0.250563));
-        axisNames.push_back("l_thumb_prox");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.525416, 0.838737, 0.143034));
-        axisNames.push_back("l_thumb_dist");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.525416, 0.838737, 0.143034));
-        axisNames.push_back("l_index_add");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.250563, -0.935113, -0.250563));
-        axisNames.push_back("r_index_prox");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.947223, 0.290266, 0.136064));
-        axisNames.push_back("r_index_dist");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.947223, 0.290266, 0.136064));
-        axisNames.push_back("l_index_prox");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.947223, 0.290266, -0.136064));
-        axisNames.push_back("l_index_dist");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.947223, 0.290266, -0.136064));
-    }
-    else {
-        axisNames.push_back("r_thumb_prox");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.439716, 0.892571, -0.0998355));
-        axisNames.push_back("r_thumb_dist");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.439716, 0.892571, -0.0998355));
-        axisNames.push_back("r_index_add");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.250563, 0.935113, -0.250563));
-        axisNames.push_back("l_thumb_prox");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.439716, 0.892571, 0.0998355));
-        axisNames.push_back("l_thumb_dist");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.439716, 0.892571, 0.0998355));
-        axisNames.push_back("l_index_add");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.250563, 0.935113, 0.250563));
-        axisNames.push_back("r_index_prox");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.884949, 0.32618, 0.332372));
-        axisNames.push_back("r_index_dist");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(0.884949, 0.32618, 0.332372));
-        axisNames.push_back("l_index_prox");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.884949, 0.32618, -0.332372));
-        axisNames.push_back("l_index_dist");
-        expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.884949, 0.32618, -0.332372));
-    }
-    axisNames.push_back("r_middle_prox");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.961047, 0.271447, 0.0520081));
-    axisNames.push_back("r_middle_dist");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.961047, 0.271447, 0.0520081));
-    axisNames.push_back("r_ring_prox");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.973762, 0.226085, -0.0259272));
-    axisNames.push_back("r_ring_dist");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.973762, 0.226085, -0.0259272));
-    axisNames.push_back("r_pinkie_prox");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.973762, 0.226085, -0.0259272));
-    axisNames.push_back("r_pinkie_dist");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.973762, 0.226085, -0.0259272));
-    axisNames.push_back("l_shoulder_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.961047, -0.271447, 0.0520081));
-    axisNames.push_back("l_shoulder_yaw");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.116648, 0.227771, -0.966702));
-    axisNames.push_back("l_elbow");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.250563, -0.935113, -0.250563));
-    axisNames.push_back("l_wrist_roll");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.961047, 0.271447, -0.0520081));
-    axisNames.push_back("l_wrist_pitch");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.250563, -0.935113, -0.250563));
-    axisNames.push_back("l_wrist_yaw");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.116648, 0.227771, -0.966702));
-    axisNames.push_back("l_thumb_add");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(0.329847, 0.160871, -0.930227));
-    axisNames.push_back("l_middle_prox");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.961047, 0.271447, -0.0520081));
-    axisNames.push_back("l_middle_dist");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.961047, 0.271447, -0.0520081));
-    axisNames.push_back("l_ring_prox");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.973762, 0.226085, 0.0259272));
-    axisNames.push_back("l_ring_dist");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.973762, 0.226085, 0.0259272));
-    axisNames.push_back("l_pinkie_prox");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.973762, 0.226085, 0.0259272));
-    axisNames.push_back("l_pinkie_dist");
-    expectedDirectionInRootLink.push_back(iDynTree::Direction(-0.973762, 0.226085, 0.0259272));
 
 
     for (int i = 0; i < axisNames.size(); i++)
@@ -417,7 +181,7 @@ bool checkAxisDirections(iDynTree::KinDynComputations& comp, bool isNotergoCub1M
 
         if (!checkVectorAreEqual(axisInRootLink.getDirection(), expectedDirection, 1e-5))
         {
-            std::cerr << "ergocub-model-test error:" << axisToCheck << " got direction of " << axisInRootLink.getDirection().toString()
+            std::cerr << "creo2urdf-model-test error:" << axisToCheck << " got direction of " << axisInRootLink.getDirection().toString()
                 << " instead of expected " << expectedDirection.toString() << std::endl;
             return false;
         }
@@ -435,13 +199,13 @@ bool checkFTSensorsAreOddAndNotNull(iDynTree::ModelLoader& mdlLoader)
 
     if (nrOfFTSensors == 0)
     {
-        std::cerr << "ergocub-model-test error: no F/T sensor found in the model" << std::endl;
+        std::cerr << "creo2urdf-model-test error: no F/T sensor found in the model" << std::endl;
         return false;
     }
 
     if (nrOfFTSensors % 2 == 0)
     {
-        std::cerr << "ergocub-model-test : even number of F/T sensor found in the model" << std::endl;
+        std::cerr << "creo2urdf-model-test : even number of F/T sensor found in the model" << std::endl;
         return false;
     }
 
@@ -458,13 +222,13 @@ bool checkFTSensorsAreEvenAndNotNull(iDynTree::ModelLoader& mdlLoader)
 
     if (nrOfFTSensors == 0)
     {
-        std::cerr << "ergocub-model-test error: no F/T sensor found in the model" << std::endl;
+        std::cerr << "creo2urdf-model-test error: no F/T sensor found in the model" << std::endl;
         return false;
     }
 
     if (nrOfFTSensors % 2 == 1)
     {
-        std::cerr << "ergocub-model-test : odd number of F/T sensor found in the model" << std::endl;
+        std::cerr << "creo2urdf-model-test : odd number of F/T sensor found in the model" << std::endl;
         return false;
     }
 
@@ -487,9 +251,9 @@ bool checkFrameIsCorrectlyOriented(iDynTree::KinDynComputations& comp,
 
     if (!checkMatrixAreEqual(expected, actual, 1e-3))
     {
-        std::cerr << "ergocub-model-test : transform between root_link and " << frameName << " is not the expected one, test failed." << std::endl;
-        std::cerr << "ergocub-model-test : Expected transform : " << expected.toString() << std::endl;
-        std::cerr << "ergocub-model-test : Actual transform : " << actual.toString() << std::endl;
+        std::cerr << "creo2urdf-model-test : transform between root_link and " << frameName << " is not the expected one, test failed." << std::endl;
+        std::cerr << "creo2urdf-model-test : Expected transform : " << expected.toString() << std::endl;
+        std::cerr << "creo2urdf-model-test : Actual transform : " << actual.toString() << std::endl;
         return false;
     }
 
@@ -573,7 +337,7 @@ bool checkFTMeasurementFrameGivenBySensorTagsIsCoherentWithMeasurementFrameGiven
     // Check frame exist
     if (!comp.model().isFrameNameUsed(frameName))
     {
-        std::cerr << "ergocub-model-test : model " << modelPath << " does not contain frame " << frameName << " as expected." << std::endl;
+        std::cerr << "creo2urdf-model-test : model " << modelPath << " does not contain frame " << frameName << " as expected." << std::endl;
         return false;
     }
 
@@ -581,7 +345,7 @@ bool checkFTMeasurementFrameGivenBySensorTagsIsCoherentWithMeasurementFrameGiven
     std::ptrdiff_t sensorIdx;
     if (!sensors.getSensorIndex(iDynTree::SIX_AXIS_FORCE_TORQUE, sensorName, sensorIdx))
     {
-        std::cerr << "ergocub-model-test : model " << modelPath << " does not contain FT sensor " << sensorName << " as expected." << std::endl;
+        std::cerr << "creo2urdf-model-test : model " << modelPath << " does not contain FT sensor " << sensorName << " as expected." << std::endl;
         return false;
     }
 
@@ -593,7 +357,7 @@ bool checkFTMeasurementFrameGivenBySensorTagsIsCoherentWithMeasurementFrameGiven
         = (::iDynTree::SixAxisForceTorqueSensor*)sensors.getSensor(::iDynTree::SIX_AXIS_FORCE_TORQUE, sensorIdx);
     if (!sens)
     {
-        std::cerr << "ergocub-model-test : model " << modelPath << " error in reading sensor " << sensorName << "." << std::endl;
+        std::cerr << "creo2urdf-model-test : model " << modelPath << " error in reading sensor " << sensorName << "." << std::endl;
         return false;
     }
 
@@ -604,7 +368,7 @@ bool checkFTMeasurementFrameGivenBySensorTagsIsCoherentWithMeasurementFrameGiven
 
     if (!ok)
     {
-        std::cerr << "ergocub-model-test : model " << modelPath << " error in reading transform of sensor " << sensorName << "." << std::endl;
+        std::cerr << "creo2urdf-model-test : model " << modelPath << " error in reading transform of sensor " << sensorName << "." << std::endl;
         return false;
     }
 
@@ -617,9 +381,9 @@ bool checkFTMeasurementFrameGivenBySensorTagsIsCoherentWithMeasurementFrameGiven
     // Check that the two transfom are equal equal
     if (!checkTransformAreEqual(root_H_frame, root_H_sensor, 1e-5))
     {
-        std::cerr << "ergocub-model-test : transform between root_H_frame and root_H_sensor for " << sensorName << " is not the expected one, test failed." << std::endl;
-        std::cerr << "ergocub-model-test : root_H_frame :" << root_H_frame.toString() << std::endl;
-        std::cerr << "ergocub-model-test : root_H_sensor :" << root_H_sensor.toString() << std::endl;
+        std::cerr << "creo2urdf-model-test : transform between root_H_frame and root_H_sensor for " << sensorName << " is not the expected one, test failed." << std::endl;
+        std::cerr << "creo2urdf-model-test : root_H_frame :" << root_H_frame.toString() << std::endl;
+        std::cerr << "creo2urdf-model-test : root_H_sensor :" << root_H_sensor.toString() << std::endl;
         return false;
     }
 
@@ -640,8 +404,8 @@ bool checkFTMeasurementFrameGivenBySensorTagsIsCoherentWithMeasurementFrameGiven
 
     if (!checkVectorAreEqual(childLink_H_sensorFrame.getPosition(), zeroVector, 1e-6))
     {
-        std::cerr << "ergocub-model-test : translation between link " << childLinkName << " and sensor " << sensorName << " is non-zero, test failed, see  https://github.com/gazebosim/sdformat/issues/130  for more details." << std::endl;
-        std::cerr << "ergocub-model-test : childLink_H_sensorFrame.getPosition(): " << childLink_H_sensorFrame.getPosition().toString() << std::endl;
+        std::cerr << "creo2urdf-model-test : translation between link " << childLinkName << " and sensor " << sensorName << " is non-zero, test failed, see  https://github.com/gazebosim/sdformat/issues/130  for more details." << std::endl;
+        std::cerr << "creo2urdf-model-test : childLink_H_sensorFrame.getPosition(): " << childLink_H_sensorFrame.getPosition().toString() << std::endl;
         return false;
     }
 
@@ -673,7 +437,7 @@ bool checkAllFTMeasurementFrameGivenBySensorTagsIsCoherentWithMeasurementFrameGi
 
     if (!modelLoaded)
     {
-        std::cerr << "ergocub-model-test error: impossible to load model from " << modelLoaded << std::endl;
+        std::cerr << "creo2urdf-model-test error: impossible to load model from " << modelLoaded << std::endl;
         return false;
     }
 
@@ -715,7 +479,7 @@ int main(int argc, char** argv)
 
     if (!modelLoaded)
     {
-        std::cerr << "ergocub-model-test error: impossible to load model from " << modelLoaded << std::endl;
+        std::cerr << "creo2urdf-model-test error: impossible to load model from " << modelLoaded << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -729,20 +493,13 @@ int main(int argc, char** argv)
     comp.setRobotState(qj, dqj, grav);
 
     // Check axis
-    if (!checkAxisDirections(comp, isNotergoCub1Model(modelPath)))
+    if (!checkAxisDirections(comp))
     {
         return EXIT_FAILURE;
     }
     // Check if base_link exist, and check that is a frame attached to root_link and if its
     // transform is the idyn
     if (!checkBaseLink(comp))
-    {
-        return EXIT_FAILURE;
-    }
-
-
-    // Check if l_sole/r_sole have the same distance from the root_link
-    if (!checkSolesAreParallelAndCorrectlyPlaced(comp))
     {
         return EXIT_FAILURE;
     }
