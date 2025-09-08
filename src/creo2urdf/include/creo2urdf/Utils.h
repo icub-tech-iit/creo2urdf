@@ -159,7 +159,7 @@ static const std::map<SensorType, std::string> gazebo_sensor_type_map = {
     {SensorType::Gyroscope, "gyroscope"}, /// < Gyroscope sensor type.
     {SensorType::Camera, "camera"}, /// < Camera sensor type.
     {SensorType::Depth, "depth"}, /// < Depth sensor type.
-    {SensorType::Ray, "ray"}, /// < Lidar sensor type.
+    {SensorType::Ray, "gpu_lidar"}, /// < Lidar sensor type.
     {SensorType::RGBDCamera, "rgbd_camera"} /// < RGBD camera sensor type.
 };
 
