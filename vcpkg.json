@@ -1,16 +1,16 @@
 {
-  "name": "creo2urdf",
-  "homepage": "https://github.com/icub-tech-iit/creo2urdf",
-  "documentation": "https://icub-tech-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html",
-  "dependencies": [
-    "eigen3",
-    "yaml-cpp",
-    "libxml2",
-    "rapidcsv",
-    {
-      "name": "idyntree",
-      "version>=": "14.0.0"
-    }
-  ],
-  "builtin-baseline": "21bd538cbc3aa687d920d9399befb6c987c87942"
+    "name": "creo2urdf",
+    "homepage": "https://github.com/icub-tech-iit/creo2urdf",
+    "documentation": "https://icub-tech-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html",
+    "dependencies": [
+        "eigen3",
+        "yaml-cpp",
+        "libxml2",
+        "rapidcsv",
+        {
+            "name": "idyntree",
+            "version>=": "14.0.0"
+        }
+    ],
+    "builtin-baseline": "05d617d7b8f3827d2b1dabd8e529bb9b613749b2"
 }
