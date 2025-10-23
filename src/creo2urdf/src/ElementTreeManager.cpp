@@ -57,7 +57,7 @@ bool ElementTreeManager::populateJointInfoFromElementTree(pfcFeature_ptr feat, s
             pfcComponentConstraintType::pfcASM_CONSTRAINT_ALIGN,
             pfcModelItemType::pfcITEM_AXIS);
     }
-    else if (joint.type == JointType::Fixed)
+    else if (joint.type == JointType::Fixed || joint.type == JointType::Spherical)
     {
         joint.datum_name = getConstraintDatum(feat,
             pfcComponentConstraintType::pfcASM_CONSTRAINT_CSYS,

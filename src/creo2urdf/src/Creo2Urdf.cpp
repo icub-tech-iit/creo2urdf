@@ -12,6 +12,7 @@
 #include <pfcExceptions.h>
 
 #include <iDynTree/PrismaticJoint.h>
+#include <iDynTree/SphericalJoint.h>
 #include <iDynTree/EigenHelpers.h>
 #include <iDynTree/ModelTransformers.h>
 
@@ -214,9 +215,9 @@ void Creo2Urdf::OnCommand() {
 
     if(config["scale"].IsDefined()) {
         if (!config["scale"].IsSequence() || config["scale"].size() < 3) {
-			printToMessageWindow("scale must be a sequence of 3 values", c2uLogLevel::WARN);
-			return;
-		}
+            printToMessageWindow("scale must be a sequence of 3 values", c2uLogLevel::WARN);
+            return;
+        }
         const auto& scale_vec = config["scale"].as<std::vector<double>>();
         scale = { scale_vec[0],
                   scale_vec[1],
@@ -225,9 +226,9 @@ void Creo2Urdf::OnCommand() {
 
     if (config["originXYZ"].IsDefined()) {
         if (!config["originXYZ"].IsSequence() || config["originXYZ"].size() < 3) {
-			printToMessageWindow("originXYZ must be a sequence of 3 values", c2uLogLevel::WARN);
-			return;
-		}
+            printToMessageWindow("originXYZ must be a sequence of 3 values", c2uLogLevel::WARN);
+            return;
+        }
         const auto& xyz_vec = config["originXYZ"].as<std::vector<double>>();
         originXYZ = { xyz_vec[0],
                       xyz_vec[1],
@@ -275,7 +276,7 @@ void Creo2Urdf::OnCommand() {
     for (auto & joint_info : joint_info_map) {
         auto parent_link_name = joint_info.second.parent_link_name;
         auto child_link_name = joint_info.second.child_link_name;
-        auto axis_name = joint_info.second.datum_name;
+        auto datum_name = joint_info.second.datum_name;
         auto joint_name = getRenameElementFromConfig(joint_info.first);
 
         // This handles the case of a "cut" assembly, where we have an axis but we miss the child link.
@@ -298,7 +299,7 @@ void Creo2Urdf::OnCommand() {
 
             iDynTree::Direction direction;
             iDynTree::Position axis_mid_point_pos_in_parent;
-            std::tie(ret, direction, axis_mid_point_pos_in_parent) = getAxisFromPart(parent_model, axis_name, parent_link_frame, scale);
+            std::tie(ret, direction, axis_mid_point_pos_in_parent) = getAxisFromPart(parent_model, datum_name, parent_link_frame, scale);
 
             if (!ret)
             {
@@ -358,6 +359,23 @@ void Creo2Urdf::OnCommand() {
             iDynTree::FixedJoint joint(parentLink_H_childLink);
             if (idyn_model.addJoint(getRenameElementFromConfig(parent_link_name),
                 getRenameElementFromConfig(child_link_name), joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
+                printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
+                if (warningsAreFatal) {
+                    return;
+                }
+            }
+        }
+            else if (joint_info.second.type == JointType::Spherical) {
+            iDynTree::SphericalJoint joint;
+            joint.setAttachedLinks(
+                idyn_model.getLinkIndex(getRenameElementFromConfig(parent_link_name)),
+                idyn_model.getLinkIndex(getRenameElementFromConfig(child_link_name))
+            );
+            joint.setRestTransform(parentLink_H_childLink);
+            iDynTree::Transform parent_link_H_joint_center = iDynTree::Transform::Identity();
+            std::tie(ret, parent_link_H_joint_center) = getTransformFromPart(parent_model, datum_name, scale);
+            joint.setJointCenter(idyn_model.getLinkIndex(getRenameElementFromConfig(parent_link_name)), parent_link_H_joint_center.getPosition());
+            if (idyn_model.addJoint(joint_name, &joint) == iDynTree::JOINT_INVALID_INDEX) {
                 printToMessageWindow("FAILED TO ADD JOINT " + joint_name, c2uLogLevel::WARN);
                 if (warningsAreFatal) {
                     return;
@@ -424,6 +442,7 @@ void Creo2Urdf::OnCommand() {
     idyn_model_out.close();
 
     iDynTree::ModelExporterOptions export_options;
+    export_options.exportSphericalJointsAsThreeRevoluteJoints = true;
     export_options.robotExportedName = config["robotName"].Scalar();
     export_options.exportFirstBaseLinkAdditionalFrameAsFakeURDFBase = exportFirstBaseLinkAdditionalFrameAsFakeURDFBase;
 
