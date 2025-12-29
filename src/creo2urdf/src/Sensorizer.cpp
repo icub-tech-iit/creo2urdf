@@ -87,6 +87,13 @@ void Sensorizer::readFTSensorsFromConfig(const YAML::Node& config)
             if (s["exportedFrameName"].IsDefined()) {
                 exported_frame_name = s["exportedFrameName"].Scalar();
             }
+
+            std::vector<string> sensor_blobs;
+            if (s["sensorBlobs"].IsDefined())
+            {
+                sensor_blobs = s["sensorBlobs"].as<std::vector<std::string>>();
+            }
+
             ft_sensors.insert(
                 {
                     s["jointName"].Scalar(),
@@ -100,7 +107,7 @@ void Sensorizer::readFTSensorsFromConfig(const YAML::Node& config)
                         iDynTree::Transform::Identity(),
                         iDynTree::Transform::Identity(),
                         export_frame,
-                        s["sensorBlobs"].as<std::vector<std::string>>()
+                        sensor_blobs
                     }
                 });
         }
