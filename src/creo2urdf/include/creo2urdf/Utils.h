@@ -156,7 +156,7 @@ static const std::map<ShapeType, std::string> shape_type_map = {
  */
 static const std::map<SensorType, std::string> gazebo_sensor_type_map = {
     {SensorType::Accelerometer, "imu"}, /// < Accelerometer sensor type.
-    {SensorType::Gyroscope, "gyroscope"}, /// < Gyroscope sensor type.
+    {SensorType::Gyroscope, "imu"}, /// < Gyroscope sensor type.
     {SensorType::Camera, "camera"}, /// < Camera sensor type.
     {SensorType::Depth, "depth"}, /// < Depth sensor type.
     {SensorType::Ray, "gpu_lidar"}, /// < Lidar sensor type.
