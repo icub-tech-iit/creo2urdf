@@ -6,7 +6,7 @@
 
 cmake_minimum_required(VERSION 3.13)
 project(creo2urdf LANGUAGES C CXX
-                  VERSION 0.5.16)
+                  VERSION 0.5.17)
 
 include(GNUInstallDirs)
 include(FeatureSummary)
