@@ -464,4 +464,29 @@ std::string extractFolderPath(const std::string& filePath);
  */
 void mergeYAMLNodes(YAML::Node& dest, const YAML::Node& src);
 
+/**
+ * @brief Post-process URDF file to format numerical values with fixed precision.
+ *
+ * This function parses the exported URDF XML file and reformats all numerical attributes
+ * (positions, orientations, inertia values, joint limits, etc.) to have a consistent
+ * number of decimal places.
+ *
+ * @param urdf_path Absolute path to the URDF file to post-process.
+ * @param precision Number of decimal places (1-15) for numerical values.
+ * @return bool true if successful, false otherwise (URDF remains valid).
+ */
+bool postProcessUrdfPrecision(const std::string& urdf_path, int precision);
+
+/**
+ * @brief Format a space-separated numerical string with fixed precision.
+ *
+ * Takes a string containing space-separated numerical values (e.g., "1.234567890123 2.345678901234")
+ * and reformats each number to have the specified number of decimal places.
+ *
+ * @param input Input string containing space-separated numbers.
+ * @param precision Number of decimal places for each value.
+ * @return std::string Formatted string with consistent precision.
+ */
+std::string formatNumericalString(const std::string& input, int precision);
+
 #endif // !UTILS_H
