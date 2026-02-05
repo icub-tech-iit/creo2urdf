@@ -262,7 +262,7 @@ void Creo2Urdf::OnCommand() {
         urdfNumericalPrecision = config["urdfNumericalPrecision"].as<int>();
         if (urdfNumericalPrecision < 1 || urdfNumericalPrecision > 15)
         {
-            printToMessageWindow("urdfNumericalPrecision must be between 1 and 15. Using default value of 8.", c2uLogLevel::WARN);
+            printToMessageWindow("urdfNumericalPrecision must be between 1 and 15. Falling back to recommended value of 8.", c2uLogLevel::WARN);
             urdfNumericalPrecision = 8;
         }
     }

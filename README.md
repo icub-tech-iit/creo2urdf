@@ -100,7 +100,7 @@ All internal groups are merged if they are maps, they are overwritten only if an
 ##### Numerical Formatting Parameters
 | Attribute name   | Type   | Default Value | Description  |
 |:----------------:|:---------:|:------------:|:-------------:|
-| `urdfNumericalPrecision`     | Integer     | Not set | **Optional.** Number of decimal places for all numerical values in the exported URDF. Valid range: 1-15. Recommended: 8. If omitted, uses iDynTree defaults. |
+| `urdfNumericalPrecision`     | Integer     | Not set | **Optional.** Number of decimal places for all numerical values in the exported URDF. Valid range: 1-15. Recommended: 8. If omitted, no post-processing is applied and the URDF uses iDynTree's formatting. |
 
 ##### Naming Parameters
 | Attribute name   | Type   | Default Value | Description  |
