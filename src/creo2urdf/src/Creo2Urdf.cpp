@@ -18,6 +18,8 @@
 
 #include <Eigen/Core>
 
+#include <filesystem>
+
 bool Creo2Urdf::processAsmItems(pfcModelItems_ptr asmListItems, pfcModel_ptr model_owner, iDynTree::Transform parentAsm_H_csysAsm) {
 
     for (int i = 0; i < asmListItems->getarraysize(); i++)
@@ -540,7 +542,8 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
         return false;
     }
 
-    if (!mdl_exporter.exportModelToFile(m_output_path+ "\\" + "model.urdf"))
+    std::filesystem::path urdf_path = std::filesystem::path(m_output_path) / "model.urdf";
+    if (!mdl_exporter.exportModelToFile(urdf_path.string()))
     {
         printToMessageWindow("Error exporting the urdf. See iDynTreeErrors.txt for details", c2uLogLevel::WARN);
         return false;
@@ -549,8 +552,7 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
     // Post-process URDF to apply numerical precision if explicitly configured
     if (urdfNumericalPrecision > 0)
     {
-        std::string urdf_path = m_output_path + "\\" + "model.urdf";
-        if (!postProcessUrdfPrecision(urdf_path, urdfNumericalPrecision))
+        if (!postProcessUrdfPrecision(urdf_path.string(), urdfNumericalPrecision))
         {
             printToMessageWindow("Warning: Failed to post-process URDF numerical precision. URDF is still valid.", c2uLogLevel::WARN);
         }

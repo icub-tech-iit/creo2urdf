@@ -341,6 +341,7 @@ bool postProcessUrdfPrecision(const std::string& urdf_path, int precision)
     xmlDocPtr doc = xmlReadFile(urdf_path.c_str(), NULL, 0);
     if (doc == NULL)
     {
+        printToMessageWindow("Failed to parse URDF file: " + urdf_path, c2uLogLevel::WARN);
         return false;
     }
 
@@ -348,6 +349,7 @@ bool postProcessUrdfPrecision(const std::string& urdf_path, int precision)
     xmlXPathContextPtr xpathCtx = xmlXPathNewContext(doc);
     if (xpathCtx == NULL)
     {
+        printToMessageWindow("Failed to create XPath context for URDF file: " + urdf_path, c2uLogLevel::WARN);
         xmlFreeDoc(doc);
         return false;
     }
