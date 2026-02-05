@@ -432,7 +432,6 @@ bool postProcessUrdfPrecision(const std::string& urdf_path, int precision)
     // Cleanup
     xmlXPathFreeContext(xpathCtx);
     xmlFreeDoc(doc);
-    xmlCleanupParser();
 
     return (result != -1);
 }
