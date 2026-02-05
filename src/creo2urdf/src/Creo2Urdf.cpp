@@ -255,6 +255,16 @@ void Creo2Urdf::OnCommand() {
         exportFirstBaseLinkAdditionalFrameAsFakeURDFBase = config["exportFirstBaseLinkAdditionalFrameAsFakeURDFBase"].as<bool>();
     }
 
+    if (config["urdfNumericalPrecision"].IsDefined())
+    {
+        urdfNumericalPrecision = config["urdfNumericalPrecision"].as<int>();
+        if (urdfNumericalPrecision < 1 || urdfNumericalPrecision > 15)
+        {
+            printToMessageWindow("urdfNumericalPrecision must be between 1 and 15. Using default value of 8.", c2uLogLevel::WARN);
+            urdfNumericalPrecision = 8;
+        }
+    }
+
     readExportedFramesFromConfig();
     readAssignedInertiasFromConfig();
     readAssignedCollisionGeometryFromConfig();
@@ -534,6 +544,16 @@ bool Creo2Urdf::exportModelToUrdf(iDynTree::Model mdl, iDynTree::ModelExporterOp
     {
         printToMessageWindow("Error exporting the urdf. See iDynTreeErrors.txt for details", c2uLogLevel::WARN);
         return false;
+    }
+
+    // Post-process URDF to apply numerical precision if explicitly configured
+    if (urdfNumericalPrecision > 0)
+    {
+        std::string urdf_path = m_output_path + "\\" + "model.urdf";
+        if (!postProcessUrdfPrecision(urdf_path, urdfNumericalPrecision))
+        {
+            printToMessageWindow("Warning: Failed to post-process URDF numerical precision. URDF is still valid.", c2uLogLevel::WARN);
+        }
     }
 
     printToMessageWindow("Urdf created successfully!");
