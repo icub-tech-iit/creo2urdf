@@ -9,7 +9,7 @@
         "rapidcsv",
         {
             "name": "idyntree",
-            "version>=": "14.0.0"
+            "version>=": "15.0.0"
         }
     ],
     "builtin-baseline": "05d617d7b8f3827d2b1dabd8e529bb9b613749b2"
