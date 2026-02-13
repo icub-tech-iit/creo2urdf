@@ -255,6 +255,16 @@ void Creo2Urdf::OnCommand() {
         exportFirstBaseLinkAdditionalFrameAsFakeURDFBase = config["exportFirstBaseLinkAdditionalFrameAsFakeURDFBase"].as<bool>();
     }
 
+    if (config["urdfNumericalPrecision"].IsDefined())
+    {
+        urdfNumericalPrecision = config["urdfNumericalPrecision"].as<int>();
+        if (urdfNumericalPrecision < 1 || urdfNumericalPrecision > 15)
+        {
+            printToMessageWindow("urdfNumericalPrecision must be between 1 and 15. Using default maximum precision.", c2uLogLevel::WARN);
+            urdfNumericalPrecision = 0;
+        }
+    }
+
     readExportedFramesFromConfig();
     readAssignedInertiasFromConfig();
     readAssignedCollisionGeometryFromConfig();
@@ -445,6 +455,12 @@ void Creo2Urdf::OnCommand() {
     export_options.exportSphericalJointsAsThreeRevoluteJoints = true;
     export_options.robotExportedName = config["robotName"].Scalar();
     export_options.exportFirstBaseLinkAdditionalFrameAsFakeURDFBase = exportFirstBaseLinkAdditionalFrameAsFakeURDFBase;
+
+    // Set numerical precision if explicitly configured
+    if (urdfNumericalPrecision > 0)
+    {
+        export_options.numericalPrecision = urdfNumericalPrecision;
+    }
 
     if (config["root"].IsDefined())
         export_options.baseLink = config["root"].Scalar();

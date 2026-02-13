@@ -150,6 +150,7 @@ private:
     std::array<double, 3> originXYZ {0.0, 0.0, 0.0}; /**< Offset of the root link in XYZ (meters) wrt the world frame. */
     std::array<double, 3> originRPY {0.0, 0.0, 0.0}; /**< Orientation of the root link in Roll-Pitch-Yaw wrt the world frame. */
     bool warningsAreFatal{ true }; /**< Flag indicating whether warnings are treated as fatal errors. */
+    int urdfNumericalPrecision{ -1 }; /**< Number of decimal places for numerical values in the exported URDF. */
     std::string m_yaml_path{ "" }; /**< Path to the YAML configuration file. */
     std::string m_csv_path{ "" }; /**< Path to the CSV file containing joint information. */
     std::string m_output_path{ "" }; /**< Output path for the exported URDF file. */
