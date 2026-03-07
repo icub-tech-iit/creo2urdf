@@ -1,11 +1,11 @@
 site_name: Creo2Urdf
-site_url: https://icub-tech-iit.github.io/creo2urdf/
+site_url: https://mesh-iit.github.io/creo2urdf/
 site_description: Generate URDF models from CREO mechanisms
 site_author: iCub-Tech
 copyright: BSD 3-Clause License
 
-repo_name: icub-tech-iit/creo2urdf
-repo_url: https://github.com/icub-tech-iit/creo2urdf/
+repo_name: mesh-iit/creo2urdf
+repo_url: https://github.com/mesh-iit/creo2urdf/
 edit_uri: 'edit/master/doc/mkdocs/docs'
 docs_dir: 'doc/mkdocs/docs'
 
@@ -95,5 +95,5 @@ theme:
 
 nav:
     - Home: 'index.md'
-    - Documentation: https://icub-tech-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html
+    - Documentation: https://mesh-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html
     - Changelog: 'CHANGELOG.md'

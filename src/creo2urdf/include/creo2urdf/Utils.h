@@ -397,7 +397,7 @@ void printRotationMatrix(pfcMatrix3D_ptr m);
 /**
  * @brief Replaces the first 5 bytes of a binary STL file with the string "robot".
  * This is necessary to avoid accidental parsing of the file as ASCII.
- * For details, see https://github.com/icub-tech-iit/creo2urdf/issues/16
+ * For details, see https://github.com/mesh-iit/creo2urdf/issues/16
  * 
  * @param stl Path of the STL file to edit
  */

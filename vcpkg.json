@@ -1,7 +1,7 @@
 {
     "name": "creo2urdf",
-    "homepage": "https://github.com/icub-tech-iit/creo2urdf",
-    "documentation": "https://icub-tech-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html",
+    "homepage": "https://github.com/mesh-iit/creo2urdf",
+    "documentation": "https://mesh-iit.github.io/creo2urdf/doc/doxygen/doc/html/index.html",
     "dependencies": [
         "eigen3",
         "yaml-cpp",

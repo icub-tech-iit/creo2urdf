@@ -579,7 +579,7 @@ iDynTree::SpatialInertia Creo2Urdf::computeSpatialInertiafromCreo(pfcMassPropert
     iDynTree::Position com_child({ com->get(0) * scale[0] , com->get(1) * scale[1], com->get(2) * scale[2] });
 
     // Account for csysPart_H_link_frame transformation
-    // See https://github.com/icub-tech-iit/ergocub-software/issues/224#issuecomment-1985692598 for full contents
+    // See https://github.com/mesh-iit/ergocub-software/issues/224#issuecomment-1985692598 for full contents
 
     // The COM returned by Creo's GetGravityCenter seems to be expressed in the root frame, so we need 
     // to transform it back to the link frame before passing it to iDynTree's fromRotationalInertiaWrtCenterOfMass
@@ -827,7 +827,7 @@ bool Creo2Urdf::addMeshAndExport(pfcModel_ptr component_handle, const std::strin
 
         // Replace the first 5 bytes of the binary file with a string different than "solid"
         // to avoid issues with stl parsers.
-        // For details see: https://github.com/icub-tech-iit/creo2urdf/issues/16
+        // For details see: https://github.com/mesh-iit/creo2urdf/issues/16
         if (meshFormat == "stl_binary") {
             sanitizeSTL(mesh_file_name);
         }

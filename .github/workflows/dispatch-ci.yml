@@ -16,7 +16,7 @@ jobs:
          uses: peter-evans/repository-dispatch@v3
          with:
            token: ${{ secrets.SELF_HOSTED_RUNNER_CREO2URDF }}
-           repository: icub-tech-iit/creo2urdf-private
+           repository: mesh-iit/creo2urdf-private
            event-type: creo2urdf_run_CI
 
         
